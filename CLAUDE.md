@@ -282,6 +282,11 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
   - **bâtiments** (`buildTile`) : paquets d'environ 120 bâtiments et main rendue toutes les 4 ms (plus de tableaux géants) ;
   - **résolution adaptative** plus calme (`DPRS`) : baisse après 5 s de lenteur, remontée après 15 s de fluidité, jamais deux changements en moins de 10 s (chaque changement réalloue l'image) ;
   - **photos aériennes** : mosaïques renvoyées à la carte graphique au plus toutes les 2,5 s (0,8 s avant), photo proche toutes les 1,2 s (0,5 s avant), toiles non « lues » (`willReadFrequently` désactivé quand `NOVEG`) pour un envoi plus rapide ;
+  - **après le 1er rapport de diagnostic (smartphone Mali-G615, 90 images/s mais blocages de 0,7 à 11 s)** : la cause était le terrain lointain, moyen et l'horizon, reconstruits en entier à chaque arrivée d'eau (rivières) et calculant pour chaque point le creusement de l'eau. Corrigé :
+    - couches éloignées (`buildMidTile`, `buildFar`, `buildRing`) calculées avec `groundFar` (relief seul, sans eau ni micro-relief) et découpées en générateurs (main rendue toutes les 4 ms) ;
+    - versions séparées : `TER.ver` (proche, couloirs) et `TER.fver` (moyen, lointain, horizon) ; `terrInvalidate(near, far)` : l'arrivée de l'eau ne reconstruit que le proche, l'arrivée du relief z10/z8 que l'éloigné ;
+    - `rasterRings` : ne parcourt que les arêtes qui traversent la bande de la cellule (même résultat ; rivière de 40 000 points sur 20 cellules : 430 ms → 20 ms) ;
+    - diagnostic : temps en arrière-plan non compté, plus de fonctions suivies (relief des routes, zones d'eau, éclairage du ciel…).
   - reste connu : quelques pauses du ramasse-miettes JavaScript (≈ 100–200 ms sur le banc, quelques fois par minute) pendant la construction des bâtiments, et la construction d'une tuile de terrain proche (jusqu'à ~90 ms sur le banc).
 
 ### Sources de données externes (dans le navigateur)

@@ -696,6 +696,8 @@ function groundDem(x,z){let h=NaN;
    if(k===0&&DEMS.length>1){demRaw(L,x,z);const e=Math.min(_du,_dv,L.w-_du,L.h-_dv);if(e<40){const h2=demBil(DEMS[1],x,z);if(h2===h2)h=lerp(h2,h,e/40)}}
    break}}
  if(h!==h)h=demFallback(x,z);return h}
+// couches éloignées (moyen, lointain, horizon) : relief seul, sans creusement de l'eau ni micro-relief (invisibles de si loin ; le calcul de l'eau était très coûteux)
+const groundFar=(x,z)=>groundDem(x,z);
 function ground(x,z){let h=groundDem(x,z);
  if(WATERM){const w=waterAt(x,z);if(w>0)h-=2.4*w}
  return h+(vn(x/37,z/37)-.5)*1.4+(vn(x/9.3,z/9.3)-.5)*.3}
@@ -892,7 +894,7 @@ function clipPix(x,z,o){if(!CLIP.on)return false;if(!CLIP.data){try{CLIP.data=CL
 
 // ---------- grilles ----------
 const NT=1024,MT=4096;
-const TER={ver:1,near:new Map(),cov:new Set(),cor:[],mid:new Map(),far:null,ring:null,lp:V(1e9,0,1e9)};
+const TER={ver:1,fver:1,near:new Map(),cov:new Set(),cor:[],mid:new Map(),far:null,ring:null,lp:V(1e9,0,1e9)};
 const ntKey=(a,b)=>a+','+b;
 function computeNearCoverage(){TER.cov=new Set();const R=900;
  for(let i=0;i<N;i+=(LNK[i]?10:1)){if(!inWorld(EOF[i]))continue;const x=X[i],z=Z[i];for(let a=Math.floor((x-R)/NT);a<=Math.floor((x+R)/NT);a++)for(let b=Math.floor((z-R)/NT);b<=Math.floor((z+R)/NT);b++){
@@ -942,23 +944,24 @@ function buildCorridor(c){const ch=CHUNKS[c],own=ch.e,i0=ch.i0,i1=ch.i1,rows=[];
  for(let r=0;r<R-1;r++)for(let k=0;k<cols-1;k++){if(k===C/2)continue;const A=r*cols+k,B=A+1,Cc=A+cols,D=Cc+1;idx.push(A,B,Cc,B,D,Cc)}
  return mkGeo(P,Nn,idx)}
 // tuile moyenne (2048 m) : 64 m ou 128 m, trouée là où la grille proche existe
-function buildMidTile(a,b,lod){const step=lod?128:64,n=MT/step,S=n+3,x0=a*MT,z0=b*MT,H2=new Float32Array(S*S);
- for(let j=0;j<S;j++)for(let i=0;i<S;i++)H2[j*S+i]=ground(x0+(i-1)*step,z0+(j-1)*step);
+// (générateurs : on rend la main à l'affichage toutes les 4 ms environ)
+function* buildMidTile(a,b,lod){const step=lod?128:64,n=MT/step,S=n+3,x0=a*MT,z0=b*MT,H2=new Float32Array(S*S);let t0=performance.now();
+ for(let j=0;j<S;j++){for(let i=0;i<S;i++)H2[j*S+i]=groundFar(x0+(i-1)*step,z0+(j-1)*step);if(performance.now()-t0>4){yield;t0=performance.now()}}
  return gridMesh(x0,z0,step,n,H2,(i,j)=>nearCov(x0+(i+.5)*step,z0+(j+.5)*step),14)}
-function buildFar(){const F=REG.far,M=REG.mid,S=QK==='ultra'||QK==='high'?400:520,nx=Math.ceil((F.x1-F.x0)/S)+1,nz=Math.ceil((F.z1-F.z0)/S)+1;
+function* buildFar(){let t0=performance.now();const F=REG.far,M=REG.mid,S=QK==='ultra'||QK==='high'?400:520,nx=Math.ceil((F.x1-F.x0)/S)+1,nz=Math.ceil((F.z1-F.z0)/S)+1;
  const P=new Float32Array(nx*nz*3),Nn=new Float32Array(nx*nz*3),idx=[],h=new Float32Array(nx*nz),ins=new Uint8Array(nx*nz);
- for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){const x=F.x0+i*S,z=F.z0+j*S,q=j*nx+i;h[q]=ground(x,z);ins[q]=x>M.x0+S&&x<M.x1-S&&z>M.z0+S&&z<M.z1-S?1:0}
+ for(let j=0;j<nz;j++){for(let i=0;i<nx;i++){const x=F.x0+i*S,z=F.z0+j*S,q=j*nx+i;h[q]=groundFar(x,z);ins[q]=x>M.x0+S&&x<M.x1-S&&z>M.z0+S&&z<M.z1-S?1:0}if(performance.now()-t0>4){yield;t0=performance.now()}}
  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){const q=j*nx+i,o=q*3,x=F.x0+i*S,z=F.z0+j*S,inM=x>M.x0-1&&x<M.x1+1&&z>M.z0-1&&z<M.z1+1;
   P[o]=x;P[o+1]=h[q]-(inM?30:0);P[o+2]=z;const A=h[j*nx+Math.min(i+1,nx-1)],B=h[j*nx+Math.max(i-1,0)],C=h[Math.min(j+1,nz-1)*nx+i],D=h[Math.max(j-1,0)*nx+i];
   const gx=-(A-B)/(2*S),gz=-(C-D)/(2*S),l=Math.hypot(gx,1,gz);Nn[o]=gx/l;Nn[o+1]=1/l;Nn[o+2]=gz/l}
  for(let j=0;j<nz-1;j++)for(let i=0;i<nx-1;i++){const q=j*nx+i;if(ins[q]&&ins[q+1]&&ins[q+nx]&&ins[q+nx+1])continue;idx.push(q,q+nx,q+1,q+1,q+nx,q+nx+1)}
  return mkGeo(P,Nn,idx)}
-function buildRing(){const F=REG.far,[cx,cz]=REG.c,r0=Math.min(cx-F.x0,F.x1-cx,cz-F.z0,F.z1-cz)*.85,r1=Math.min(110000,Math.min(cx-REG.ring.x0,REG.ring.x1-cx,cz-REG.ring.z0,REG.ring.z1-cz)*.97);
+function* buildRing(){let t0=performance.now();const F=REG.far,[cx,cz]=REG.c,r0=Math.min(cx-F.x0,F.x1-cx,cz-F.z0,F.z1-cz)*.85,r1=Math.min(110000,Math.min(cx-REG.ring.x0,REG.ring.x1-cx,cz-REG.ring.z0,REG.ring.z1-cz)*.97);
  const NA=288,NR=46,P=new Float32Array(NA*NR*3),Nn=new Float32Array(NA*NR*3),idx=[],ins=new Uint8Array(NA*NR),h=new Float32Array(NA*NR),rr=[];
  for(let k=0;k<NR;k++)rr.push(r0*Math.pow(r1/r0,k/(NR-1)));
  const inF=(x,z,m)=>x>F.x0+m&&x<F.x1-m&&z>F.z0+m&&z<F.z1-m;
- for(let k=0;k<NR;k++)for(let a=0;a<NA;a++){const t=a/NA*6.2832,x=cx+Math.cos(t)*rr[k],z=cz+Math.sin(t)*rr[k],q=k*NA+a;h[q]=ground(x,z);ins[q]=inF(x,z,1500)?1:0;
-  P[q*3]=x;P[q*3+1]=h[q]-(inF(x,z,-1)?80:0);P[q*3+2]=z}
+ for(let k=0;k<NR;k++){for(let a=0;a<NA;a++){const t=a/NA*6.2832,x=cx+Math.cos(t)*rr[k],z=cz+Math.sin(t)*rr[k],q=k*NA+a;h[q]=groundFar(x,z);ins[q]=inF(x,z,1500)?1:0;
+  P[q*3]=x;P[q*3+1]=h[q]-(inF(x,z,-1)?80:0);P[q*3+2]=z}if(performance.now()-t0>4){yield;t0=performance.now()}}
  for(let k=0;k<NR;k++)for(let a=0;a<NA;a++){const q=k*NA+a,dr=(rr[Math.min(k+1,NR-1)]-rr[Math.max(k-1,0)]),da=rr[k]*6.2832/NA*2,t=a/NA*6.2832;
   const gr=(h[Math.min(k+1,NR-1)*NA+a]-h[Math.max(k-1,0)*NA+a])/dr,gt=(h[k*NA+(a+1)%NA]-h[k*NA+(a+NA-1)%NA])/da;
   const gx=gr*Math.cos(t)-gt*Math.sin(t),gz=gr*Math.sin(t)+gt*Math.cos(t),l=Math.hypot(gx,1,gz);Nn[q*3]=-gx/l;Nn[q*3+1]=1/l;Nn[q*3+2]=-gz/l}
@@ -981,11 +984,12 @@ function terrUpdate(cp,force){
   if(rec&&rec.mesh)rec.mesh.visible=d<RC*1.1}
  if(REG.mid){const M=REG.mid;for(let b=M.z0/MT;b<M.z1/MT;b++)for(let a=M.x0/MT;a<M.x1/MT;a++){const k=ntKey(a,b);let rec=TER.mid.get(k);if(!rec){rec={a,b,lod:-1,ver:0,mesh:null};TER.mid.set(k,rec)}
    const cx=(a+.5)*MT,cz=(b+.5)*MT,L=Math.hypot(cx-cp.x,cz-cp.z)-MT*.71<4500?0:1;
-   if(rec.lod!==L||rec.ver!==ver)job(()=>{const L2=Math.hypot(cx-TER.lp.x,cz-TER.lp.z)-MT*.71<4500?0:1;if(rec.lod===L2&&rec.ver===TER.ver)return true;setGeo(rec,buildMidTile(a,b,L2),false);rec.lod=L2;rec.ver=TER.ver;return true},
+   if(rec.lod!==L||rec.ver!==TER.fver)job((function*(){const L2=Math.hypot(cx-TER.lp.x,cz-TER.lp.z)-MT*.71<4500?0:1,fv=TER.fver;if(rec.lod===L2&&rec.ver===fv)return;const g=yield* buildMidTile(a,b,L2);if(fv!==TER.fver){g.dispose();return}setGeo(rec,g,false);rec.lod=L2;rec.ver=fv})(),
     ()=>(rec.mesh?2000:-2000)+Math.hypot(cx-TER.lp.x,cz-TER.lp.z)*.3,'m'+k)}}
- if(REG.far){if(!TER.far)TER.far={mesh:null,ver:0};const f=TER.far;if(f.ver!==ver)job(()=>{if(f.ver===TER.ver)return true;setGeo(f,buildFar(),false);f.ver=TER.ver;return true},f.mesh?6000:900,'far');
-  if(!TER.ring)TER.ring={mesh:null,ver:0};const r=TER.ring;if(r.ver!==ver)job(()=>{if(r.ver===TER.ver)return true;setGeo(r,buildRing(),false);r.ver=TER.ver;return true},r.mesh?7000:1000,'ring')}}
-function terrInvalidate(){TER.ver++;TER.lp.set(1e9,0,1e9)}
+ if(REG.far){if(!TER.far)TER.far={mesh:null,ver:0};const f=TER.far;if(f.ver!==TER.fver)job((function*(){const fv=TER.fver;if(f.ver===fv)return;const g=yield* buildFar();if(fv!==TER.fver){g.dispose();return}setGeo(f,g,false);f.ver=fv})(),f.mesh?6000:900,'far');
+  if(!TER.ring)TER.ring={mesh:null,ver:0};const r=TER.ring;if(r.ver!==TER.fver)job((function*(){const fv=TER.fver;if(r.ver===fv)return;const g=yield* buildRing();if(fv!==TER.fver){g.dispose();return}setGeo(r,g,false);r.ver=fv})(),r.mesh?7000:1000,'ring')}}
+// near : tuiles proches et couloirs ; far : tuiles moyennes, lointain, horizon (reconstruits seulement quand le relief change)
+function terrInvalidate(near,far){if(near!==false)TER.ver++;if(far!==false)TER.fver++;TER.lp.set(1e9,0,1e9)}
 
 // ====================== données cartographiques réelles : IGN BD TOPO (WFS) → OpenStreetMap → procédural ======================
 const DATA={tiles:new Map(),bld:new Map(),veg:new Map(),wat:new Map(),habit:[],places:[],signs:[],src:'',n:{b:0,v:0,w:0}};
@@ -1189,8 +1193,12 @@ function dataLoaderTick(now){if(!NET.ready||now-DLOAD.t<1200)return;DLOAD.t=now;
 // ---- masques raster par cellule de 256 m (4 m) : végétation, eau, bâtiments ----
 const MRES=64,MS4=VC/MRES;
 function rasterRings(M,rings,a,b,val,res,cellS){// remplissage pair-impair
- const X0=a*VC,Z0=b*VC,st=VC/res;
- for(let j=0;j<res;j++){const z=Z0+(j+.5)*st,xs=[];for(const r of rings)for(let i=0,n=r.length,k=n-1;i<n;k=i++){const p=r[i],q=r[k];if((p[1]>z)!==(q[1]>z))xs.push(p[0]+(z-p[1])/(q[1]-p[1])*(q[0]-p[0]))}
+ const X0=a*VC,Z0=b*VC,st=VC/res,Z1=Z0+VC;
+ // arêtes utiles seulement (celles qui traversent la bande de la cellule) : une passe sur le contour au lieu d'une par ligne
+ // (une grande rivière comme l'Isère a des dizaines de milliers de points)
+ const E=[];for(const r of rings)for(let i=0,n=r.length,k=n-1;i<n;k=i++){const p=r[i],q=r[k];if((p[1]<Z0&&q[1]<Z0)||(p[1]>Z1&&q[1]>Z1))continue;E.push(p,q)}
+ if(!E.length)return;
+ for(let j=0;j<res;j++){const z=Z0+(j+.5)*st,xs=[];for(let e=0;e<E.length;e+=2){const p=E[e],q=E[e+1];if((p[1]>z)!==(q[1]>z))xs.push(p[0]+(z-p[1])/(q[1]-p[1])*(q[0]-p[0]))}
   if(xs.length<2)continue;xs.sort((u,v)=>u-v);for(let t=0;t+1<xs.length;t+=2){let i0=Math.ceil((xs[t]-X0)/st-.5),i1=Math.floor((xs[t+1]-X0)/st-.5);i0=Math.max(0,i0);i1=Math.min(res-1,i1);for(let i=i0;i<=i1;i++)M[j*res+i]=val}}}
 const MASKC=new Map();
 function cellMask(a,b){const k=vck(a,b);let m=MASKC.get(k);if(m&&m.ver===DATA.ver)return m.m;const M=new Uint8Array(MRES*MRES);
@@ -3182,7 +3190,7 @@ function suiviExtraAfter(){$('sla').onclick=()=>anaOpen();requestAnimationFrame(
 const DIAG={on:false,wrapped:false};
 const DIAG_FN=['terrUpdate','roadUpdate','oroadUpdate','bldUpdate','waterUpdate','villagesTick','villageGroup','gameTick','npcTick','pedTick','riderAnim','drawMap','drawBig','prof','audioTick',
  'recTick','recSave','dataLoaderTick','mosaicsTick','clipTick','clipRecenter','camUpdate','skyUpdate','compTick','speak','sesTick','wkCoach','celebrate','fxLoop',
- 'parseBDTopoBld','parseBDTopoRoute','osmBld','osmRoad','addWater','computeBridges','clipDrawTile'];
+ 'parseBDTopoBld','parseBDTopoRoute','osmBld','osmRoad','addWater','computeBridges','clipDrawTile','finishTrack','buildCoarse','waterCell','computeNearCoverage','setCourse','buildNearTile','buildCorridor','updateEnv'];
 const DGN={'job:b':'Construction des bâtiments','job:n':'Terrain proche','job:c':'Terrain le long des routes','job:m':'Terrain moyen','job:far':'Terrain lointain','job:ring':'Horizon (montagnes)',
  'job:r':'Chaussées des routes','job:f':'Mobilier de route','job:j':'Carrefours','job:or':'Autres routes (3D)','job:w':'Eau (3D)','job:t':'Végétation','job:pm':'Sol simulé moyen','job:pf':'Sol simulé lointain','job:pr':'Sol simulé horizon',
  render:'Affichage 3D (carte graphique)',tex:'Envoi d\'images à la carte graphique',shader:'Préparation des effets 3D (shaders)',JSONparse:'Décodage des données reçues',
@@ -3190,7 +3198,7 @@ const DGN={'job:b':'Construction des bâtiments','job:n':'Terrain proche','job:c
  terrUpdate:'Suivi du terrain',roadUpdate:'Suivi des routes',oroadUpdate:'Suivi des autres routes',bldUpdate:'Suivi des bâtiments',waterUpdate:'Suivi de l\'eau',villagesTick:'Villages et panneaux',villageGroup:'Construction d\'un village',
  gameTick:'Jeu (sprints, côtes)',npcTick:'Cyclistes PNJ',pedTick:'Piétons',riderAnim:'Animation du cycliste',drawMap:'Mini-carte',drawBig:'Grande carte',prof:'Profil du bas',audioTick:'Sons',
  recTick:'Enregistrement de la sortie',recSave:'Sauvegarde automatique',dataLoaderTick:'Chargement des données',mosaicsTick:'Photos aériennes (mosaïques)',clipTick:'Photo proche',clipRecenter:'Photo proche (recentrage)',clipDrawTile:'Photo proche (collage)',
- camUpdate:'Caméra',skyUpdate:'Ciel et soleil',compTick:'Compteur du vélo',speak:'Voix',sesTick:'Suivi (km, kcal)',wkCoach:'Coach de séance',celebrate:'Célébrations',fxLoop:'Confettis',
+ finishTrack:'Relief des routes (recalcul)',buildCoarse:'Grille grossière du relief',waterCell:'Calcul des zones d\'eau',computeNearCoverage:'Zone du terrain proche',setCourse:'Préparation du parcours',buildNearTile:'Terrain proche (calcul)',buildCorridor:'Terrain le long des routes (calcul)',updateEnv:'Éclairage du ciel',camUpdate:'Caméra',skyUpdate:'Ciel et soleil',compTick:'Compteur du vélo',speak:'Voix',sesTick:'Suivi (km, kcal)',wkCoach:'Coach de séance',celebrate:'Célébrations',fxLoop:'Confettis',
  app:'Calculs divers de l\'appli',gpu:'Carte graphique (dessin de l\'image, mesuré)',other:'Navigateur / carte graphique (attente, mémoire, images…)'};
 const dgn=k=>DGN[k]||(k.startsWith('job:')?'Tâche « '+k.slice(4)+' »':k);
 function diagStart(){if(DIAG.on)return;
@@ -3226,6 +3234,7 @@ function diagStart(){if(DIAG.on)return;
   DIAG.cur={};DIAG.bw={};DIAG.inLoop=true;const t0=performance.now();try{L0(now)}finally{DIAG.inLoop=false;DIAG.curTot=performance.now()-t0}
   DIAG.fpsN++;if(now-DIAG.fpsT>1000){DIAG.fps=DIAG.fpsN*1000/(now-DIAG.fpsT);DIAG.fpsN=0;DIAG.fpsT=now;
    $('dg').textContent='🩺 '+Math.round(DIAG.fps)+' img/s · blocages '+DIAG.cnt[1]+' · pire '+Math.round(DIAG.worst)+' ms'}};
+ document.addEventListener('visibilitychange',()=>{DIAG.last=0;DIAG.cur={};DIAG.bw={}});// appli en arrière-plan : pas compté comme blocage
  try{new PerformanceObserver(l=>{if(!DIAG.on)return;for(const e of l.getEntries()){DIAG.lt++;DIAG.ltMs+=e.duration}}).observe({type:'longtask'})}catch(e){}}
 function diagStop(){DIAG.on=false;try{delete localStorage.v3diag}catch(e){}$('dg').style.display='none'}
 const dgf=(v,d)=>nf(v,d===undefined?1:d);
@@ -3757,12 +3766,12 @@ async function startWorld(){const id=++WID;resetWorld();if(!NOVEG&&!TREEG.b)init
  terrInvalidate();roadInvalidate();bldInvalidate();vegInvalidate();
  job(procMosaic(MOS_RING,4),9000,'pr');job(procMosaic(MOS_FAR,4),8500,'pf');job(procMosaic(MOS_MID,4),8000,'pm');
  loadMosaicPhotos(MOS_MID,'ph');loadMosaicPhotos(MOS_FAR,null);loadMosaicPhotos(MOS_RING,null);
- (async()=>{for(const[z,Rg,mx]of[[10,REG.far,42],[8,REG.ring,30]]){try{const L=await dz(z,Rg,mx);if(id!==WID)return;DEMS.push(L);DEMS.sort((a,b)=>b.z-a.z);terrInvalidate()}catch(e){console.warn('MNT',z,e)}}
+ (async()=>{for(const[z,Rg,mx]of[[10,REG.far,42],[8,REG.ring,30]]){try{const L=await dz(z,Rg,mx);if(id!==WID)return;DEMS.push(L);DEMS.sort((a,b)=>b.z-a.z);terrInvalidate(false,true)}catch(e){console.warn('MNT',z,e)}}
   if(id===WID)ldSet('dem',DEMOK?'Relief réel (SRTM) jusqu\'à l\'horizon':'Relief simulé',DEMOK?1:-1)})();
  loadPlaces().then(n=>{if(id===WID)ldSet('pl',n?'Noms de lieux IGN / OSM ('+n+')':'Noms de lieux : liste intégrée',n?1:-1)});
  ldSet('vil','Agglomérations…',0)}
 function dataTick(now){if(now-dataT<2500)return;dataT=now;
- if(waterDirty===-1||(DATA.n.w&&!WATERM)){waterDirty=DATA.n.w;WATERM=true;DATA.wver++;WATC.clear();MASKC.clear();const had=!!BRG;computeBridges();terrInvalidate();roadInvalidate();waterInvalidate();if(had||BRG)bldInvalidate()}
+ if(waterDirty===-1||(DATA.n.w&&!WATERM)){waterDirty=DATA.n.w;WATERM=true;DATA.wver++;WATC.clear();MASKC.clear();const had=!!BRG;computeBridges();terrInvalidate(true,false);roadInvalidate();waterInvalidate();if(had||BRG)bldInvalidate()}
  if(dataDirty){dataDirty=0;BLD.lp.set(1e9,0,1e9);VEG.lp.set(1e9,0,1e9)}}
 // ---- danseuse : détecte une variation de puissance (relance, attaque, sprint) ----
 const PH={buf:[],t:0,on:0,ref:0,hold:0};
