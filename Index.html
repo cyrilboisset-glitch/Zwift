@@ -312,7 +312,8 @@ T.ShaderChunk.fog_fragment=`#ifdef USE_FOG
 #endif`;
 sc.fog=new T.FogExp2(0xc9d9e8,1/42000);
 const WORLD=new T.Group();sc.add(WORLD);WORLD.matrixAutoUpdate=false;
-let PR=Math.min(devicePixelRatio||1,QP.dpr);ren.setPixelRatio(PR);
+// résolution de rendu × 0,8 pour toutes les qualités (le sol, qui coûte le plus, se colorie pixel par pixel)
+const RES_K=.8,PRMAX=()=>Math.min(devicePixelRatio||1,QP.dpr)*RES_K;let PR=PRMAX();ren.setPixelRatio(PR);
 
 const HL=new T.HemisphereLight(0xcfe3ff,0x56603c,.62);sc.add(HL);
 const SUNL=new T.DirectionalLight(0xfff0d8,1.55);sc.add(SUNL,SUNL.target);
@@ -783,22 +784,13 @@ const TFRAG=`{
  vec2 nx=dFdx(nu),ny=dFdy(nu),mx=dFdx(mu),my=dFdy(mu),fx=dFdx(fu),fy=dFdy(fu),rx=dFdx(ru),ry=dFdy(ru);
  float wn=uNearOn*edg(nu,.08),wm=edg(mu,.025),wf=edg(fu,.03);
  vec3 base;
- // couches imbriquées : on n'échantillonne que ce qui est utile (peu de lectures de texture par pixel)
+ // couches imbriquées : on n'échantillonne que ce qui est utile (1 lecture de texture par pixel le plus souvent)
  if(wn>.999)base=TG(tN,nu,nx,ny).rgb;
  else if(wm>.999){base=TG(tM,mu,mx,my).rgb;if(wn>0.)base=mix(base,TG(tN,nu,nx,ny).rgb,wn);}
  else{if(wf>.999)base=TG(tF,fu,fx,fy).rgb;else{base=TG(tR,ru,rx,ry).rgb;if(wf>0.)base=mix(base,TG(tF,fu,fx,fy).rgb,wf);}
   if(wm>0.)base=mix(base,TG(tM,mu,mx,my).rgb,wm);}
+ // allégé (toutes qualités) : photo aérienne seule, sans textures de détail, rocher ni neige
  float L=dot(base,vec3(.3,.59,.11));base=max(mix(vec3(L),base,1.1),0.)*1.06;
- float dist=length(vW-uCam);
- vec4 d2=texture2D(tDet,vW.xz*.0137);vec4 d3=texture2D(tDet,vW.xz*.0019);
- float slope=1.-clamp(vNw.y,0.,1.);
- vec2 dd1=vW.xz*.13,d1x=dFdx(dd1),d1y=dFdy(dd1);vec2 rku=vec2(vW.x+vW.z,vW.y)*.03,rkx=dFdx(rku),rky=dFdy(rku);
- if(dist<430.){vec4 d1=TG(tDet,dd1,d1x,d1y);float dm=1.-smoothstep(30.,420.,dist);base*=mix(1.,.66+.68*d1.r,mix(.35,.62,1.-uPhoto)*dm);}
- base*=(.93+.14*d2.g)*(.95+.1*d3.g);
- float rk=smoothstep(.42,.66,slope+(d2.b-.5)*.24)*(1.-uPhoto*.45);
- if(rk>0.){vec3 rock=vec3(.40,.38,.35)*(.68+.62*TG(tDet,rku,rkx,rky).b);base=mix(base,rock*(.8+.4*L/.35),rk*.7);}
- float sn=smoothstep(uSnow-160.,uSnow+120.,vW.y+(d2.g-.5)*260.+(d3.g-.5)*300.)*(1.-smoothstep(.6,.84,slope));
- base=mix(base,vec3(.93,.95,.99),sn);
  diffuseColor.rgb*=base;}`;
 function mkTerrMat(){const m=new T.MeshLambertMaterial({color:0xffffff,side:T.DoubleSide});m.extensions={derivatives:true};
  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,TU);
@@ -917,13 +909,15 @@ function gridMesh(x0,z0,step,n,H2,skip,skirt){const W=n+1,cnt=W*W,P=new Float32A
  return mkGeo(P,Nn,idx)}
 const _RQ2={d:0,i:0,t:0,y:0,lat:0,end:false};
 // tuile proche : lod 0 = 16 m (trouée sous le couloir), 1 = 32 m, 2 = 64 m
-function buildNearTile(a,b,lod){const step=[16,32,64][lod],n=NT/step,S=n+3,x0=a*NT,z0=b*NT,H2=new Float32Array(S*S),DD=new Float32Array(S*S),RY=new Float32Array(S*S),EE=new Int32Array(S*S);
+// trou jusqu'à 52 m de la route (le couloir va jusqu'à 60 m) ; 36 m seulement dans les virages serrés (couloir rogné côté intérieur) et aux 20 derniers mètres avant un carrefour
+const CUT_D=52;
+function buildNearTile(a,b,lod){const step=[16,32,64][lod],n=NT/step,S=n+3,x0=a*NT,z0=b*NT,H2=new Float32Array(S*S),DD=new Float32Array(S*S),RY=new Float32Array(S*S),EE=new Int32Array(S*S),CU=new Uint8Array(S*S);
  for(let j=0;j<S;j++)for(let i=0;i<S;i++){const x=x0+(i-1)*step,z=z0+(j-1)*step,q=j*S+i,g=ground(x,z),r=roadQ(x,z,_RQ2);
-  if(r&&r.d<=32&&!(BRG&&BRG[r.i])){const t=sm(5.6,31,r.d);H2[q]=(r.y-.18)*(1-t)+g*t}else H2[q]=g;DD[q]=r?r.d:999;RY[q]=r?r.y:1e9;EE[q]=r?r.e:-1}
+  if(r&&r.d<=32&&!(BRG&&BRG[r.i])){const t=sm(5.6,31,r.d);H2[q]=(r.y-.18)*(1-t)+g*t}else H2[q]=g;DD[q]=r?r.d:999;RY[q]=r?r.y:1e9;EE[q]=r?r.e:-1;CU[q]=r&&(Math.abs(DA[r.i])*CUT_D>.9||r.i-NET.E[r.e].i0<4||NET.E[r.e].i1-r.i<4)?1:0}
  const H3=H2.slice();
  for(let j=1;j<S-1;j++)for(let i=1;i<S-1;i++){const q=j*S+i,dd=DD[q];if(dd>=66)continue;let m=Math.min(H2[q],RY[q]-.6);
   for(let v=-1;v<=1;v++)for(let u=-1;u<=1;u++)m=Math.min(m,H2[q+v*S+u]);const k=1-sm(56,66,dd);H3[q]=H2[q]+(m-1.05-H2[q])*k}
- const skip=lod===0?(i,j)=>{const q=(j+1)*S+i+1;return DD[q]<36&&DD[q+1]<36&&DD[q+S]<36&&DD[q+S+1]<36&&EE[q]===EE[q+1]&&EE[q]===EE[q+S]&&EE[q]===EE[q+S+1]}:null;
+ const skip=lod===0?(i,j)=>{const q=(j+1)*S+i+1;const lim=CU[q]|CU[q+1]|CU[q+S]|CU[q+S+1]?36:CUT_D;return DD[q]<lim&&DD[q+1]<lim&&DD[q+S]<lim&&DD[q+S+1]<lim&&EE[q]===EE[q+1]&&EE[q]===EE[q+S]&&EE[q]===EE[q+S+1]}:null;
  return gridMesh(x0,z0,step,n,H3,skip,4)}
 // couloir le long de la route : vraie hauteur hT à des décalages fins (la bande de la chaussée est laissée à la route)
 // chaque couloir s'arrête à mi-chemin d'une autre route (pas de recouvrement aux carrefours)
@@ -3756,7 +3750,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  dataTick(now);dataLoaderTick(now);villagesTick(now);mosaicsTick(now);clipTick(now);waterTick(dt);
  runJobs((hm?14:(fA>26?3.5:fA>20?5:7))+JOB_BOOST);
  // résolution adaptative
- if(now-dprT>2500){dprT=now;const fps=1000/fA,mn=QP.minPR||.75;if(fps<(QP.fpsLo||40)&&PR>mn){PR=Math.max(mn,PR-.1);ren.setPixelRatio(PR);rs()}else if(fps>(QP.fpsHi||57)&&PR<Math.min(devicePixelRatio||1,QP.dpr)-.04){PR=Math.min(QP.dpr,PR+.05);ren.setPixelRatio(PR);rs()}}
+ if(now-dprT>2500){dprT=now;const fps=1000/fA,mn=Math.min(QP.minPR||.75,PRMAX());if(fps<(QP.fpsLo||40)&&PR>mn){PR=Math.max(mn,PR-.1);ren.setPixelRatio(PR);rs()}else if(fps>(QP.fpsHi||57)&&PR<PRMAX()-.04){PR=Math.min(PRMAX(),PR+.05);ren.setPixelRatio(PR);rs()}}
  if(!hm&&now-hudT>100){hudT=now;$('vs').textContent=(v*3.6).toFixed(0);$('vp').textContent=mode==='explore'?'–':Math.round(P);$('vc').textContent=mode==='explore'?'–':Math.round(pedal?cadS:0);$('vh').textContent=hr||'–';
   $('vg').textContent=(g*100).toFixed(1);$('vd').textContent=(s/1000).toFixed(1);$('va').textContent=Math.round(y);
   if(ROUTE){$('vrl').textContent=ROUTE.off>40?'hors itinéraire ·':'reste';$('vr').textContent=Math.max(0,(ROUTE.len-ROUTE.cum[ROUTE.k])/1000).toFixed(1);$('vru').textContent='km'}
