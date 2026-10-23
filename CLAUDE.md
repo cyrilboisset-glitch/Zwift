@@ -52,6 +52,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
   - Ribbons posés sur le terrain tel que le maillage le dessine (`terrH`), par cellules de 512 m (`ORL`), affichés jusqu'à `QP.near` (560 m en Tablette). Pas d'arbre ni d'herbe dessus (code 253 dans les masques).
   - Dessinées en gris fin sur la mini-carte et la grande carte.
 - **Forêts allégées de 90 %** (`FOREST_K = 0,1` dans `genCell`) : massifs IGN/OSM et arbres déduits de la photo. Haies, vergers et peupliers inchangés.
+- **Aucun arbre ni herbe en 3D** (fin octobre 2026, demande de Cyril : `NOVEG = true`) : forêts, haies, vergers, vignes et touffes d'herbe ne sont plus construits (`vegUpdate` et `initGrass` sortent tout de suite, géométries d'arbres non créées). Restent : relief, montagnes, horizon, photos aériennes au sol, bâtiments, eau, routes. Pour les remettre : `NOVEG = false`. Le code ci-dessous est conservé.
 - **Arbres simplifiés** (fin octobre 2026) : feuillus proches 84 triangles au lieu de 142 (moins de cartes de feuillage, 2 branches, cœur en dodécaèdre), conifères 96 au lieu de 124 ; arbres détaillés seulement jusqu'à `treeNear` × 0,6 (33 m en Tablette au lieu de 55), version simple au-delà. Distance d'affichage des arbres, relief lointain, horizon et montagnes inchangés.
 
 ### Navigation sur le réseau

@@ -1183,7 +1183,7 @@ function dataTilesAround(x,z,Rad){const R=Math.max(QP.bld,900)+200,out=[];
 function dataLoaderTick(now){if(!NET.ready||now-DLOAD.t<1200)return;DLOAD.t=now;
  const L=dataTilesAround(RPOS.x,RPOS.z,QP.data||(QK==='low'?4500:6500));DLOAD.pend=L.length;
  while(DLOAD.busy<3&&L.length){const[a,b]=L.shift();DLOAD.busy++;loadDataTile(a,b).finally(()=>{DLOAD.busy--;DLOAD.n++;
-   ldSet('dat',(dataMode===0?'Bâtiments IGN ':dataMode===1?'Bâtiments OSM ':'Bâtiments ')+DATA.n.b+' · forêts '+DATA.n.v+(DLOAD.pend?' (zone en cours)':''),DLOAD.pend?0:1)})}}
+   ldSet('dat',(dataMode===0?'Bâtiments IGN ':dataMode===1?'Bâtiments OSM ':'Bâtiments ')+DATA.n.b+(NOVEG?'':' · forêts '+DATA.n.v)+(DLOAD.pend?' (zone en cours)':''),DLOAD.pend?0:1)})}}
 // ---- masques raster par cellule de 256 m (4 m) : végétation, eau, bâtiments ----
 const MRES=64,MS4=VC/MRES;
 function rasterRings(M,rings,a,b,val,res,cellS){// remplissage pair-impair
@@ -1437,6 +1437,8 @@ function releaseGroup(G){if(!G)return;G.traverse(o=>{if(o.isInstancedMesh){const
 // ---- génération par cellule de 256 m ----
 const VEG={cells:new Map(),ver:1,lp:V(1e9,0,1e9),count:0};
 const _pc=[0,0,0],FOREST_K=.1;
+// aucun arbre ni herbe en 3D (demande de Cyril) : seuls relief, montagnes, photos au sol et bâtiments restent
+const NOVEG=true;
 function classifyPix(o){const r=o[0],g=o[1],b=o[2],L=.3*r+.59*g+.11*b;
  if(L<26||L>112)return 0;if(g<r*.96||g<b*.98)return 0;if(L<72&&b>r*.92)return 2;return 1}
 function genCell(a,b){const r=rng(a*73856093^b*19349663^0x5bd1e995),M=cellMask(a,b),out=[],sp=6.4,n=Math.floor(VC/sp),x0=a*VC,z0=b*VC;
@@ -1488,7 +1490,7 @@ function vineMeshes(cell){const M=cellMask(cell.a,cell.b);let any=false;for(let 
  im.castShadow=im.receiveShadow=true;im.customDepthMaterial=VM.vineD;im.matrixAutoUpdate=false;return im}
 const cellDist=(c,p)=>Math.hypot(Math.max(c.a*VC-p.x,0,p.x-(c.a+1)*VC),Math.max(c.b*VC-p.z,0,p.z-(c.b+1)*VC));
 const cellSig=(c,p)=>{const d=cellDist(c,p);return d<QP.treeNear+70?'n'+Math.round(p.x/28)+','+Math.round(p.z/28):'f'+Math.floor(d/130)};
-function vegUpdate(cp,force){if(!TREEG.b)return;if(!force&&cp.distanceToSquared(VEG.lp)<100)return;VEG.lp.copy(cp);
+function vegUpdate(cp,force){if(NOVEG||!TREEG.b)return;if(!force&&cp.distanceToSquared(VEG.lp)<100)return;VEG.lp.copy(cp);
  const R=QP.tree,ca=Math.floor(cp.x/VC),cb=Math.floor(cp.z/VC),rr=Math.ceil(R/VC)+1;
  for(let b=cb-rr;b<=cb+rr;b++)for(let a=ca-rr;a<=ca+rr;a++){const cx=(a+.5)*VC,cz=(b+.5)*VC;
   const k=vck(a,b);let c=VEG.cells.get(k);if(!c){if(Math.max(0,Math.hypot(cx-cp.x,cz-cp.z)-VC*.71)>R||trackDist(cx,cz)>R+300)continue;c={a,b,list:null,ver:-1,sig:'',g:null,vine:null,y:0,dirty:true};VEG.cells.set(k,c)}
@@ -1509,7 +1511,7 @@ function vegInvalidate(){VEG.ver++;VEG.lp.set(1e9,0,1e9)}
 
 // ---- herbe : touffes autour de la caméra (grille torique), couleur prise sur la photo aérienne ----
 const GRASS={mesh:null,G:0,cs:0,wi:null,wj:null,ci:1e9,cj:1e9};
-function initGrass(){const n=QP.grass,G=Math.floor(Math.sqrt(n)),R=QP.grassP;GRASS.G=G;GRASS.cs=2*R/G;
+function initGrass(){if(NOVEG)return;const n=QP.grass,G=Math.floor(Math.sqrt(n)),R=QP.grassP;GRASS.G=G;GRASS.cs=2*R/G;
  const P=[],U=[],Nn=[];for(let k=0;k<2;k++){const a=k*Math.PI/2+.4,c=Math.cos(a)*.5,s2=Math.sin(a)*.5;P.push(-c,0,-s2,c,0,s2,c,1,s2,-c,0,-s2,c,1,s2,-c,1,-s2);U.push(0,0,1,0,1,1,0,0,1,1,0,1);for(let q=0;q<6;q++)Nn.push(0,1,0)}
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('uv',new T.Float32BufferAttribute(U,2));g.setAttribute('normal',new T.Float32BufferAttribute(Nn,3));
  g.boundingSphere=new T.Sphere(V(),1e7);
@@ -3656,7 +3658,7 @@ function llOf(Rg){const[n,w]=xz2ll(Rg.x0,Rg.z0),[s2,e]=xz2ll(Rg.x1,Rg.z1);return
 function onDataTile(a,b){dataDirty=1;const x0=a*DT-64,x1=(a+1)*DT+64,z0=b*DT-64,z1=(b+1)*DT+64;
  for(const[k,c]of VEG.cells){const cx=(c.a+.5)*VC,cz=(c.b+.5)*VC;if(cx>x0&&cx<x1&&cz>z0&&cz<z1){c.dirty=true;c.band=-1}}
  for(const k of[...MASKC.keys()])MASKC.delete(k);if(DATA.n.w!==waterDirty)waterDirty=-1}
-async function startWorld(){const id=++WID;resetWorld();if(!TREEG.b)initTreeGeos();if(!NET.ready)initNetwork();
+async function startWorld(){const id=++WID;resetWorld();if(!NOVEG&&!TREEG.b)initTreeGeos();if(!NET.ready)initNetwork();
  {const sb=document.querySelector('#hh .sub');if(sb)sb.textContent='Mes routes autour de Pontcharra · '+Math.round(TOT/1000)+' km · '+NET.ND.filter(n=>n&&n.ed.length>=3).length+' carrefours'}
  setupRegions();if(!CLIP.k)clipInit();computeNearCoverage();initGrass();CAM.snap=true;
  if(!RID.init){const st=nearestNet(0,0);RID.e=st.e;RID.u=st.u;RID.dir=1;RID.init=true}
@@ -3803,7 +3805,7 @@ $('bmap').onwheel=e=>{BIGM.zoom=clamp(BIGM.zoom*Math.exp(-e.deltaY*.001),.3,4);d
 addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;if((e.key==='m'||e.key==='M')&&mode!=='home')bigMapToggle();else if(e.key==='Escape'&&BIGM.on)bigMapToggle(false)});
 addEventListener('resize',()=>{if(BIGM.on)bigMapToggle(true)});
 // ---- démarrage ----
-{ftpLog(FTP);$('ftp').value=FTP;R.add(TR);progTick(true);applyKit();hudApply();todApply();wxApply();nav('home');rs();initNPCs();if(!NET.ready)initNetwork();if(!TREEG.b)initTreeGeos();
+{ftpLog(FTP);$('ftp').value=FTP;R.add(TR);progTick(true);applyKit();hudApply();todApply();wxApply();nav('home');rs();initNPCs();if(!NET.ready)initNetwork();if(!NOVEG&&!TREEG.b)initTreeGeos();
  // dernier parcours choisi (ou ancien GPX) ; sinon le monde attend qu'un parcours soit choisi
  let okC=false;try{if(localStorage.v3gpxe)okC=setCourse(JSON.parse(localStorage.v3gpxe),localStorage.v3gpxn||'Parcours');else if(localStorage.v3gpx)okC=setCourse(gpxToEdges(JSON.parse(localStorage.v3gpx),localStorage.v3gpxn||'Itinéraire'),localStorage.v3gpxn||'Itinéraire')}catch(e){console.warn('parcours',e)}
  if(!okC)ldSet('crs','Aucun parcours : Rouler → Choisir un parcours',0);
