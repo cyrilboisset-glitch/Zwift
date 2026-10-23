@@ -68,10 +68,11 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - **Physique** : piste plate (pente 0 envoyée au home trainer en sortie libre, ERG en séance), aspiration derrière les coureurs (même formule que sur route), on monte doubler par le haut puis on redescend à la corde.
 - **Tours** : chrono au passage de la ligne d'arrivée (le premier passage lance le chrono), dernier tour, record de la session et record absolu (`GS.vel = {best, laps}`), annonce vocale tous les 5 tours, célébration au record.
 - **Lumière de rythme** (ruban LED sur la côte d'azur) : point vert qui roule à la vitesse correspondant à la puissance cible (sortie : Z2 65 % FTP, Z3 83 %, seuil, éteinte — touche le bandeau du haut ; séance : consigne du bloc). Point doré = rythme de ton record du tour.
-- **Arène** : piste en bois (lames), rambarde vitrée, mur LED défilant, tribunes (14 rangs, 8 en Tablette/Basse), sièges et public instanciés (le public saute quand ça accélère, flashs de téléphones), toit en dôme avec arches et lampes, écran circulaire suspendu (tour, chrono, record, vitesse, puissance), sol central lumineux.
+- **Arène** : piste en bois (lames), rambarde vitrée, mur LED défilant, tribunes (14 rangs, 8 en Tablette/Basse), sièges et public instanciés (corps, tête, bras, jambes ; animés dans le shader : le public saute quand ça accélère, **lève les bras au passage du cycliste** (`VEL.cr.uRu`, `uNear`), **ola** qui fait deux tours de l'arène toutes les 45 à 105 s et tout de suite au record (`VEL.ola`), **drapeaux** France / Savoie / Pontcharra / damier qui flottent, **pancartes** « ALLEZ CYRIL ! », « PONTCHARRA », « PLUS VITE ! » levées au passage ; flashs de téléphones), toit en dôme avec arches et lampes, écran circulaire suspendu (tour, chrono, record, vitesse, puissance), sol central lumineux.
 - **Jeux de lumière** (`velShow`) : couleurs selon ta zone de puissance, faisceaux mobiles (8, ou 4 en Tablette/Basse) qui suivent le cycliste ou balaient la piste, stroboscope et lasers en sprint (> 140 % FTP), mode doré + confettis + ovation au record du tour, vague lumineuse à chaque passage de ligne.
-- **Caméras** (`velCam`, bouton caméra) : poursuite, « télé » depuis le centre, vue haute, vue du cycliste (penchée avec la piste). Mini-carte : l'ovale, toi, les coureurs, la lumière de rythme et le fantôme du record.
-- **Sons** : rumeur du public et applaudissements ; sons de nature coupés en salle. Trois cyclistes PNJ (pris dans `NPCS`) roulent sur la piste.
+- **Plein écran automatique** à l'entrée du vélodrome (`fsEnter` dans `velStart`) et bouton **⛶** à côté du ☰ pendant toutes les sorties (`#fsb`).
+- **Caméras** (`velCam`, bouton caméra, noms `VCAMN`) : poursuite, « télé » depuis le centre, vue haute, vue du cycliste (penchée avec la piste), **gros plan visage**. Mini-carte : l'ovale, toi, les coureurs, la lumière de rythme et le fantôme du record.
+- **Sons** (`velAudio`) : rumeur du public (plus forte au passage de l'ola), applaudissements ; quand ça chauffe (sprint, record, ola) **banda** (grosse caisse « boum, boum, boum-boum-boum » `kick` + claps en rythme), **cornes** (`horn`), cloches, sifflets ; **roues sur la piste en bois** (`AU.wood` : grondement grave de la piste creuse + chuintement des pneus, modulés au rythme de rotation des roues, plus fort quand des coureurs roulent près de toi) ; **souffle** quand on double ou qu'on est doublé (`whoosh`) ; sons de nature coupés en salle. Trois cyclistes PNJ (pris dans `NPCS`) roulent sur la piste.
 - Enregistrement Strava : la trace GPS est un petit ovale au centre de Pontcharra (le vélodrome est placé à l'origine du repère) ; nom « Vélodrome de Pontcharra · N tours ».
 
 ### Navigation sur le réseau
@@ -158,6 +159,16 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 
   Il se rassoit dès que la puissance retombe sous la référence × 1,12 + 25 W, au plus tôt après 3 s, et au plus tard après 25 s.
 - Il se met aussi en danseuse dans les fortes pentes et pendant les sprints.
+- **Cadence de l'avatar = cadence du home trainer** (fin octobre 2026) : dès que le home trainer envoie le champ « cadence » FTMS (`CADOK`), l'avatar pédale exactement à cette cadence (`cadReal`, `CADR`, lissage rapide 0,15 s) et le HUD l'affiche ; il s'arrête de pédaler si la cadence tombe à 0. Si le home trainer n'envoie pas de cadence, cadence estimée (comme avant) et un message le signale une fois.
+- **Avatar réaliste du joueur** (fin octobre 2026 ; les PNJ gardent leur tête simple) — section `tête réaliste du joueur` :
+  - **visage sculpté** (`faceGeo`) : crâne et visage en coupes horizontales (`HSEC`, splines), relief du nez (arête, pointe, ailes), orbites, arcades, pommettes, lèvres, menton (`faceD`), ~13 000 sommets ; bouche réellement ouverte (cavité, dents) ;
+  - **peau peinte point par point** (`paintFace`, 512 × 512, calculée par tranches de 5 ms dans la file `job`) : grain, rougeurs, cernes, lèvres, narines, sourcils, cheveux courts sous le casque, barbe ; relief fin (`bumpMap`) ; matériau « peau » (`MeshPhysicalMaterial`, reflet `sheen`) ;
+  - **yeux** : globe, iris peint (`paintIris`), paupières avec cils ; **clignements**, petits mouvements du regard ;
+  - **expressions** (`faceTick`, `FST`, « morph targets ») : bouche qui s'ouvre au rythme de la respiration au-dessus de ~62 % FTP, grimace d'effort (coins de la bouche, joues, sourcils) au-dessus de ~95 % FTP, **sueur** (visage qui brille) et **rougeur** qui montent avec l'effort ;
+  - **oreilles** (pavillon, hélix, anthélix, conque, tragus), **cou** (pomme d'Adam), **casque route** (`helmetParts` : coque à 19 mm du crâne, aérations peintes, liner, molette, sangles et boucle ; version aéro), **lunettes enveloppantes** (`glassesParts` : verre teinté transparent, monture, branches) ;
+  - **mains** : doigts qui entourent les cocottes (`handFingers`, gants courts : première phalange gantée) ; **corps** plus fin pour le joueur (`buildBody(true)`) : quadriceps, vaste interne, rotule, mollets à deux chefs, crête du tibia, biceps, triceps, avant-bras, omoplates, pectoraux, trapèzes en pente ;
+  - **Vestiaire → Visage** : teint (4), cheveux (6), barbe (rasé, 3 jours, courte), yeux (5), lunettes (sur le nez, relevées sur le casque, sans) — clés `fsk`, `fhr`, `fbd`, `fey`, `gls` de `v3kit` (`faceApply`) ;
+  - caméra **« Gros plan visage »** sur route (vue n° 7) et au vélodrome.
 
 ### Suivi, récompenses et vestiaire (inspirés de Zwift, MyWhoosh et Rouvy)
 - **kcal** : 1 kJ de travail ≈ 1 kcal dépensée (rendement brut 24 %, `KCAL_J = 0,24 × 4 184`). Affichées dans le HUD.
@@ -252,7 +263,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 | ≈1513 | Bâtiments |
 | ≈1738 | Eau |
 | ≈1765 | Agglomérations : détection par route, noms, panneaux, arches (`villagesTick`) |
-| ≈1856 | Cycliste et vélo : `jerseyCanvas` (styles de maillot), matériaux du joueur `KM`, finesse `GSEG`, `makeRiderInst`, `riderAnim`, compteur `compTick` |
+| ≈1856 | Cycliste et vélo : `jerseyCanvas` (styles de maillot), matériaux du joueur `KM`, finesse `GSEG`, corps `buildBody(hi)` (+ `legBump`, `armBump`), **tête réaliste du joueur** (`FACEO`, `HSEC`, `faceGeo`, `paintFace`, `earGroup`, `helmetParts`, `glassesParts`, `handFingers`, `faceBuild`, `faceApply`, `faceTick`), `makeRiderInst`, `riderAnim`, compteur `compTick` |
 | ≈2188 | Application : état global, FTMS, cardio, séances (`WKALL`, `startW`, `shortenWk`), interface (`nav`, `prof`) |
 | ≈2312 | Jeu : sprints, points, garage |
 | ≈2359 | **Suivi et récompenses** (`SES`, `sesTick`, `reward`, `BADGES`, `progTick`, `suiviRender`), **créateur de séances** (`GOALS`, `genWorkout` avec `g2`, `wkStats`), **vestiaire** (`KITS`, `KIT`, `applyKit`), **grande carte** (`BIGM`, `drawBig`), veille et plein écran |
@@ -314,7 +325,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 
 ### Stockage local (localStorage)
 - `v3q2` : qualité graphique (`tab`, `low`, `med`, `high`, `ultra`). L'ancienne clé `v3q` n'est plus lue, pour que la tablette reparte en « Tablette ».
-- `v3kit` : choix du vestiaire (maillot, couleurs, jantes, pneus…).
+- `v3kit` : choix du vestiaire (maillot, couleurs, jantes, pneus…, et visage : `fsk` teint, `fhr` cheveux, `fbd` barbe, `fey` yeux, `gls` lunettes).
 - `ftp`, `kg` : FTP et poids.
 - `v3gpxe`, `v3gpxn` : **parcours imposé** (liste des routes `[e, sens]` et nom). `v3gpx` (ancien GPX en points) n'est plus écrit : il est seulement relu une fois et recalé.
 - `v3rec` : sortie en cours, sauvegardée toutes les 30 s (effacée à la fin normale de la sortie).
@@ -371,6 +382,9 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
     - réponses FTMS (`onCP`), plage de puissance (0x2AD8) et cardio transmis par le home trainer : testés avec des données simulées seulement ;
     - voix : dépend d'une voix française installée ; musique et sons de cloche générés, jamais écoutés ;
     - côtes : détectées sur l'altitude du réseau, donc justes seulement avec le vrai relief.
+    - **avatar réaliste, tribunes animées, sons du vélodrome** : vérifiés en rendu logiciel seulement (captures) ; sons générés jamais écoutés. Coût mesuré sur le banc : peinture du visage ≈ 150–200 ms (découpée en tranches de 5 ms), casque ≈ 30 ms, corps détaillé ≈ 30 ms au lancement ; sur tablette, compter 2 à 4 fois plus. Si la tablette rame, le visage du joueur peut être allégé (moins de segments dans `faceGeo`) ;
+    - **cadence réelle** : le champ cadence FTMS de la CYCPLUS T2 n'a pas été vérifié ; s'il manque, l'appli le dit et garde la cadence estimée ;
+    - **plein écran automatique** au vélodrome : Chrome l'accepte seulement après un toucher (c'est le cas : bouton du menu) ; sur certains Android, la barre de navigation peut réapparaître.
 15. **Ouverture sur Android** : dans l'aperçu de l'appli Claude, Internet et le Bluetooth sont bloqués (constaté par Cyril : relief et photos simulés). Ouverture directe dans Chrome (Fichiers → Ouvrir avec → Chrome) non vérifiée par nos soins : si Chrome bloque encore, il faudra héberger le fichier en HTTPS (attention à la confidentialité).
 16. **Confidentialité** : le réseau couvre les rues autour du domicile de Cyril. **Le dépôt doit rester privé.**
 
