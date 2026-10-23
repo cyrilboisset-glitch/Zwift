@@ -313,7 +313,7 @@ T.ShaderChunk.fog_fragment=`#ifdef USE_FOG
 sc.fog=new T.FogExp2(0xc9d9e8,1/42000);
 const WORLD=new T.Group();sc.add(WORLD);WORLD.matrixAutoUpdate=false;
 // résolution de rendu × 0,8 pour toutes les qualités (le sol, qui coûte le plus, se colorie pixel par pixel)
-const RES_K=.8,PRMAX=()=>Math.min(devicePixelRatio||1,QP.dpr)*RES_K;let PR=PRMAX();ren.setPixelRatio(PR);
+const DPRS={lo:0,hi:0,t:0},RES_K=.8,PRMAX=()=>Math.min(devicePixelRatio||1,QP.dpr)*RES_K;let PR=PRMAX();ren.setPixelRatio(PR);
 
 const HL=new T.HemisphereLight(0xcfe3ff,0x56603c,.62);sc.add(HL);
 const SUNL=new T.DirectionalLight(0xfff0d8,1.55);sc.add(SUNL,SUNL.target);
@@ -821,7 +821,7 @@ function mosaicUV(z,px0,py0,W,Hh,U,Vv){const n=2**z*256;
  const A=(z3*(v2-v1)+z2*(v1-v3)+z1*(v3-v2))/dn,B=(z3*z3*(v1-v2)+z2*z2*(v3-v1)+z1*z1*(v2-v3))/dn,C=(z2*z3*(z2-z3)*v1+z3*z1*(z3-z1)*v2+z1*z2*(z1-z2)*v3)/dn;
  Vv.set(C,B,A);return{x0:xL,x1:xR,z0:P[0][0],z1:P[2][0]}}
 function makeMosaic(z,tx0,ty0,nt,res,U,Vv,tUni){
- const M={z,tx0,ty0,nt,res,k:mkCanvas(res,res),dirty:0,tex:null,got:new Set(),data:null};M.g=M.k.getContext('2d',{willReadFrequently:true});
+ const M={z,tx0,ty0,nt,res,k:mkCanvas(res,res),dirty:0,tex:null,got:new Set(),data:null};M.g=M.k.getContext('2d',{willReadFrequently:!NOVEG});
  M.g.fillStyle='#6f7d58';M.g.fillRect(0,0,res,res);
  M.ext=mosaicUV(z,tx0*256,ty0*256,nt*256,nt*256,U,Vv);M.U=U;M.V=Vv;M.tex=texOf(M.k,true,false);M.tex.wrapS=M.tex.wrapT=T.ClampToEdgeWrapping;tUni.value=M.tex;return M}
 const REG={};let MOS_MID=null,MOS_FAR=null,MOS_RING=null;
@@ -861,11 +861,12 @@ function mosPix(M,x,z,o){if(!M)return false;if(!M.data){try{M.data=M.g.getImageD
  const u=(x-M.U.x)*M.U.y,v=M.V.x+M.V.y*z+M.V.z*z*z;if(!(u>=0&&u<1&&v>0&&v<=1))return false;
  const i=Math.floor(u*M.res),j=Math.floor((1-v)*M.res),q=(j*M.res+i)*4,d=M.data;o[0]=d[q];o[1]=d[q+1];o[2]=d[q+2];
  return M.got.has(Math.floor(u*M.nt)+','+Math.floor((1-v)*M.nt))}
-let mosT=0;function mosaicsTick(now){if(now-mosT<800)return;mosT=now;for(const M of[MOS_MID,MOS_FAR,MOS_RING])if(M&&M.dirty){M.dirty=0;M.tex.needsUpdate=true}}
+// mosaïques photo renvoyées en entier à la carte graphique : au plus toutes les 2,5 s pendant le chargement
+let mosT=0;function mosaicsTick(now){if(now-mosT<2500)return;mosT=now;for(const M of[MOS_MID,MOS_FAR,MOS_RING])if(M&&M.dirty){M.dirty=0;M.tex.needsUpdate=true}}
 
 // ---------- photo proche haute résolution (z16, 1,7 m/px) qui suit la caméra ----------
 const CLIP={on:false,z:QP.photoZ,S:Math.min(QP.clip,MAXTEX),px0:0,py0:0,k:null,g:null,tex:null,dirty:0,imgs:new Map(),pend:new Set(),data:null,ver:0};
-function clipInit(){CLIP.k=mkCanvas(CLIP.S,CLIP.S);CLIP.g=CLIP.k.getContext('2d',{willReadFrequently:true});CLIP.tex=texOf(CLIP.k,true,false);
+function clipInit(){CLIP.k=mkCanvas(CLIP.S,CLIP.S);CLIP.g=CLIP.k.getContext('2d',{willReadFrequently:!NOVEG});CLIP.tex=texOf(CLIP.k,true,false);
  CLIP.tex.wrapS=CLIP.tex.wrapT=T.ClampToEdgeWrapping;TU.tN.value=CLIP.tex}
 function clipDrawTile(x,y,img){const dx=x*256-CLIP.px0,dy=y*256-CLIP.py0;if(dx<=-256||dy<=-256||dx>=CLIP.S||dy>=CLIP.S)return;CLIP.g.drawImage(img,dx,dy,256,256);CLIP.dirty=1;CLIP.data=null}
 function clipRecenter(cx,cz,force){if(PHOTO.dead||!CLIP.k){TU.uNearOn.value=0;return}
@@ -881,7 +882,7 @@ function clipRecenter(cx,cz,force){if(PHOTO.dead||!CLIP.k){TU.uNearOn.value=0;re
   else if(!CLIP.pend.has(k)){CLIP.pend.add(k);photoTile(CLIP.z,x,y).then(b=>{CLIP.imgs.set(k,b);CLIP.pend.delete(k);clipDrawTile(x,y,b);if(typeof onPhotoTile==='function')onPhotoTile(CLIP.z,x,y)}).catch(()=>CLIP.pend.delete(k))}}
  if(CLIP.imgs.size>360){let n=0;for(const[k,b]of CLIP.imgs){if(b.close)b.close();CLIP.imgs.delete(k);if(++n>100)break}}
  mosaicUV(CLIP.z,gx,gy,CLIP.S,CLIP.S,TU.uNU.value,TU.uNV.value);TU.uNearOn.value=1;CLIP.dirty=1;CLIP.data=null}
-let clipT=0;function clipTick(now){if(CLIP.dirty&&now-clipT>500){clipT=now;CLIP.dirty=0;CLIP.tex.needsUpdate=true}}
+let clipT=0;function clipTick(now){if(CLIP.dirty&&now-clipT>1200){clipT=now;CLIP.dirty=0;CLIP.tex.needsUpdate=true}}
 function clipPix(x,z,o){if(!CLIP.on)return false;if(!CLIP.data){try{CLIP.data=CLIP.g.getImageData(0,0,CLIP.S,CLIP.S).data}catch(e){return false}}
  const U=TU.uNU.value,Vv=TU.uNV.value,u=(x-U.x)*U.y,v=Vv.x+Vv.y*z+Vv.z*z*z;if(!(u>=0&&u<1&&v>0&&v<=1))return false;
  const i=Math.floor(u*CLIP.S),j=Math.floor((1-v)*CLIP.S);
@@ -1050,15 +1051,20 @@ async function wfs(type,s,w,n,e,maxPages){let all=[],start=0;
   const j=JSON.parse(txt);if(!j.features)throw new Error('WFS vide');all=all.concat(j.features);
   if(j.features.length<4000)break;start+=4000}
  return all}
+// traitement par petites tranches (≈ 6 ms) : l'affichage continue pendant qu'une zone de carte arrive (avant : jusqu'à plusieurs secondes de blocage) ;
+// abandon si le monde a été reconstruit entre-temps (changement de parcours)
+const STALE={stale:1};
+async function sliced(list,fn,wid){let t0=performance.now();for(let i=0;i<list.length;i++){fn(list[i]);if(performance.now()-t0>6){await new Promise(r=>setTimeout(r,0));if(wid!==WID)throw STALE;t0=performance.now()}}}
 function tileLL(a,b){const[n,w]=xz2ll(a*DT,b*DT),[s,e]=xz2ll((a+1)*DT,(b+1)*DT);return[s,w,n,e]}
-async function loadTileWFS(a,b){const[s,w,n,e]=tileLL(a,b);
- const[B,Vg,W,Rt]=await Promise.all([wfs('BDTOPO_V3:batiment',s,w,n,e,4),wfs('BDTOPO_V3:zone_de_vegetation',s,w,n,e,2).catch(()=>null),wfs('BDTOPO_V3:surface_hydrographique',s,w,n,e,1).catch(()=>null),
+async function loadTileWFS(a,b){const[s,w,n,e]=tileLL(a,b),wid=WID;
+ const[B,Vg,W,Rt]=await Promise.all([wfs('BDTOPO_V3:batiment',s,w,n,e,4),NOVEG?null:wfs('BDTOPO_V3:zone_de_vegetation',s,w,n,e,2).catch(()=>null),wfs('BDTOPO_V3:surface_hydrographique',s,w,n,e,1).catch(()=>null),
   wfs('BDTOPO_V3:troncon_de_route',s,w,n,e,3).catch(()=>null)]);
- for(const f of B)parseBDTopoBld(f);
+ if(wid!==WID)throw STALE;
+ await sliced(B,parseBDTopoBld,wid);
  // autres routes : tronçons IGN, sinon OpenStreetMap
- if(Rt&&Rt.length)for(const f of Rt)parseBDTopoRoute(f);else loadOSMRoads(a,b).catch(e=>console.warn('routes OSM',e&&e.message));
- if(Vg)for(const f of Vg){const t=vegType(f.properties&&f.properties.nature,'');geoRings(f.geometry).forEach((r,k)=>addVeg('v'+(f.properties.cleabs||f.id)+'/'+k,r,t))}
- if(W)for(const f of W){const p=f.properties||{};if(p.position_par_rapport_au_sol&&+p.position_par_rapport_au_sol<0)continue;geoRings(f.geometry).forEach((r,k)=>addWater('w'+(p.cleabs||f.id)+'/'+k,r,p.nature||''))}
+ if(Rt&&Rt.length)await sliced(Rt,parseBDTopoRoute,wid);else loadOSMRoads(a,b).catch(e=>{if(e!==STALE)console.warn('routes OSM',e&&e.message)});
+ if(Vg)await sliced(Vg,f=>{const t=vegType(f.properties&&f.properties.nature,'');geoRings(f.geometry).forEach((r,k)=>addVeg('v'+(f.properties.cleabs||f.id)+'/'+k,r,t))},wid);
+ if(W)await sliced(W,f=>{const p=f.properties||{};if(p.position_par_rapport_au_sol&&+p.position_par_rapport_au_sol<0)return;geoRings(f.geometry).forEach((r,k)=>addWater('w'+(p.cleabs||f.id)+'/'+k,r,p.nature||''))},wid);
  return B.length}
 // ---- Overpass (OSM) ----
 function stitch(ways){const rings=[],segs=ways.map(w=>w.slice());while(segs.length){let r=segs.shift();let ch=true;
@@ -1077,19 +1083,20 @@ function osmBld(el){const t=el.tags||{},lv=+t['building:levels']||0,h=parseFloat
  osmRings(el).forEach((poly,k)=>addBuilding('o'+el.id+'/'+k,poly[0],P))}
 async function loadTileOSM(a,b){const[s,w,n,e]=tileLL(a,b),bb=`(${s.toFixed(5)},${w.toFixed(5)},${n.toFixed(5)},${e.toFixed(5)})`;
  const q=`[out:json][timeout:90];(way["building"]${bb};relation["building"]${bb};way["landuse"~"^(forest|vineyard|orchard)$"]${bb};relation["landuse"="forest"]${bb};way["natural"~"^(wood|water|scrub)$"]${bb};relation["natural"~"^(wood|water)$"]${bb};way["waterway"="riverbank"]${bb};way["barrier"="hedge"]${bb};way["natural"="tree_row"]${bb};way["highway"]${bb};);out geom;`;
- const j=await overpass(q,45000);let nb=0;
- for(const el of j.elements||[]){const t=el.tags||{};
-  if(t.building){osmBld(el);nb++;continue}
-  if(t.highway){osmRoad(el);continue}
-  if(t.natural==='water'||t.waterway==='riverbank'){osmRings(el).forEach((r,k)=>addWater('ow'+el.id+'/'+k,r,t.water||'water'));continue}
+ const wid=WID,j=await overpass(q,45000);let nb=0;if(wid!==WID)throw STALE;
+ await sliced(j.elements||[],el=>{const t=el.tags||{};
+  if(t.building){osmBld(el);nb++;return}
+  if(t.highway){osmRoad(el);return}
+  if(t.natural==='water'||t.waterway==='riverbank'){osmRings(el).forEach((r,k)=>addWater('ow'+el.id+'/'+k,r,t.water||'water'));return}
+  if(NOVEG&&!(t.natural==='water'||t.waterway==='riverbank'))return;
   if(t.barrier==='hedge'||t.natural==='tree_row'){if(el.geometry){const L=el.geometry.map(p=>cxz([p.lon,p.lat]));if(L.length>1){const W=t.natural==='tree_row'?3.5:2.2,l=[],r=[];
      for(let i=0;i<L.length;i++){const A=L[Math.max(0,i-1)],B=L[Math.min(L.length-1,i+1)],dx=B[0]-A[0],dz=B[1]-A[1],ll=Math.hypot(dx,dz)||1;l.push([L[i][0]-dz/ll*W,L[i][1]+dx/ll*W]);r.push([L[i][0]+dz/ll*W,L[i][1]-dx/ll*W])}
-     addVeg('oh'+el.id,[l.concat(r.reverse())],VT.hedge)}}continue}
-  const ty=vegType(t.landuse||t.natural,t.leaf_type||'');osmRings(el).forEach((r,k)=>addVeg('ov'+el.id+'/'+k,r,ty))}
+     addVeg('oh'+el.id,[l.concat(r.reverse())],VT.hedge)}}return}
+  const ty=vegType(t.landuse||t.natural,t.leaf_type||'');osmRings(el).forEach((r,k)=>addVeg('ov'+el.id+'/'+k,r,ty))},wid);
  return nb}
 // ---- autres routes et rues (jamais roulées) : seulement affichées, on ne peut pas y rouler ----
 // cellules de 512 m -> tronçons ; leurs emprises entrent aussi dans les masques (pas d'arbre ni d'herbe dessus)
-const ORC=512,ORL=new Map(),ORIDS=new Set(),ORIDX=new Map();
+const ORC=512,ORL=new Map(),ORIDS=new Set(),ORIDX=new Map();let MAPV=0;// MAPV : change quand le fond de la mini-carte doit être redessiné
 const ORK={r:[.3,[1,1,1],.26],c:[.03,[1,.96,.88],.24],s:[.03,[.82,.72,.58],.22]};// type : [u dans la texture de route, teinte, surélévation]
 function addORoad(id,line,kind,w){if(ORIDS.has(id)||line.length<2)return;ORIDS.add(id);
  const P=[];for(let i=0;i<line.length-1;i++){const a=line[i],b=line[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(L/4));for(let k=0;k<n;k++)P.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}P.push(line[line.length-1]);
@@ -1097,7 +1104,7 @@ function addORoad(id,line,kind,w){if(ORIDS.has(id)||line.length<2)return;ORIDS.a
  // on retire ce qui double une route du réseau (déjà dessinée et roulable) ; chaque morceau gardé touche le bord de la route
  const cov=P.map(p=>{const q=roadQ(p[0],p[1],_RQ2);return!!q&&q.d<4.2+w/2});let run=[];
  const flush=()=>{if(run.length>=4){const o={p:run,w,kind,id};const m=run[run.length>>1],k=Math.floor(m[0]/ORC)+','+Math.floor(m[1]/ORC);let c=ORL.get(k);
-   if(!c)ORL.set(k,c={a:Math.floor(m[0]/ORC),b:Math.floor(m[1]/ORC),list:[],n:0,ver:-1,tv:-1,mesh:null});c.list.push(o);c.n++;
+   if(!c)ORL.set(k,c={a:Math.floor(m[0]/ORC),b:Math.floor(m[1]/ORC),list:[],n:0,ver:-1,tv:-1,mesh:null});c.list.push(o);c.n++;MAPV++;
    const hw=w/2+.6,Lf=[],Rg=[];for(let i=0;i<run.length;i++){const A=run[Math.max(0,i-1)],B=run[Math.min(run.length-1,i+1)],dx=B[0]-A[0],dz=B[1]-A[1],l=Math.hypot(dx,dz)||1;Lf.push([run[i][0]-dz/l*hw,run[i][1]+dx/l*hw]);Rg.push([run[i][0]+dz/l*hw,run[i][1]-dx/l*hw])}
    const ring=Lf.concat(Rg.reverse());idxAdd(ORIDX,{rings:[ring],bb:bboxOf([ring])})}run=[]};
  for(let i=0;i<P.length;i++){if(!cov[i]){if(!run.length&&i>0)run.push(P[i-1]);run.push(P[i])}else if(run.length){run.push(P[i]);flush()}}flush()}
@@ -1112,7 +1119,7 @@ function osmRoad(el){const t=el.tags||{},h=t.highway||'';if(!el.geometry||(t.tun
  if(kind==='r'&&/gravel|dirt|ground|unpaved|grass|compacted|earth/.test(t.surface||''))kind='c';
  addORoad('o'+el.id,el.geometry.map(q=>cxz([q.lon,q.lat])),kind,w)}
 async function loadOSMRoads(a,b){const[s,w,n,e]=tileLL(a,b),bb=`(${s.toFixed(5)},${w.toFixed(5)},${n.toFixed(5)},${e.toFixed(5)})`;
- const j=await overpass(`[out:json][timeout:60];way["highway"]${bb};out geom;`,45000);for(const el of j.elements||[])osmRoad(el);dataDirty=1;for(const k of[...MASKC.keys()])MASKC.delete(k)}
+ const wid=WID,j=await overpass(`[out:json][timeout:60];way["highway"]${bb};out geom;`,45000);if(wid!==WID)throw STALE;await sliced(j.elements||[],osmRoad,wid);dataDirty=1;for(const k of[...MASKC.keys()])MASKC.delete(k)}
 // hauteur du terrain telle que la dessine le maillage (grille de 16 m près du réseau, 64 m plus loin ; couloir le long des routes)
 function terrH(x,z){const q=roadQ(x,z,_RQ3);if(q&&q.d<62)return hT(x,z);const s=nearCov(x,z)?16:64,i=Math.floor(x/s),j=Math.floor(z/s),fx=x/s-i,fz=z/s-j,g=(a,b)=>ground(a*s,b*s);
  if(fx+fz<=1){const A=g(i,j);return A+(g(i+1,j)-A)*fx+(g(i,j+1)-A)*fz}const D=g(i+1,j+1);return D+(g(i,j+1)-D)*(1-fx)+(g(i+1,j)-D)*(1-fz)}
@@ -1167,7 +1174,7 @@ const DFAIL=[0,0],DOK=[0,0];
 async function loadDataTile(a,b){const k=a+','+b;if(DATA.tiles.has(k))return;DATA.tiles.set(k,'…');
  for(let m=0;m<3;m++){if(m<2&&DFAIL[m]>=2&&!DOK[m])continue;try{
    if(m===0)await loadTileWFS(a,b);else if(m===1)await loadTileOSM(a,b);else procBuildingsTile(a,b);
-   if(m<2)DOK[m]++;DATA.tiles.set(k,['IGN','OSM','proc'][m]);dataMode=Math.max(dataMode,m);if(typeof onDataTile==='function')onDataTile(a,b);return}catch(e){if(m<2)DFAIL[m]++;console.warn('données',m,a,b,e&&e.message)}}}
+   if(m<2)DOK[m]++;DATA.tiles.set(k,['IGN','OSM','proc'][m]);dataMode=Math.max(dataMode,m);if(typeof onDataTile==='function')onDataTile(a,b);return}catch(e){if(e===STALE)return;if(m<2)DFAIL[m]++;console.warn('données',m,a,b,e&&e.message)}}}
 const DLOAD={busy:0,t:0,n:0,pend:0};
 function dataTilesAround(x,z,Rad){const R=Math.max(QP.bld,900)+200,out=[];
  for(let a=Math.floor((x-Rad)/DT);a<=Math.floor((x+Rad)/DT);a++)for(let b=Math.floor((z-Rad)/DT);b<=Math.floor((z+Rad)/DT);b++){
@@ -1224,8 +1231,10 @@ function buildRoadChunk(c){const ch=CHUNKS[c],Ed=NET.E[ch.e],i0=ch.i0,i1=ch.i1,C
   for(let k=0;k<K;k++)idx.push(base,base+2+k,base+1+k)}
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('uv',new T.Float32BufferAttribute(U,2));g.setIndex(idx);g.computeVertexNormals();g.computeBoundingSphere();return g}
 // ---- ponts : là où la route franchit l'eau ----
+// ponts : masque d'eau seul (pas le masque complet bâtiments/végétation/routes) et routes du parcours seulement
 function computeBridges(){const B=new Uint8Array(N);let any=0;
- for(let i=0;i<N;i++){if(!WIDX.has(vck(Math.floor(X[i]/VC),Math.floor(Z[i]/VC))))continue;let w=0;for(const o of[-3,0,3])w=Math.max(w,maskAt(X[i]-TZ[i]*o,Z[i]+TX[i]*o)===254?1:0);if(w){B[i]=1;any=1}}
+ const wAt=(x,z)=>{const a=Math.floor(x/VC),b=Math.floor(z/VC),M=waterCell(a,b);return M?M[clamp(Math.floor((z-b*VC)/MS4),0,MRES-1)*MRES+clamp(Math.floor((x-a*VC)/MS4),0,MRES-1)]:0};
+ for(let i=0;i<N;i++){if(!inWorld(EOF[i])||!WIDX.has(vck(Math.floor(X[i]/VC),Math.floor(Z[i]/VC))))continue;let w=0;for(const o of[-3,0,3])w=Math.max(w,wAt(X[i]-TZ[i]*o,Z[i]+TX[i]*o));if(w){B[i]=1;any=1}}
  if(!any){BRG=null;return false}
  const D=B.slice();for(let i=0;i<N;i++)if(B[i])for(let k=-5;k<=5;k++){const j=i+k;if(j>=0&&j<N&&EOF[j]===EOF[i])D[j]=1}BRG=D;return true}
 function buildBridgeGeo(i0,i1,gb){// tablier, parapets, piles
@@ -1744,12 +1753,13 @@ function buildChurch(b,r,yMin,yMax,det,wg,rg){const o=obb(b.p),big=b.kind==='chu
   const P=(rr,hh,a)=>[c[0]+Math.cos(a)*rr,th+hh,c[2]+Math.sin(a)*rr];rg.quad(P(r0,h0,a0),P(r0,h0,a1),P(r1,h1,a1),P(r1,h1,a0),roofC,[0,0,1,(h1-h0)/2],rt)}
  const top=th+prof[prof.length-1][1];wg.box(c[0],top,c[2],.07,1.3,.07,ry,CA(0x3a3a3a),6);wg.box(c[0],top+.85,c[2],.6,.07,.07,ry,CA(0x3a3a3a),6)}
 // ---- tuiles de 512 m : maillage détaillé / simple ----
-function* buildTile(t,lod){const wg=new GB(true),rg=new GB(true),det=lod===0;let n=0;
- for(const b of t.L){try{buildOne(b,det,wg,rg)}catch(e){console.warn('bât',b.id,e)}if(++n%(det?6:24)===0)yield}
- const G=new T.Group();G.matrixAutoUpdate=false;
- if(wg.count){const m=new T.Mesh(wg.geo(),WALLM);m.castShadow=m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}
- if(rg.count){const m=new T.Mesh(rg.geo(),ROOFM);m.castShadow=m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}
- return G}
+// bâtiments d'une tuile : paquets d'environ 120 bâtiments (pas de tableau géant à agrandir), et on rend la main à l'affichage toutes les 4 ms
+function* buildTile(t,lod){const det=lod===0,G=new T.Group();G.matrixAutoUpdate=false;let wg=new GB(true),rg=new GB(true),n=0,t0=performance.now();
+ const flush=()=>{if(wg.count){const m=new T.Mesh(wg.geo(),WALLM);m.castShadow=m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}
+  if(rg.count){const m=new T.Mesh(rg.geo(),ROOFM);m.castShadow=m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}wg=new GB(true);rg=new GB(true)};
+ for(const b of t.L){try{buildOne(b,det,wg,rg)}catch(e){console.warn('bât',b.id,e)}
+  if(++n%(det?120:400)===0)flush();if(performance.now()-t0>4){yield;t0=performance.now()}}
+ flush();return G}
 const BLD={lp:V(1e9,0,1e9),ver:1};
 function bldUpdate(cp,force){if(!force&&cp.distanceToSquared(BLD.lp)<400)return;BLD.lp.copy(cp);
  for(const[k,t]of BT){const cx=(t.a+.5)*BTS,cz=(t.b+.5)*BTS,d=Math.max(0,Math.hypot(cx-cp.x,cz-cp.z)-BTS*.7),L=d<QP.bldD?0:d<QP.bld?1:-1;
@@ -1853,7 +1863,7 @@ function villageGroup(v){const E=NET.E[v.e],G=new T.Group(),len=SD[v.i1]-SD[v.i0
  return G}
 function disposeGroup(G){WORLD.remove(G);G.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose()}})}
 function furnInvalidateEdge(e){for(let c=0;c<CHUNKS.length;c++)if(CHUNKS[c].e===e&&ROAD.fur[c])ROAD.fur[c].ver=0}
-function setVILF(v,val){if(!VILF)VILF=new Uint8Array(N);if(v.syn)return;for(let i=v.i0;i<=v.i1;i++)VILF[i]=val}
+function setVILF(v,val){if(!VILF)VILF=new Uint8Array(N);if(v.syn)return;MAPV++;for(let i=v.i0;i<=v.i1;i++)VILF[i]=val}
 let vilT=0,vilBusy=false,synDone=new Set();
 async function villagesTick(now){if(vilBusy||now-vilT<2500||!NET.ready)return;vilT=now;vilBusy=true;
  try{const px=RPOS.x,pz=RPOS.z,fresh=[];
@@ -3750,7 +3760,10 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  dataTick(now);dataLoaderTick(now);villagesTick(now);mosaicsTick(now);clipTick(now);waterTick(dt);
  runJobs((hm?14:(fA>26?3.5:fA>20?5:7))+JOB_BOOST);
  // résolution adaptative
- if(now-dprT>2500){dprT=now;const fps=1000/fA,mn=Math.min(QP.minPR||.75,PRMAX());if(fps<(QP.fpsLo||40)&&PR>mn){PR=Math.max(mn,PR-.1);ren.setPixelRatio(PR);rs()}else if(fps>(QP.fpsHi||57)&&PR<PRMAX()-.04){PR=Math.min(PRMAX(),PR+.05);ren.setPixelRatio(PR);rs()}}
+ if(now-dprT>2500){dprT=now;const fps=1000/fA,mn=Math.min(QP.minPR||.75,PRMAX());
+  // chaque changement réalloue l'image (petit blocage) : on baisse après 5 s de lenteur, on remonte après 15 s de fluidité, jamais deux fois en moins de 10 s
+  DPRS.lo=fps<(QP.fpsLo||40)?DPRS.lo+1:0;DPRS.hi=fps>(QP.fpsHi||57)?DPRS.hi+1:0;
+  if(now-DPRS.t>10000){if(DPRS.lo>=2&&PR>mn){PR=Math.max(mn,PR-.1);ren.setPixelRatio(PR);rs();DPRS.t=now;DPRS.lo=0}else if(DPRS.hi>=6&&PR<PRMAX()-.04){PR=Math.min(PRMAX(),PR+.05);ren.setPixelRatio(PR);rs();DPRS.t=now;DPRS.hi=0}}}
  if(!hm&&now-hudT>100){hudT=now;$('vs').textContent=(v*3.6).toFixed(0);$('vp').textContent=mode==='explore'?'–':Math.round(P);$('vc').textContent=mode==='explore'?'–':Math.round(pedal?cadS:0);$('vh').textContent=hr||'–';
   $('vg').textContent=(g*100).toFixed(1);$('vd').textContent=(s/1000).toFixed(1);$('va').textContent=Math.round(y);
   if(ROUTE){$('vrl').textContent=ROUTE.off>40?'hors itinéraire ·':'reste';$('vr').textContent=Math.max(0,(ROUTE.len-ROUTE.cum[ROUTE.k])/1000).toFixed(1);$('vru').textContent='km'}
@@ -3766,12 +3779,22 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
   nearWater=DATA.n.w?clamp(1-((()=>{let m=1e9;for(const o of[-30,0,30]){const w=waterAt(x-tz*o,z+tx*o);if(w>.3)m=Math.min(m,Math.abs(o))}return m})())/60,0,1):0}
  firstFrames++;renderScene()}
 // ---- mini-carte : le réseau autour de toi (nord en haut) ----
-function drawMap(){const c=$('map');if(!c||!N)return;const W=c.width,g=c.getContext('2d'),Rm=2400,k=W/2/Rm,cx=RW.x,cz=RW.z,M=(x,z)=>[W/2+(x-cx)*k,W/2+(z-cz)*k];
- g.clearRect(0,0,W,W);g.save();g.beginPath();g.arc(W/2,W/2,W/2-2,0,6.283);g.clip();g.lineJoin=g.lineCap='round';
+// fond de la mini-carte (autres routes, réseau, villages) dessiné une fois dans une image en mémoire, centrée sur (MC.cx, MC.cz) et deux fois plus grande :
+// redessiné seulement quand on s'est éloigné de ~2 km ou que de nouvelles données arrivent (avant : des milliers de traits redessinés 2 à 3 fois par seconde)
+const MC={k:null,cx:1e9,cz:1e9,v:-1,W:0,t:0};
+function mapBase(W,Rm,k,cx,cz){const S=W*2;if(!MC.k||MC.W!==W){MC.k=mkCanvas(S,S);MC.W=W;MC.v=-1}
+ const far=Math.abs(cx-MC.cx)>=Rm*.8||Math.abs(cz-MC.cz)>=Rm*.8,now=performance.now();// nouvelles données : au plus une fois toutes les 5 s
+ if(!far&&(MC.v===MAPV||now-MC.t<5000))return;MC.v=MAPV;MC.cx=cx;MC.cz=cz;MC.t=now;
+ const g=MC.k.getContext('2d'),Rb=Rm*2,M=(x,z)=>[S/2+(x-cx)*k,S/2+(z-cz)*k];Rm=Rb;g.clearRect(0,0,S,S);g.lineJoin=g.lineCap='round';
  g.strokeStyle='rgba(200,210,222,.3)';g.lineWidth=1.1;g.beginPath();oroadsPath(g,M,cx,cz,Rm);g.stroke();// autres routes (non roulables)
  g.strokeStyle='rgba(220,230,240,.55)';g.lineWidth=2.2;g.beginPath();
  for(const ch of CHUNKS){if(Math.abs(ch.cx-cx)>Rm+ch.r||Math.abs(ch.cz-cz)>Rm+ch.r)continue;for(let i=ch.i0;i<=ch.i1;i+=4){const[a,b]=M(X[i],Z[i]);i===ch.i0?g.moveTo(a,b):g.lineTo(a,b)}const[a,b]=M(X[ch.i1],Z[ch.i1]);g.lineTo(a,b)}g.stroke();
  if(VILF){g.strokeStyle='rgba(215,38,61,.9)';g.lineWidth=3;g.beginPath();for(const ch of CHUNKS){if(Math.abs(ch.cx-cx)>Rm+ch.r||Math.abs(ch.cz-cz)>Rm+ch.r)continue;let pen=false;for(let i=ch.i0;i<=ch.i1;i+=2){const[a,b]=M(X[i],Z[i]);if(VILF[i]){pen?g.lineTo(a,b):g.moveTo(a,b);pen=true}else pen=false}}g.stroke()}
+}
+function drawMap(){const c=$('map');if(!c||!N)return;const W=c.width,g=c.getContext('2d'),Rm=2400,k=W/2/Rm,cx=RW.x,cz=RW.z,M=(x,z)=>[W/2+(x-cx)*k,W/2+(z-cz)*k];
+ mapBase(W,Rm,k,cx,cz);
+ g.clearRect(0,0,W,W);g.save();g.beginPath();g.arc(W/2,W/2,W/2-2,0,6.283);g.clip();g.lineJoin=g.lineCap='round';
+ g.drawImage(MC.k,W/2-W-(cx-MC.cx)*k,W/2-W-(cz-MC.cz)*k);
  if(ROUTE){g.strokeStyle='rgba(43,212,255,.85)';g.lineWidth=3;g.beginPath();let pen=false;for(let i=Math.max(0,ROUTE.k-40);i<ROUTE.P.length;i+=3){const p=ROUTE.P[i];if(Math.abs(p[0]-cx)>Rm*1.2||Math.abs(p[1]-cz)>Rm*1.2){pen=false;continue}const[a,b]=M(p[0],p[1]);pen?g.lineTo(a,b):g.moveTo(a,b);pen=true}g.stroke()}
  g.strokeStyle='#ffd23f';g.lineWidth=3.6;g.beginPath();PRED.pts.forEach((p,i)=>{if(p.d>Rm*1.1)return;const[a,b]=M(p.x,p.z);i?g.lineTo(a,b):g.moveTo(a,b)});g.stroke();
  for(const n of NPCS){if(!n.alive)continue;const[a,b]=M(n.x,n.z);g.fillStyle=KIND[n.kind].col;g.beginPath();g.arc(a,b,4,0,6.283);g.fill()}

@@ -273,6 +273,15 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 - Les clés des tâches sont gérées par un `Set` (`JKEYS`) et la file est triée une image sur six.
 - Les données cartographiques (tuiles de 2 048 m) sont chargées **autour du cycliste** (rayon de 4,5 à 6,5 km), jamais pour tout le réseau d'un coup.
 - Cache navigateur : Cache Storage `velo3d-data-v4` pour les tuiles, le WFS et Overpass.
+- **Anti-blocages (fin octobre 2026)**, après les « blocages » signalés par Cyril (absents des premières versions) :
+  - **données de carte traitées par tranches de 6 ms** (`sliced`) : bâtiments, autres routes (IGN `troncon_de_route` ou OSM) et eau ne sont plus traités d'un seul bloc à l'arrivée d'une zone de 2 km (mesuré avec des données IGN simulées : blocages de 200 à 400 ms sur le banc, soit plusieurs secondes sur tablette). Abandon propre (`STALE`) si le parcours change pendant le chargement ;
+  - **mini-carte** : le fond (autres routes, réseau, villages) est dessiné une fois dans une image en mémoire (`mapBase`, `MC`, `MAPV`), redessiné seulement après ~2 km ou de nouvelles données (au plus toutes les 5 s). Avant, des milliers de traits redessinés toutes les 0,4 s saturaient l'affichage (46 images en 60 s sur le banc avec données, 1 700 à 1 800 après) ;
+  - **ponts** (`computeBridges`) : masque d'eau seul et routes du parcours seulement (avant : masques complets bâtiments + végétation + routes sur tout le réseau) ;
+  - **forêts** : plus téléchargées ni traitées quand `NOVEG` ;
+  - **bâtiments** (`buildTile`) : paquets d'environ 120 bâtiments et main rendue toutes les 4 ms (plus de tableaux géants) ;
+  - **résolution adaptative** plus calme (`DPRS`) : baisse après 5 s de lenteur, remontée après 15 s de fluidité, jamais deux changements en moins de 10 s (chaque changement réalloue l'image) ;
+  - **photos aériennes** : mosaïques renvoyées à la carte graphique au plus toutes les 2,5 s (0,8 s avant), photo proche toutes les 1,2 s (0,5 s avant), toiles non « lues » (`willReadFrequently` désactivé quand `NOVEG`) pour un envoi plus rapide ;
+  - reste connu : quelques pauses du ramasse-miettes JavaScript (≈ 100–200 ms sur le banc, quelques fois par minute) pendant la construction des bâtiments, et la construction d'une tuile de terrain proche (jusqu'à ~90 ms sur le banc).
 
 ### Sources de données externes (dans le navigateur)
 - Altitude : `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png`
