@@ -91,6 +91,8 @@ body.hm #map{display:none}
 .kc button.on{background:#222c38;color:#fff;box-shadow:0 0 0 2px var(--ac)}
 #hs .hw input[type=number]{width:76px}
 #s-kit{max-width:min(560px,100%)}#wkb{z-index:15}
+.cards.big{grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}.cards.big .card{padding:16px;min-height:104px;justify-content:center}.cards.big .card b{font-size:23px}
+.plr canvas{background:rgba(8,12,18,.55)}.plr small{display:block}.plr button{flex:0 0 auto}
 #jx .lt{display:inline-block;width:26px;height:26px;border-radius:50%;color:#10151c;font:800 16px/26px system-ui;margin-right:6px;vertical-align:middle}
 #jx .mapb{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:min(24vw,140px);height:min(24vw,140px);border-radius:50%;background:rgba(14,19,26,.62);border:2px solid rgba(255,255,255,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:min(9vw,44px);line-height:1;color:#fff;cursor:pointer;z-index:2}
 #jx .mapb small{font:700 13px system-ui;margin-top:4px;color:#fff}
@@ -110,7 +112,7 @@ body.hm #map{display:none}
 <div id="pad" class="p"><button id="bl">◀</button><button id="pl">▶ Lecture</button><button id="br">▶</button></div>
 <div id="bot" class="p"><canvas id="prof"></canvas></div>
 
-<div id="wkb" class="p"><div id="wi"></div><div class="row"><button id="mi">−</button><b id="ixv">100%</b><button id="pi">+</button><button id="pz">⏸</button><button id="qt">✕</button></div></div>
+<div id="wkb" class="p"><div id="wi"></div><div class="row"><button id="mi">−</button><b id="ixv">100%</b><button id="pi">+</button><button id="pz">⏸</button><button id="wsh" title="Raccourcir la séance">⏱</button><button id="qt">✕</button></div></div>
 <div id="home">
  <div id="hh"><h1>VÉLO 3D</h1><div class="sub">Pontcharra · 42,4 km</div><label class="ftp">FTP <input id="ftp" type="number" min="80" max="500" value="200"> W</label><div id="zn"></div></div>
  <div id="hs">
@@ -1026,8 +1028,11 @@ async function wfs(type,s,w,n,e,maxPages){let all=[],start=0;
  return all}
 function tileLL(a,b){const[n,w]=xz2ll(a*DT,b*DT),[s,e]=xz2ll((a+1)*DT,(b+1)*DT);return[s,w,n,e]}
 async function loadTileWFS(a,b){const[s,w,n,e]=tileLL(a,b);
- const[B,Vg,W]=await Promise.all([wfs('BDTOPO_V3:batiment',s,w,n,e,4),wfs('BDTOPO_V3:zone_de_vegetation',s,w,n,e,2).catch(()=>null),wfs('BDTOPO_V3:surface_hydrographique',s,w,n,e,1).catch(()=>null)]);
+ const[B,Vg,W,Rt]=await Promise.all([wfs('BDTOPO_V3:batiment',s,w,n,e,4),wfs('BDTOPO_V3:zone_de_vegetation',s,w,n,e,2).catch(()=>null),wfs('BDTOPO_V3:surface_hydrographique',s,w,n,e,1).catch(()=>null),
+  wfs('BDTOPO_V3:troncon_de_route',s,w,n,e,3).catch(()=>null)]);
  for(const f of B)parseBDTopoBld(f);
+ // autres routes : tronçons IGN, sinon OpenStreetMap
+ if(Rt&&Rt.length)for(const f of Rt)parseBDTopoRoute(f);else loadOSMRoads(a,b).catch(e=>console.warn('routes OSM',e&&e.message));
  if(Vg)for(const f of Vg){const t=vegType(f.properties&&f.properties.nature,'');geoRings(f.geometry).forEach((r,k)=>addVeg('v'+(f.properties.cleabs||f.id)+'/'+k,r,t))}
  if(W)for(const f of W){const p=f.properties||{};if(p.position_par_rapport_au_sol&&+p.position_par_rapport_au_sol<0)continue;geoRings(f.geometry).forEach((r,k)=>addWater('w'+(p.cleabs||f.id)+'/'+k,r,p.nature||''))}
  return B.length}
@@ -1047,16 +1052,65 @@ function osmBld(el){const t=el.tags||{},lv=+t['building:levels']||0,h=parseFloat
   roofShape:t['roof:shape']||'',col:t['building:colour']||'',rcol:t['roof:colour']||'',name:t.name||''};
  osmRings(el).forEach((poly,k)=>addBuilding('o'+el.id+'/'+k,poly[0],P))}
 async function loadTileOSM(a,b){const[s,w,n,e]=tileLL(a,b),bb=`(${s.toFixed(5)},${w.toFixed(5)},${n.toFixed(5)},${e.toFixed(5)})`;
- const q=`[out:json][timeout:90];(way["building"]${bb};relation["building"]${bb};way["landuse"~"^(forest|vineyard|orchard)$"]${bb};relation["landuse"="forest"]${bb};way["natural"~"^(wood|water|scrub)$"]${bb};relation["natural"~"^(wood|water)$"]${bb};way["waterway"="riverbank"]${bb};way["barrier"="hedge"]${bb};way["natural"="tree_row"]${bb};);out geom;`;
+ const q=`[out:json][timeout:90];(way["building"]${bb};relation["building"]${bb};way["landuse"~"^(forest|vineyard|orchard)$"]${bb};relation["landuse"="forest"]${bb};way["natural"~"^(wood|water|scrub)$"]${bb};relation["natural"~"^(wood|water)$"]${bb};way["waterway"="riverbank"]${bb};way["barrier"="hedge"]${bb};way["natural"="tree_row"]${bb};way["highway"]${bb};);out geom;`;
  const j=await overpass(q,45000);let nb=0;
  for(const el of j.elements||[]){const t=el.tags||{};
   if(t.building){osmBld(el);nb++;continue}
+  if(t.highway){osmRoad(el);continue}
   if(t.natural==='water'||t.waterway==='riverbank'){osmRings(el).forEach((r,k)=>addWater('ow'+el.id+'/'+k,r,t.water||'water'));continue}
   if(t.barrier==='hedge'||t.natural==='tree_row'){if(el.geometry){const L=el.geometry.map(p=>cxz([p.lon,p.lat]));if(L.length>1){const W=t.natural==='tree_row'?3.5:2.2,l=[],r=[];
      for(let i=0;i<L.length;i++){const A=L[Math.max(0,i-1)],B=L[Math.min(L.length-1,i+1)],dx=B[0]-A[0],dz=B[1]-A[1],ll=Math.hypot(dx,dz)||1;l.push([L[i][0]-dz/ll*W,L[i][1]+dx/ll*W]);r.push([L[i][0]+dz/ll*W,L[i][1]-dx/ll*W])}
      addVeg('oh'+el.id,[l.concat(r.reverse())],VT.hedge)}}continue}
   const ty=vegType(t.landuse||t.natural,t.leaf_type||'');osmRings(el).forEach((r,k)=>addVeg('ov'+el.id+'/'+k,r,ty))}
  return nb}
+// ---- autres routes et rues (jamais roulées) : seulement affichées, on ne peut pas y rouler ----
+// cellules de 512 m -> tronçons ; leurs emprises entrent aussi dans les masques (pas d'arbre ni d'herbe dessus)
+const ORC=512,ORL=new Map(),ORIDS=new Set(),ORIDX=new Map();
+const ORK={r:[.3,[1,1,1],.26],c:[.03,[1,.96,.88],.24],s:[.03,[.82,.72,.58],.22]};// type : [u dans la texture de route, teinte, surélévation]
+function addORoad(id,line,kind,w){if(ORIDS.has(id)||line.length<2)return;ORIDS.add(id);
+ const P=[];for(let i=0;i<line.length-1;i++){const a=line[i],b=line[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(L/4));for(let k=0;k<n;k++)P.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}P.push(line[line.length-1]);
+ let near=false;for(let i=0;i<P.length;i+=8)if(trackDist(P[i][0],P[i][1])<2200){near=true;break}if(!near)return;
+ // on retire ce qui double une route du réseau (déjà dessinée et roulable) ; chaque morceau gardé touche le bord de la route
+ const cov=P.map(p=>{const q=roadQ(p[0],p[1],_RQ2);return!!q&&q.d<4.2+w/2});let run=[];
+ const flush=()=>{if(run.length>=4){const o={p:run,w,kind,id};const m=run[run.length>>1],k=Math.floor(m[0]/ORC)+','+Math.floor(m[1]/ORC);let c=ORL.get(k);
+   if(!c)ORL.set(k,c={a:Math.floor(m[0]/ORC),b:Math.floor(m[1]/ORC),list:[],n:0,ver:-1,tv:-1,mesh:null});c.list.push(o);c.n++;
+   const hw=w/2+.6,Lf=[],Rg=[];for(let i=0;i<run.length;i++){const A=run[Math.max(0,i-1)],B=run[Math.min(run.length-1,i+1)],dx=B[0]-A[0],dz=B[1]-A[1],l=Math.hypot(dx,dz)||1;Lf.push([run[i][0]-dz/l*hw,run[i][1]+dx/l*hw]);Rg.push([run[i][0]+dz/l*hw,run[i][1]-dx/l*hw])}
+   const ring=Lf.concat(Rg.reverse());idxAdd(ORIDX,{rings:[ring],bb:bboxOf([ring])})}run=[]};
+ for(let i=0;i<P.length;i++){if(!cov[i]){if(!run.length&&i>0)run.push(P[i-1]);run.push(P[i])}else if(run.length){run.push(P[i]);flush()}}flush()}
+function parseBDTopoRoute(f){const p=f.properties||{},g=f.geometry;if(!g||+p.position_par_rapport_au_sol<0)return;const n=String(p.nature||'').toLowerCase();
+ if(/escalier|bac|liaison|transbordeur/.test(n))return;let kind='r',w=+p.largeur_de_chaussee||0;
+ if(/sentier/.test(n)){kind='s';w=1.4}else if(/chemin|empierr/.test(n)){kind='c';w=w||3}else if(/autorout/.test(n))w=w||10.5;else if(/2 chauss/.test(n))w=w||11;
+ else if(/bretelle|rond/.test(n))w=w||4.5;else if(/cyclable/.test(n))w=w||2.5;else w=w||(+p.nombre_de_voies>=2?6:4.5);
+ const L=g.type==='LineString'?[g.coordinates]:g.type==='MultiLineString'?g.coordinates:[];L.forEach((l,k)=>addORoad('t'+(p.cleabs||f.id)+'/'+k,l.map(cxz),kind,clamp(w,1.2,14)))}
+function osmRoad(el){const t=el.tags||{},h=t.highway||'';if(!el.geometry||(t.tunnel&&t.tunnel!=='no')||/steps|proposed|construction|platform|corridor|elevator|raceway|bus_stop|abandoned/.test(h))return;
+ let kind='r',w=4.5;if(/motorway|trunk/.test(h))w=/link/.test(h)?4.5:10.5;else if(/primary|secondary/.test(h))w=6.5;else if(/tertiary/.test(h))w=5.5;else if(/service/.test(h))w=3.5;
+ else if(/track/.test(h)){kind='c';w=3}else if(/path|footway|bridleway|pedestrian/.test(h)){kind='s';w=1.4}else if(/cycleway/.test(h))w=2.5;
+ if(kind==='r'&&/gravel|dirt|ground|unpaved|grass|compacted|earth/.test(t.surface||''))kind='c';
+ addORoad('o'+el.id,el.geometry.map(q=>cxz([q.lon,q.lat])),kind,w)}
+async function loadOSMRoads(a,b){const[s,w,n,e]=tileLL(a,b),bb=`(${s.toFixed(5)},${w.toFixed(5)},${n.toFixed(5)},${e.toFixed(5)})`;
+ const j=await overpass(`[out:json][timeout:60];way["highway"]${bb};out geom;`,45000);for(const el of j.elements||[])osmRoad(el);dataDirty=1;for(const k of[...MASKC.keys()])MASKC.delete(k)}
+// hauteur du terrain telle que la dessine le maillage (grille de 16 m près du réseau, 64 m plus loin ; couloir le long des routes)
+function terrH(x,z){const q=roadQ(x,z,_RQ3);if(q&&q.d<62)return hT(x,z);const s=nearCov(x,z)?16:64,i=Math.floor(x/s),j=Math.floor(z/s),fx=x/s-i,fz=z/s-j,g=(a,b)=>ground(a*s,b*s);
+ if(fx+fz<=1){const A=g(i,j);return A+(g(i+1,j)-A)*fx+(g(i,j+1)-A)*fz}const D=g(i+1,j+1);return D+(g(i,j+1)-D)*(1-fx)+(g(i+1,j)-D)*(1-fz)}
+const oroadMat=new T.MeshLambertMaterial({map:TXR.road,vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
+function buildOCell(c){const gb=new GB(false);
+ for(const o of c.list){const p=o.p,[u,col,lift]=ORK[o.kind],hw=o.w/2,ly=lift+(ih(o.id.length,p.length)-.5)*.02;let s=0,prev=null;
+  for(let i=0;i<p.length;i++){const A=p[Math.max(0,i-1)],B=p[Math.min(p.length-1,i+1)],dx=B[0]-A[0],dz=B[1]-A[1],l=Math.hypot(dx,dz)||1,nx=-dz/l*hw,nz=dx/l*hw,x=p[i][0],z=p[i][1];
+   if(i)s+=Math.hypot(x-p[i-1][0],z-p[i-1][1]);const L=[x+nx,0,z+nz],R=[x-nx,0,z-nz];L[1]=terrH(L[0],L[2])+ly;R[1]=terrH(R[0],R[2])+ly;
+   if(prev){const a=prev[0],b=prev[1],cr=(b[2]-a[2])*(R[0]-a[0])-(b[0]-a[0])*(R[2]-a[2]);
+    if(cr>0)gb.quad(a,b,R,L,col,[u,prev[2]/26,u,s/26]);else gb.quad(b,a,L,R,col,[u,prev[2]/26,u,s/26])}
+   prev=[L,R,s]}}
+ if(!gb.count)return null;const m=new T.Mesh(gb.geo(),oroadMat);m.receiveShadow=true;m.matrixAutoUpdate=false;return m}
+const ORD=QP.near*1.05;// distance d'affichage (les autres routes suivent la grille fine du terrain)
+let orT=0;function oroadUpdate(cp,now){if(now-orT<500)return;orT=now;
+ for(const[k,c]of ORL){const d=Math.hypot(Math.max(c.a*ORC-cp.x,0,cp.x-(c.a+1)*ORC),Math.max(c.b*ORC-cp.z,0,cp.z-(c.b+1)*ORC));
+  if(d<ORD){if(c.ver!==c.n||c.tv!==TER.ver)job(()=>{if(c.ver===c.n&&c.tv===TER.ver)return true;const m=buildOCell(c);if(c.mesh){WORLD.remove(c.mesh);c.mesh.geometry.dispose()}c.mesh=m;if(m)WORLD.add(m);c.ver=c.n;c.tv=TER.ver;return true},
+    ()=>Math.hypot((c.a+.5)*ORC-RPOS.x,(c.b+.5)*ORC-RPOS.z)+500,'or'+k)}
+  else if(c.mesh&&d>ORD+500){WORLD.remove(c.mesh);c.mesh.geometry.dispose();c.mesh=null;c.ver=-1}
+  if(c.mesh)c.mesh.visible=d<ORD+120}}
+// tracé des autres routes sur une carte 2D (M : monde -> écran)
+function oroadsPath(g,M,cx,cz,Rm){for(const c of ORL.values()){if(Math.abs((c.a+.5)*ORC-cx)>Rm+ORC||Math.abs((c.b+.5)*ORC-cz)>Rm+ORC)continue;
+ for(const o of c.list){const p=o.p;for(let i=0;i<p.length;i+=(i+3<p.length?3:1)){const[a,b]=M(p[i][0],p[i][1]);i?g.lineTo(a,b):g.moveTo(a,b)}}}}
 // ---- secours : villages procéduraux autour des vrais centres de communes ----
 const COMMUNES='Arbin;6.0735;45.5114|Arvillard;6.16;45.4052|Barby;5.9815;45.5705|Betton-Bettonet;6.1844;45.5289|Bourget-en-Huile;6.212;45.4811|Challes-les-Eaux;5.9829;45.5498|Chamousset;6.211;45.5655|Chamoux-sur-Gelon;6.2218;45.5321|Champ-Laurent;6.2136;45.5082|La Chapelle-Blanche;6.0731;45.4499|Châteauneuf;6.1799;45.5495|La Chavanne;6.0646;45.4934|Chignin;6.0122;45.5237|Coise-Saint-Jean-Pied-Gauthier;6.1303;45.5199|La Croix-de-la-Rochette;6.117;45.4752|Cruet;6.093;45.5324|Curienne;6.0102;45.5574|Détrier;6.1001;45.4467|Hauteville;6.1688;45.5259|Laissaud;6.0319;45.4549|Porte-de-Savoie;5.9812;45.4874|Les Mollettes;6.0575;45.4666|Montmélian;6.0564;45.5071|Myans;5.9812;45.5196|Planaise;6.0953;45.5072|Presle;6.1707;45.4386|Puygros;6.0371;45.5683|Valgelon-La Rochette;6.1253;45.462|Rotherens;6.1366;45.4725|Sainte-Hélène-du-Lac;6.0568;45.4804|Saint-Jean-de-la-Porte;6.1214;45.5641|Saint-Jeoire-Prieuré;5.9931;45.5345|Saint-Pierre-d\'Albigny;6.1591;45.5769|Saint-Pierre-de-Soucy;6.1061;45.4883|La Table;6.1817;45.472|La Thuile;6.0598;45.5407|La Trinité;6.1515;45.504|Le Verneil;6.1857;45.4517|Villard-d\'Héry;6.1401;45.5141|Villard-Léger;6.1735;45.502|Villard-Sallet;6.1346;45.4861|Villaroux;6.0791;45.4613|Barraux;5.9817;45.432|La Buissière;5.9832;45.4101|Chapareillan;5.9576;45.4623|La Chapelle-du-Bard;6.1391;45.3993|La Flachère;5.9615;45.3994|Le Moutaret;6.0813;45.428|Pontcharra;6.0228;45.4225|Saint-Maximin;6.0493;45.425|Sainte-Marie-d\'Alloix;5.9735;45.3853'
  .split('|').map(s=>{const[n,lo,la]=s.split(';');return{name:n,lon:+lo,lat:+la}});
@@ -1109,6 +1163,7 @@ function rasterRings(M,rings,a,b,val,res,cellS){// remplissage pair-impair
 const MASKC=new Map();
 function cellMask(a,b){const k=vck(a,b);let m=MASKC.get(k);if(m&&m.ver===DATA.ver)return m.m;const M=new Uint8Array(MRES*MRES);
  const L=VIDX.get(k);if(L){const ord=L.slice().sort((p,q)=>(p.type===VT.hedge)-(q.type===VT.hedge));for(const o of ord)rasterRings(M,o.rings,a,b,o.type,MRES,VC)}
+ const O=ORIDX.get(k);if(O)for(const o of O)rasterRings(M,o.rings,a,b,253,MRES,VC);// autres routes
  const W=WIDX.get(k);if(W)for(const o of W)rasterRings(M,o.rings,a,b,254,MRES,VC);
  const B=BIDX.get(k);if(B)for(const o of B){// emprise dilatée de ~2 m
   const c=[o.cx,o.cz],p=o.p.map(q=>{const dx=q[0]-c[0],dz=q[1]-c[1],l=Math.hypot(dx,dz)||1;return[q[0]+dx/l*2,q[1]+dz/l*2]});rasterRings(M,[p],a,b,255,MRES,VC)}
@@ -1357,7 +1412,7 @@ function classifyPix(o){const r=o[0],g=o[1],b=o[2],L=.3*r+.59*g+.11*b;
 function genCell(a,b){const r=rng(a*73856093^b*19349663^0x5bd1e995),M=cellMask(a,b),out=[],sp=6.4,n=Math.floor(VC/sp),x0=a*VC,z0=b*VC;
  let photoAny=false;
  for(let j=0;j<n;j++)for(let i=0;i<n;i++){const x=x0+(i+.2+r()*.6)*sp,z=z0+(j+.2+r()*.6)*sp,mi=clamp(Math.floor((x-x0)/MS4),0,MRES-1),mj=clamp(Math.floor((z-z0)/MS4),0,MRES-1),code=M[mj*MRES+mi];
-  const rr=r(),rk=r(),rs=r(),rc=r();if(code>=254||code===VT.vine)continue;
+  const rr=r(),rk=r(),rs=r(),rc=r();if(code>=253||code===VT.vine)continue;
   let kind=0,p=0,sc=1;// kind 1 feuillu, 2 conifère, 3 peuplier, 4 arbuste
   if(code){if(code===VT.dec){kind=1;p=.82}else if(code===VT.con){kind=2;p=.85}else if(code===VT.mix){kind=rc<.5?1:2;p=.82}else if(code===VT.open){kind=rc<.6?1:2;p=.4}
    else if(code===VT.hedge){kind=rc<.85?4:1;p=.95;sc=.6}else if(code===VT.orch){kind=4;p=.5;sc=.7}else if(code===VT.pop){kind=3;p=.75}else if(code===VT.heath){kind=4;p=.35;sc=.5}}
@@ -1450,7 +1505,7 @@ function grassUpdate(cp,budget){const M=GRASS.mesh;if(!M)return;const G=GRASS.G,
  for(let k=0;k<G*G;k++){const gi=k%G,gj=(k/G)|0;let wi=ci-(G>>1)+(((gi-(ci-(G>>1)))%G)+G)%G,wj=cj-(G>>1)+(((gj-(cj-(G>>1)))%G)+G)%G;
   if(GRASS.wi[k]===wi&&GRASS.wj[k]===wj)continue;
   const x=(wi+.15+ih(wi,wj)*.7)*cs,z=(wj+.15+ih(wj,wi+7)*.7)*cs,q=roadQ(x,z,_RQ2),mk=maskAt(x,z);
-  let sc=.55+ih(wi*3,wj*5)*.6;if((q&&q.d<4.7)||mk>=254||mk===VT.con||mk===VT.dec||mk===VT.mix)sc=0;
+  let sc=.55+ih(wi*3,wj*5)*.6;if((q&&q.d<4.7)||mk>=253||mk===VT.con||mk===VT.dec||mk===VT.mix)sc=0;
   _q.setFromEuler(_e.set(0,ih(wi,wj*3)*6.28,0));_m4.compose(_p3.set(x,sc?hT(x,z)-.03:-1e4,z),_q,_s3.set(sc*.75,sc*(.2+ih(wi+9,wj)*.22),sc*.75));M.setMatrixAt(k,_m4);
   GRASS.wi[k]=wi;GRASS.wj[k]=wj;ch=true;if(++n%64===0&&performance.now()-t0>budget)break}
  if(ch)M.instanceMatrix.needsUpdate=true}
@@ -2183,7 +2238,7 @@ function listWk(){const L=WKALL();$('wl').innerHTML='<button class="wc" data-i="
 function pickWk(i){const w=WKALL()[i];document.querySelectorAll('.wc').forEach(e=>e.classList.add(e.dataset.i===String(i)?'pick':'out'));
  setTimeout(()=>{$('dt').textContent=w.n;$('dd').textContent=w.d;$('db').innerHTML=bars(w,110);showScr('s-det');$('gob').onclick=()=>startW(w)},550)}
 function start(i){startW(WKALL()[i])}
-function startW(w){wk={n:w.n,ramp:!!w.ramp,bl:w.b()};WT=wk.bl.reduce((a,x)=>a+x[0],0);wt=0;ix=1;wpz=0;best=0;sA=0;sT=0;bad=0;stepI=-1;
+function startW(w){wk={n:w.n,ramp:!!w.ramp,bl:w.b().map(x=>x.slice())};WT=wk.bl.reduce((a,x)=>a+x[0],0);wt=0;ix=1;wpz=0;best=0;sA=0;sT=0;bad=0;stepI=-1;
  $('ixv').textContent=wk.ramp?'—':'100%';$('pz').textContent='⏸';$('home').style.opacity=0;let n=3;const c=$('cd');c.style.display='flex';
  const tick=()=>{if(!n){c.style.display='none';$('home').style.opacity='';nav('wk');return}c.innerHTML='<span>'+n+'</span>';n--;setTimeout(tick,1000)};tick()}
 function mod(h,b){$('rt').innerHTML=h;const r=$('rb');r.innerHTML='';b.forEach(([l,f])=>{const e=document.createElement('button');e.textContent=l;e.onclick=()=>{$('res').style.display='none';f()};r.append(e)});$('res').style.display='block'}
@@ -2208,14 +2263,26 @@ $('pl').onclick=()=>{play=!play;$('pl').textContent=play?'⏸ Pause':'▶ Lectur
 $('bZ').onclick=()=>{s=0;v=0;tt=0;done=false;goStart()};$('bG').onclick=()=>$('gf').click();
 $('gf').onchange=async e=>{const f=e.target.files[0];if(!f)return;const d=new DOMParser().parseFromString(await f.text(),'text/xml');
  const p=[...d.querySelectorAll('trkpt,rtept')].map(n=>[+n.getAttribute('lat'),+n.getAttribute('lon'),+((n.querySelector('ele')||{}).textContent||0)]).filter(p=>isFinite(p[0])&&isFinite(p[1]));
- if(p.length>1){const nm=(d.querySelector('trk>name,rte>name,metadata>name')||{}).textContent||f.name.replace(/\.gpx$/i,'');try{localStorage.v3gpx=JSON.stringify(p.map(q=>[+q[0].toFixed(6),+q[1].toFixed(6)]));localStorage.v3gpxn=nm}catch(e){}
-  setRoute(p,nm);say('Itinéraire « '+nm+' » : les carrefours te proposent ce parcours par défaut.')}else say('GPX illisible.');e.target.value=''};
+ if(p.length>1){const nm=(d.querySelector('trk>name,rte>name,metadata>name')||{}).textContent||f.name.replace(/\.gpx$/i,'');try{delete localStorage.v3gpxe;localStorage.v3gpx=JSON.stringify(p.map(q=>[+q[0].toFixed(6),+q[1].toFixed(6)]));localStorage.v3gpxn=nm}catch(e){}
+  setRoute(p,nm);say('Itinéraire « '+nm+' » : les carrefours te proposent ce parcours par défaut.');if(mode==='home')roulRender()}else say('GPX illisible.');e.target.value=''};
 $('ftp').onchange=()=>{FTP=Math.max(80,Math.min(500,+$('ftp').value||200));$('ftp').value=FTP;save();ftpLog(FTP);$('zn').innerHTML=zonesHTML()};$('kg').onchange=save;
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;if(g==='wk'){listWk();showScr('s-wk')}else if(g==='hw')showScr('s-hw');else nav(g)});
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>{if(b.dataset.b==='s-wk')listWk();showScr(b.dataset.b)});
 const setIx=d=>{if(!wk||wk.ramp)return;ix=Math.max(.5,Math.min(1.5,+(ix+d).toFixed(2)));$('ixv').textContent=Math.round(ix*100)+'%'};
 $('mi').onclick=()=>setIx(-.05);$('pi').onclick=()=>setIx(.05);
 $('pz').onclick=()=>{wpz=wpz?0:1;lastBi=-1;$('pz').textContent=wpz?'▶':'⏸'};
+// raccourcir la séance en cours : on garde l'intensité, on enlève de l'endurance puis des répétitions entières
+function shortenWk(Tg){const B=blk(wt);if(!B)return;const ci=B[0],bl=wk.bl,sum=a=>a.reduce((s,x)=>s+x[0],0);let rest=bl.slice(ci+1).map(b=>b.slice());
+ const cd=rest.length&&/calme/i.test(rest[rest.length-1][3]||'')?rest.pop():null;if(cd)cd[0]=Math.min(cd[0],Math.max(120,Math.round(Tg*.15)));
+ let budget=Tg-B[1]-(cd?cd[0]:0);
+ if(budget<0){const cur=bl[ci];cur[0]=Math.round(cur[0]-B[1]+Math.max(10,B[1]+budget));rest=[];budget=0}
+ for(const b of rest){const ex=sum(rest)-budget;if(ex<=0)break;if(/^(Endurance|Zone 2|Brûle|Très facile)/.test(b[3]||'')&&b[0]>120)b[0]-=Math.min(ex,b[0]-120)}// les récupérations entre efforts restent intactes
+ while(rest.length&&sum(rest)>budget)rest.pop();
+ const left=budget-sum(rest);if(left>=30)rest.push([Math.round(left),.6,.6,'Endurance']);
+ wk.bl=bl.slice(0,ci+1).concat(rest,cd?[cd]:[]);WT=sum(wk.bl);loop.wh=''}
+$('wsh').onclick=()=>{if(!wk||wk.ramp||wk.over)return say('Impossible de raccourcir un test FTP');const rem=WT-wt,o=[];for(const m of[5,10,15,20,30,45,60,90])if(m*60<rem-90)o.push(m);
+ if(!o.length)return say('Séance presque finie : rien à raccourcir');
+ mod('⏱ Raccourcir la séance<br><small>Il reste '+fmt(rem)+'. Finir dans :</small>',o.map(m=>[m+' min',()=>{shortenWk(m*60);say('Séance raccourcie : fin dans '+m+' min')}]).concat([['Annuler',()=>{}]]))};
 $('qt').onclick=()=>{if(wk&&wk.ramp&&wt>360&&!wk.over)endRamp();else{if(conn)sim(0);nav('home')}};
 $('mn').onclick=()=>{const t=$('top');t.style.display=t.style.display==='flex'?'none':'flex'};
 $('bl').onclick=()=>uTurn();{const b=$('br');b.onpointerdown=()=>keys.ArrowUp=1;b.onpointerup=b.onpointerleave=b.onpointercancel=()=>delete keys.ArrowUp}
@@ -2389,18 +2456,21 @@ const GOALS=[
  ['recup','🛋️','Récupération','Très facile, pour récupérer activement.'],
  ['dukan','🥩','Régime Dukan','Brûle-graisses : longue zone 2 adaptée à un régime pauvre en glucides, pour accélérer la perte de poids.']];
 const DPH=[['att','Attaque'],['cro','Croisière'],['con','Consolidation'],['sta','Stabilisation']];
-const GEN={g:'ss',min:60,lvl:1,seed:1,ph:'cro',w:null};
+const GEN={g:'ss',g2:'',min:60,lvl:1,seed:1,ph:'cro',w:null};
 // séance = liste de blocs [durée s, % FTP début, % FTP fin, consigne]
-function genWorkout(g,min,lvl,seed,ph){if(g==='dukan'&&ph==='att')min=Math.min(min,45);
- const r=rng(seed*7919+min*31+lvl*7+g.length*131),T=min*60,L=[.95,1,1.04][lvl],B=[],tx=[],pc=x=>Math.round(x*100)+' %',W=x=>Math.round(x*FTP)+' W',pk=a=>a[Math.min(a.length-1,Math.floor(r()*a.length))];
- const add=(d,a,b,h)=>{d=Math.round(d);if(d>=5)B.push([d,+a.toFixed(3),+(b==null?a:b).toFixed(3),h||''])};
- const hard=/seuil|vo2|ana|spr|pyr/.test(g),soft=g==='recup'||g==='dukan';
+// g2 (facultatif) : second travail combiné ; avec le régime Dukan, il se place au milieu d'une base « brûle-graisses »
+function genWorkout(g,min,lvl,seed,ph,g2){if(g2===g)g2='';if(g2==='dukan'){g2=g;g='dukan'}if(g==='dukan'&&ph==='att')min=Math.min(min,45);
+ const r=rng(seed*7919+min*31+lvl*7+g.length*131+(g2||'').length*17),T=min*60,L0=[.95,1,1.04][lvl],B=[],tx=[],pc=x=>Math.round(x*100)+' %',W=x=>Math.round(x*FTP)+' W',pk=a=>a[Math.min(a.length-1,Math.floor(r()*a.length))];
+ let L=L0;const add=(d,a,b,h)=>{d=Math.round(d);if(d>=5)B.push([d,+a.toFixed(3),+(b==null?a:b).toFixed(3),h||''])};
+ const hard=/seuil|vo2|ana|spr|pyr/.test(g+(g2||'')),soft=!hard&&(g==='recup'||g==='dukan');
  let wu=clamp(Math.round(T*.13/60)*60,soft?300:360,900),cd=clamp(Math.round(T*.08/60)*60,240,600);if(min<=25){wu=300;cd=180}
  let M=T-wu-cd;
  if(hard&&wu>=480){add(wu-180,.45,.68,'Échauffement progressif');add(60,.95,.95,'Ouverture : monte en puissance');add(60,.55,.55,'Souple');add(60,1.08,1.08,'Ouverture')}else add(wu,.45,soft?.6:.7,'Échauffement progressif');
  // répète une séquence de blocs pour remplir le temps disponible (le reste en endurance avant et après)
  const reps=(seq,rs,rp,hr,max)=>{let w=seq.reduce((a,s)=>a+s[0],0);if(w>M){const f=M/w;seq=seq.map(s=>[Math.max(10,Math.floor(s[0]*f/5)*5),s[1],s[2]]);w=seq.reduce((a,s)=>a+s[0],0)}let n=Math.max(1,Math.floor((M+rs)/(w+rs)));if(max)n=Math.min(n,max);const left=Math.max(0,M-(n*w+(n-1)*rs));
   if(left>=30)add(left/2,.6,.62,'Endurance');for(let k=0;k<n;k++){for(const s of seq)add(s[0],s[1],s[1],s[2]);if(k<n-1)add(rs,rp,rp,hr||'Récupération active')}if(left>=30)add(left-Math.round(left/2),.62,.6,'Endurance');return n};
+ // corps de séance pour un travail donné, sur Mx secondes (f : facteur d'intensité)
+ const body=(g,Mx,f)=>{M=Mx;L=L0*f;
  if(g==='end'){let t=0,k=0;while(t<M-30){const d=Math.min(M-t,pk([480,600,720])),p=(k%2?.72:.65)*L;add(d,p,p,k%3===2?'Zone 2 · cadence 95–100 tr/min':'Zone 2 · respiration facile');t+=d;k++}tx.push('Endurance continue à '+pc(.65*L)+'–'+pc(.72*L)+' de la FTP.')}
  else if(g==='tempo'){const w=pk([600,720,900,1200])*(lvl?1:.8),p=pk([.8,.83,.85])*L,n=reps([[w,p,'Tempo · 85–90 tr/min']],240,.6);tx.push(n+' × '+Math.round(w/60)+' min à '+pc(p)+' ('+W(p)+'), récup 4 min.')}
  else if(g==='ss'){const w=[[480,600,720],[600,720,900,1200],[900,1200]][lvl],d=pk(w),p=pk([.88,.9,.92])*(lvl===2?1.01:lvl?1:.98),n=reps([[d,p,'Sweet spot · 88–93 % · 85–95 tr/min']],300,.55);tx.push(n+' × '+Math.round(d/60)+' min à '+pc(p)+' ('+W(p)+'), récup 5 min.')}
@@ -2419,21 +2489,30 @@ function genWorkout(g,min,lvl,seed,ph){if(g==='dukan'&&ph==='att')min=Math.min(m
   while(t<M-30){const d=Math.min(M-t,600),rl=re&&d>=300&&k%2===1;add(d-(rl?60:0),k%2?cap:cap-.05,k%2?cap:cap-.05,'Brûle-graisses · tu dois pouvoir parler');if(rl)add(60,re,re,'Relance tempo souple');t+=d;k++}
   tx.push('Zone brûle-graisses à '+pc(cap-.05)+'–'+pc(cap)+' de la FTP ('+W(cap-.05)+'–'+W(cap)+')'+(re?', relances d\'1 min à '+pc(re):'')+'.');
   tx.push({att:'Phase d\'attaque : très peu de glucides, séance limitée à 45 min et sans relance.',cro:'Phase de croisière : endurance longue avec quelques relances.',con:'Consolidation : un peu plus d\'intensité possible.',sta:'Stabilisation : endurance plus tonique pour entretenir.'}[ph]);
-  tx.push('Bois régulièrement. En cas de coup de fatigue (peu de glucides), baisse l\'intensité avec le bouton −.')}
+  tx.push('Bois régulièrement. En cas de coup de fatigue (peu de glucides), baisse l\'intensité avec le bouton −.')}};
+ const Mt=M,G=GOALS.find(x=>x[0]===g),G2=g2?GOALS.find(x=>x[0]===g2):null;
+ if(!G2)body(g,Mt,1);
+ else if(g==='dukan'){// base brûle-graisses, travail ciblé au milieu (intensité un peu réduite selon la phase)
+  const pf={att:.92,cro:.96,con:1,sta:1}[ph]||1,mx=Math.max(300,Math.round(Mt*.34/60)*60),d1=Math.round((Mt-mx)/2/60)*60;
+  body('dukan',d1,1);body(g2,mx,pf);body('dukan',Mt-mx-d1,1);
+  tx.push('Au milieu : '+Math.round(mx/60)+' min de « '+G2[2]+' »'+(pf<1?' à intensité réduite de '+Math.round((1-pf)*100)+' % (phase '+DPH.find(p=>p[0]===ph)[1].toLowerCase()+')':'')+'.')}
+ else{const h=Math.round((Mt-180)/2/60)*60;body(g,h,1);add(180,.5,.5,'Récupération entre les deux parties');body(g2,Mt-180-h,1)}
  add(cd,.6,.4,'Retour au calme');
- const G=GOALS.find(x=>x[0]===g);return{n:G[2]+(g==='dukan'?' · '+DPH.find(p=>p[0]===ph)[1]:'')+' · '+min+' min',d:G[3]+' '+tx.join(' '),bl:B,g}}
+ return{n:G[2]+(G2?' + '+G2[2]:'')+(g==='dukan'?' · '+DPH.find(p=>p[0]===ph)[1]:'')+' · '+min+' min',d:G[3]+' '+[...new Set(tx)].join(' '),bl:B,g}}
 // durée, puissance moyenne, IF, TSS et énergie estimés d'une séance
 function wkStats(bl){let T=0,J=0,P4=0;for(const[d,a,b]of bl){const p=(a+b)/2*FTP;T+=d;J+=p*d;P4+=Math.pow(p,4)*d}const NP=Math.pow(P4/Math.max(1,T),.25),IF=NP/FTP;return{T,kcal:J/KCAL_J,IF,TSS:T/3600*IF*IF*100,ap:J/Math.max(1,T)}}
-function genRender(){const w=genWorkout(GEN.g,GEN.min,GEN.lvl,GEN.seed,GEN.ph);GEN.w=w;const S=wkStats(w.bl),G=GOALS.find(x=>x[0]===GEN.g);
- $('gmv').textContent=(GEN.g==='dukan'&&GEN.ph==='att'&&GEN.min>45?'45 min (limite phase d\'attaque)':GEN.min+' min');$('gdk').style.display=GEN.g==='dukan'?'flex':'none';$('gdkq').style.display=GEN.g==='dukan'?'block':'none';
- for(const[id,key]of[['gg','g'],['gl','lvl'],['gdk','ph']])$(id).querySelectorAll('button').forEach(b=>b.classList.toggle('on',String(GEN[key])===b.dataset.v));
+function genRender(){if(GEN.g2===GEN.g)GEN.g2='';const w=genWorkout(GEN.g,GEN.min,GEN.lvl,GEN.seed,GEN.ph,GEN.g2);GEN.w=w;const S=wkStats(w.bl),G=GOALS.find(x=>x[0]===w.g),dk=GEN.g==='dukan'||GEN.g2==='dukan';
+ $('gmv').textContent=(dk&&GEN.ph==='att'&&GEN.min>45?'45 min (limite phase d\'attaque)':GEN.min+' min');$('gdk').style.display=dk?'flex':'none';$('gdkq').style.display=dk?'block':'none';
+ $('gc').innerHTML='<button data-v="">Aucun</button>'+GOALS.filter(x=>x[0]!==GEN.g&&x[0]!=='recup').map(x=>'<button data-v="'+x[0]+'">'+x[1]+' '+x[2]+'</button>').join('');
+ for(const[id,key]of[['gg','g'],['gc','g2'],['gl','lvl'],['gdk','ph']])$(id).querySelectorAll('button').forEach(b=>b.classList.toggle('on',String(GEN[key])===b.dataset.v));
  $('gp').innerHTML='<b>'+G[1]+' '+w.n+'</b><div style="margin:4px 0 6px;font-size:12.5px;color:var(--mut);line-height:1.4">'+w.d+'</div>'+bars({b:()=>w.bl},90)+
   '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12.5px"><span>⏱ '+Math.round(S.T/60)+' min</span><span>⚡ '+Math.round(S.ap)+' W moy.</span><span>IF '+S.IF.toFixed(2).replace('.',',')+'</span><span>TSS ≈ '+Math.round(S.TSS)+'</span><span style="color:#ff9a3c">🔥 ≈ '+nf(S.kcal)+' kcal</span>'+
-  (GEN.g==='dukan'?'<span style="color:#7fd67a">≈ '+nf(S.kcal/FAT_KCAL*1000)+' g de graisse (équivalent énergie)</span>':'')+'</div><small>Estimations pour une FTP de '+FTP+' W.</small>'}
+  (dk?'<span style="color:#7fd67a">≈ '+nf(S.kcal/FAT_KCAL*1000)+' g de graisse (équivalent énergie)</span>':'')+'</div><small>Estimations pour une FTP de '+FTP+' W.</small>'}
 function genOpen(){showScr('s-gen');genRender()}
 {const g2=document.createElement('div');g2.id='s-gen';g2.className='scr';
  g2.innerHTML='<div class="bar"><button class="back" data-b="s-wk">←</button><b>✨ Créateur de séance</b></div><div class="scrl">'+
   '<div class="gq">Que veux-tu travailler ?</div><div id="gg" class="chips">'+GOALS.map(x=>'<button data-v="'+x[0]+'">'+x[1]+' '+x[2]+'</button>').join('')+'</div>'+
+  '<div class="gq">Combiner avec (facultatif)</div><div id="gc" class="chips"></div>'+
   '<div id="gdkq" class="gq">Phase du régime</div><div id="gdk" class="chips">'+DPH.map(p=>'<button data-v="'+p[0]+'">'+p[1]+'</button>').join('')+'</div>'+
   '<div class="gq">Durée souhaitée : <b id="gmv" style="color:#fff">60 min</b></div><input id="gdur" type="range" min="20" max="180" step="5" value="60" style="width:100%">'+
   '<div class="gq">Niveau</div><div id="gl" class="chips"><button data-v="0">Facile</button><button data-v="1">Normal</button><button data-v="2">Difficile</button></div>'+
@@ -2442,6 +2521,7 @@ function genOpen(){showScr('s-gen');genRender()}
  $('hs').appendChild(g2);g2.querySelector('.back').onclick=()=>{listWk();showScr('s-wk')};
  $('gg').onclick=e=>{const b=e.target.closest('button');if(b){GEN.g=b.dataset.v;GEN.seed=1;genRender()}};
  $('gl').onclick=e=>{const b=e.target.closest('button');if(b){GEN.lvl=+b.dataset.v;genRender()}};
+ $('gc').onclick=e=>{const b=e.target.closest('button');if(b){GEN.g2=b.dataset.v;GEN.seed=1;genRender()}};
  $('gdk').onclick=e=>{const b=e.target.closest('button');if(b){GEN.ph=b.dataset.v;genRender()}};
  $('gdur').oninput=()=>{GEN.min=+$('gdur').value;genRender()};
  $('grr').onclick=()=>{GEN.seed++;genRender()};
@@ -2504,6 +2584,7 @@ function drawBig(){const c=$('bmap');if(!c||!N||!BIGM.on)return;const W=c.width,
  const near=ch=>Math.abs(ch.cx-cx)<Rm*1.45+ch.r&&Math.abs(ch.cz-cz)<Rm*1.45+ch.r;
  const path=(ch,st)=>{for(let i=ch.i0;i<=ch.i1;i+=st){const[a,b]=M(X[i],Z[i]);i===ch.i0?g.moveTo(a,b):g.lineTo(a,b)}const[a,b]=M(X[ch.i1],Z[ch.i1]);g.lineTo(a,b)};
  const st=Rm>2500?6:Rm>1200?3:2;
+ if(Rm<2600){g.strokeStyle='rgba(205,214,224,.4)';g.lineWidth=1.6*f;g.beginPath();oroadsPath(g,M,cx,cz,Rm*1.45);g.stroke()}// autres routes (non roulables)
  g.strokeStyle='rgba(0,0,0,.55)';g.lineWidth=7*f;g.beginPath();for(const ch of CHUNKS)if(near(ch))path(ch,st);g.stroke();
  g.strokeStyle='rgba(235,240,245,.85)';g.lineWidth=3.6*f;g.beginPath();for(const ch of CHUNKS)if(near(ch))path(ch,st);g.stroke();
  if(VILF){g.strokeStyle='rgba(215,38,61,.9)';g.lineWidth=4.5*f;g.beginPath();for(const ch of CHUNKS){if(!near(ch))continue;let pen=false;for(let i=ch.i0;i<=ch.i1;i+=2){const[a,b]=M(X[i],Z[i]);if(VILF[i]){pen?g.lineTo(a,b):g.moveTo(a,b);pen=true}else pen=false}}g.stroke()}
@@ -2531,6 +2612,144 @@ function drawBig(){const c=$('bmap');if(!c||!N||!BIGM.on)return;const W=c.width,
 let WLK=null;async function wakeLock(on){try{if(on&&!WLK&&navigator.wakeLock){WLK=await navigator.wakeLock.request('screen');WLK.addEventListener('release',()=>WLK=null)}else if(!on&&WLK){await WLK.release();WLK=null}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&mode!=='home')wakeLock(true)});
 function fullScreen(){try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen({navigationUI:'hide'}).then(()=>{try{screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}).catch(()=>{})}catch(e){}}
+// ====================== choix du parcours avant la sortie : boucles et allers simples classés par distance ou dénivelé ======================
+GS.favr=GS.favr||[];GS.strv=GS.strv||[];
+const esc=s=>String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'})[c]);
+const PLAN={type:'loop',from:'home',dmin:30,dmax:50,hmin:0,hmax:3000,sort:'d1',list:[],busy:0,cur:null};
+// D+ et pente maximale (moyenne sur 200 m, hors 50 m aux extrémités où l'altitude est raccordée au carrefour) de chaque route, dans les deux sens :
+// [D+ a→b, D+ b→a, pente a→b, pente b→a]
+function edgeClimb(){const C=[];for(const E of NET.E){let u0=0,u1=0,g0=0,g1=0;for(let i=E.i0;i<E.i1;i++){const d=H[i+1]-H[i];if(d>0)u0+=d;else u1-=d}
+ const a=E.i1-E.i0>60?E.i0+10:E.i0,b=E.i1-E.i0>60?E.i1-10:E.i1,w=Math.min(40,b-a);
+ if(w>0)for(let i=a;i+w<=b;i+=4){const d=clamp((H[i+w]-H[i])/((SD[i+w]-SD[i])||200),-.25,.25);if(d>g0)g0=d;if(-d>g1)g1=-d}C.push([u0,u1,g0,g1])}return C}
+// plus courts chemins (Dijkstra) depuis un nœud ; wt(route, sens) = coût d'un passage
+function dijk(src,wt){const n=NET.ND.length,dist=new Float64Array(n).fill(Infinity),pe=new Int32Array(n).fill(-1),pd=new Int8Array(n),dn=new Uint8Array(n),hp=[];
+ const push=(d,v)=>{hp.push([d,v]);let i=hp.length-1;while(i>0){const p=(i-1)>>1;if(hp[p][0]<=hp[i][0])break;const t=hp[p];hp[p]=hp[i];hp[i]=t;i=p}};
+ const pop=()=>{const t=hp[0],l=hp.pop();if(hp.length){hp[0]=l;let i=0;for(;;){const a=2*i+1,b=a+1;let m=i;if(a<hp.length&&hp[a][0]<hp[m][0])m=a;if(b<hp.length&&hp[b][0]<hp[m][0])m=b;if(m===i)break;const x=hp[m];hp[m]=hp[i];hp[i]=x;i=m}}return t};
+ dist[src]=0;push(0,src);
+ while(hp.length){const[d,v]=pop();if(dn[v])continue;dn[v]=1;const nd=NET.ND[v];if(!nd)continue;
+  for(const o of nd.ed){const E=NET.E[o.e],to=o.d>0?E.b:E.a,d2=d+wt(o.e,o.d);if(d2<dist[to]){dist[to]=d2;pe[to]=o.e;pd[to]=o.d;push(d2,to)}}}
+ return{dist,pe,pd}}
+function spPath(D,src,dst){const P=[];let v=dst,k=0;while(v!==src){if(k++>4000)return null;const e=D.pe[v];if(e<0)return null;const d=D.pd[v],E=NET.E[e];P.push({e,d});v=d>0?E.a:E.b}return P.reverse()}
+function planStart(){if(PLAN.from==='here'&&RID.init){const E=NET.E[RID.e];return RID.u<E.len/2?E.a:E.b}const st=nearestNet(0,0),E=NET.E[st.e];return st.u<E.len/2?E.a:E.b}
+function pathPts(path,step){const P=[];for(const s of path){const E=NET.E[s.e];if(s.d>0)for(let i=E.i0;i<E.i1;i+=step)P.push([X[i],Z[i],H[i]]);else for(let i=E.i1;i>E.i0;i-=step)P.push([X[i],Z[i],H[i]])}
+ const l=path[path.length-1];if(l){const E=NET.E[l.e],i=l.d>0?E.i1:E.i0;P.push([X[i],Z[i],H[i]])}return P}
+function routeInfo(path,C){let m=0,dp=0,gm=0,rep=0;const seen=new Set();
+ for(const s of path){const E=NET.E[s.e],c=C[s.e];m+=E.len;dp+=s.d>0?c[0]:c[1];gm=Math.max(gm,s.d>0?c[2]:c[3]);if(seen.has(s.e))rep+=E.len;seen.add(s.e)}
+ return{km:m/1000,dp:Math.round(dp),gm,rep:rep/Math.max(1,m)}}
+// communes traversées, dans l'ordre
+function routeVillages(path){const P=pathPts(path,40),out=[];for(const p of P){let best=null,bd=1300;for(const c of COMMUNES){const[x,z]=ll2xz(c.lat,c.lon),d=Math.hypot(x-p[0],z-p[1]);if(d<bd){bd=d;best=c.name}}if(best&&out[out.length-1]!==best)out.push(best)}
+ return out.filter((v,i)=>out.indexOf(v)===i)}
+// retire les allers-retours immédiats (impossibles à suivre : pas de demi-tour aux carrefours)
+function despike(p){let ch=true;while(ch){ch=false;for(let i=0;i+1<p.length;i++)if(p[i].e===p[i+1].e&&p[i].d===-p[i+1].d){p.splice(i,2);ch=true;break}}return p}
+// calcule une sélection de parcours (en tâche de fond, par petits morceaux pour ne pas figer l'écran)
+function planRun(done,prog){const C=edgeClimb(),S=planStart(),D0=dijk(S,e=>NET.E[e].len),out=[],rnd=rng((Date.now()%65536)+7),dmin=PLAN.dmin*1000,dmax=PLAN.dmax*1000,MAXT=600,WANT=30;
+ const nodes=[];for(const nd of NET.ND)if(nd&&nd.ed.length>=3&&isFinite(D0.dist[nd.id]))nodes.push(nd.id);
+ const base=e=>{const E=NET.E[e];return E.len*(1+.35/(1+Math.log1p(E.u)))};// préfère un peu les routes habituelles
+ let tries=0;PLAN.busy=1;
+ const legs=(seq,W,use)=>{let path=[];for(let k=0;k<seq.length-1;k++){const p=spPath(dijk(seq[k],W),seq[k],seq[k+1]);if(!p)return null;use(p);path=path.concat(p)}return path};
+ const step=()=>{const t0=performance.now();
+  while(performance.now()-t0<35&&tries<MAXT&&out.length<WANT){tries++;const tgt=dmin+(dmax-dmin)*rnd(),pen=new Map(),W=(e,d)=>base(e)*(pen.get(e)||1),use=p=>{for(const s of p)pen.set(s.e,(pen.get(s.e)||1)*8)};
+   let path=null;
+   if(PLAN.type==='loop'){const nv=tgt>70000&&rnd()<.6?3:2,R0=tgt/(nv+1)*.9,vias=[];
+    for(let k=0;k<nv;k++){for(let a=0;a<50;a++){const c=nodes[(rnd()*nodes.length)|0],d=D0.dist[c];if(!(d>R0*.5&&d<R0*1.5)||c===S)continue;
+      if(vias.some(o=>Math.hypot(NET.ND[o].x-NET.ND[c].x,NET.ND[o].z-NET.ND[c].z)<tgt*.1))continue;vias.push(c);break}}
+    if(vias.length<nv)continue;const s0=NET.ND[S];// points de passage rangés par angle autour du départ : une vraie boucle
+    vias.sort((a,b)=>Math.atan2(NET.ND[a].x-s0.x,NET.ND[a].z-s0.z)-Math.atan2(NET.ND[b].x-s0.x,NET.ND[b].z-s0.z));if(rnd()<.5)vias.reverse();
+    path=legs([S,...vias,S],W,use)}
+   else{let Tn=-1,V=-1;for(let a=0;a<60&&Tn<0;a++){const c=nodes[(rnd()*nodes.length)|0],d=D0.dist[c];if(d>tgt*.45&&d<tgt*.95)Tn=c}if(Tn<0)continue;
+    for(let a=0;a<60&&V<0;a++){const c=nodes[(rnd()*nodes.length)|0];if(c!==Tn&&c!==S&&D0.dist[c]<tgt*.7)V=c}
+    path=legs(V>=0&&rnd()<.8?[S,V,Tn]:[S,Tn],W,use)}
+   if(!path)continue;despike(path);if(!path.length)continue;
+   const inf=routeInfo(path,C);if(inf.km*1000<dmin||inf.km*1000>dmax||inf.rep>.15||inf.dp<PLAN.hmin||inf.dp>PLAN.hmax)continue;
+   let dup=false;for(const o of out){let sh=0;for(const s of path)if(o.es.has(s.e))sh+=NET.E[s.e].len;if(sh/(Math.min(inf.km,o.km)*1000)>.65){dup=true;break}}if(dup)continue;
+   out.push(Object.assign({path,es:new Set(path.map(s=>s.e)),type:PLAN.type},inf))}
+  if(prog)prog(tries/MAXT,out.length);
+  if(tries<MAXT&&out.length<WANT&&mode==='home')setTimeout(step,0);else{PLAN.busy=0;for(const o of out){o.vias=routeVillages(o.path);o.n=(o.type==='loop'?'Boucle ':'Parcours ')+nf(o.km,1)+' km · '+o.dp+' m D+'}PLAN.list=out;done(out)}};
+ step()}
+const sortPlan=L=>{const k=PLAN.sort,s=k[1]==='-'?-1:1;return L.slice().sort((a,b)=>s*(k[0]==='d'?a.km-b.km:a.dp-b.dp))};
+// petite carte d'un parcours (nord en haut, réseau en fond)
+function drawRouteMap(c,path,big){if(!c)return;const W=c.width=c.clientWidth*devicePixelRatio,Hh=c.height=c.clientHeight*devicePixelRatio,g=c.getContext('2d'),P=pathPts(path,4);if(!P.length)return;
+ let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;for(const p of P){x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);z0=Math.min(z0,p[1]);z1=Math.max(z1,p[1])}
+ const m=Math.max(x1-x0,z1-z0)*.08+150,k=Math.min(W/(x1-x0+2*m),Hh/(z1-z0+2*m)),cx=(x0+x1)/2,cz=(z0+z1)/2,M=(x,z)=>[W/2+(x-cx)*k,Hh/2+(z-cz)*k],f=devicePixelRatio;
+ g.fillStyle='rgba(8,12,18,.55)';g.fillRect(0,0,W,Hh);g.lineJoin=g.lineCap='round';
+ if(big){g.strokeStyle='rgba(220,230,240,.25)';g.lineWidth=1.2*f;g.beginPath();for(const ch of CHUNKS){if(ch.cx<x0-m-ch.r||ch.cx>x1+m+ch.r||ch.cz<z0-m-ch.r||ch.cz>z1+m+ch.r)continue;for(let i=ch.i0;i<=ch.i1;i+=6){const[a,b]=M(X[i],Z[i]);i===ch.i0?g.moveTo(a,b):g.lineTo(a,b)}}g.stroke()}
+ g.strokeStyle='#ffd23f';g.lineWidth=(big?3.5:2.2)*f;g.beginPath();P.forEach((p,i)=>{const[a,b]=M(p[0],p[1]);i?g.lineTo(a,b):g.moveTo(a,b)});g.stroke();
+ const[a,b]=M(P[0][0],P[0][1]);g.fillStyle='#7fd67a';g.beginPath();g.arc(a,b,(big?7:4)*f,0,6.283);g.fill();
+ if(big){const q=P[Math.min(P.length-1,Math.round(P.length*.06))],[qa,qb]=M(q[0],q[1]);g.save();g.translate(qa,qb);g.rotate(Math.atan2(q[1]-P[0][1],q[0]-P[0][0]));g.fillStyle='#fff';g.beginPath();g.moveTo(10*f,0);g.lineTo(-6*f,7*f);g.lineTo(-6*f,-7*f);g.closePath();g.fill();g.restore();
+  g.font='600 '+(11*f)+'px system-ui';g.textAlign='center';for(const cm of COMMUNES){const[x,z]=ll2xz(cm.lat,cm.lon);if(x<x0-m||x>x1+m||z<z0-m||z>z1+m)continue;const[u,v]=M(x,z);g.fillStyle='rgba(255,236,170,.9)';g.fillText(cm.name,u,v)}
+  g.fillStyle='rgba(255,255,255,.85)';g.font='800 '+(14*f)+'px system-ui';g.fillText('N',W-14*f,18*f)}}
+function drawRouteProf(c,path){if(!c)return;const W=c.width=c.clientWidth*devicePixelRatio,Hh=c.height=c.clientHeight*devicePixelRatio,g=c.getContext('2d'),P=pathPts(path,4),f=devicePixelRatio;if(P.length<2)return;
+ let lo=1e9,hi=-1e9;for(const p of P){lo=Math.min(lo,p[2]);hi=Math.max(hi,p[2])}if(hi-lo<40){const mm=(hi+lo)/2;lo=mm-20;hi=mm+20}
+ const d=[0];for(let i=1;i<P.length;i++)d.push(d[i-1]+Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]));const L=d[d.length-1]||1,X2=i=>d[i]/L*W,Y2=y=>Hh-4*f-(y-lo)/(hi-lo)*(Hh-20*f);
+ g.clearRect(0,0,W,Hh);g.beginPath();g.moveTo(0,Hh);P.forEach((p,i)=>g.lineTo(X2(i),Y2(p[2])));g.lineTo(W,Hh);g.closePath();g.fillStyle='rgba(255,210,63,.3)';g.fill();
+ g.beginPath();P.forEach((p,i)=>i?g.lineTo(X2(i),Y2(p[2])):g.moveTo(X2(i),Y2(p[2])));g.strokeStyle='#ffd23f';g.lineWidth=2*f;g.stroke();
+ g.fillStyle='#fff';g.font=(11*f)+'px system-ui';g.fillText(Math.round(lo)+'–'+Math.round(hi)+' m · '+nf(L/1000,1)+' km',6*f,13*f)}
+const planLine=(o,i,fav)=>'<div class="hw plr"><canvas data-m="'+i+'" style="width:72px;height:72px;border-radius:8px;flex:0 0 72px"></canvas><div style="flex:1;min-width:0"><b style="font:700 17px var(--num)">'+nf(o.km,1)+' km · '+o.dp+' m D+</b>'+
+ '<small>'+(o.type==='loop'?'🔁 boucle':'➡️ aller simple')+' · pente maxi '+Math.round(o.gm*100)+' %</small><small style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc((o.vias||[]).join(' → '))+'</small></div>'+
+ '<button data-v="'+i+'"'+(fav?' data-fav="1"':'')+'>Voir</button>'+(fav?'<button data-del="'+i+'" title="Retirer des favoris">✕</button>':'')+'</div>';
+function favList(){return GS.favr.map(f=>({path:f.p.map(([e,d])=>({e,d})),km:f.km,dp:f.dp,gm:f.gm,type:f.t,vias:f.v,n:f.n})).filter(o=>o.path.every(s=>NET.E[s.e]))}
+function planRender(){const el=$('plst'),L=sortPlan(PLAN.list),F=favList();
+ for(const[id,key]of[['pty','type'],['pfr','from'],['pso','sort']])$(id).querySelectorAll('button').forEach(b=>b.classList.toggle('on',PLAN[key]===b.dataset.v));
+ $('pfav').innerHTML=F.length?'<div class="gq">⭐ Mes parcours favoris</div>'+F.map((o,i)=>planLine(o,i,1)).join(''):'';
+ el.innerHTML=PLAN.busy?'<div class="hw">Calcul en cours…</div>':L.length?'<div class="gq">'+L.length+' parcours trouvés</div>'+L.map((o,i)=>planLine(o,i,0)).join(''):(PLAN.done?'<div class="hw">Aucun parcours dans ces limites : élargis la distance ou le dénivelé.</div>':'');
+ for(const[box,list,fav]of[[el,L,0],[$('pfav'),F,1]]){box.querySelectorAll('canvas[data-m]').forEach(c=>drawRouteMap(c,list[+c.dataset.m].path,false));
+  box.querySelectorAll('button[data-v]').forEach(b=>b.onclick=()=>planDetail(list[+b.dataset.v],fav));
+  box.querySelectorAll('button[data-del]').forEach(b=>b.onclick=()=>{GS.favr.splice(+b.dataset.del,1);gsave();planRender()})}}
+function planDetail(o,fav){PLAN.cur=o;$('pdt').textContent=o.n||((o.type==='loop'?'Boucle ':'Parcours ')+nf(o.km,1)+' km');
+ $('pdi').innerHTML='<b style="font:700 20px var(--num)">'+nf(o.km,1)+' km · '+o.dp+' m D+ · pente maxi '+Math.round(o.gm*100)+' %</b><br><small>'+esc((o.vias||[]).join(' → '))+'</small>';
+ $('pfv').style.display=fav?'none':'';showScr('s-pdet');requestAnimationFrame(()=>{drawRouteMap($('pdm'),o.path,true);drawRouteProf($('pdp'),o.path)})}
+function planRide(o){const pts=pathPts(o.path,2).map(p=>xz2ll(p[0],p[1])),nm=o.n||'Parcours';setRoute(pts,nm);
+ ROUTE.edges=o.path.map(s=>[s.e,s.d]);ROUTE.ei=0;try{localStorage.v3gpxe=JSON.stringify(ROUTE.edges)}catch(e){}
+ const s0=o.path[0],E0=NET.E[s0.e];RID.e=s0.e;RID.dir=s0.d;RID.u=s0.d>0?.5:E0.len-.5;RID.jx=null;RID.pick=-1;RID.prev=null;// départ exact sur la première route
+ try{localStorage.v3gpx=JSON.stringify(pts.filter((_,i)=>i%2===0||i===pts.length-1).map(q=>[+q[0].toFixed(6),+q[1].toFixed(6)]));localStorage.v3gpxn=nm}catch(e){}nav('ride')}
+function planOpen(){showScr('s-plan');planRender()}
+{const s=document.createElement('div');s.id='s-plan';s.className='scr';
+ s.innerHTML='<div class="bar"><button class="back">←</button><b>🗺️ Choisir un parcours</b></div><div class="scrl">'+
+  '<div class="gq">Type</div><div id="pty" class="chips"><button data-v="loop">🔁 Boucle (retour au départ)</button><button data-v="one">➡️ Aller simple</button></div>'+
+  '<div class="gq">Départ</div><div id="pfr" class="chips"><button data-v="home">Pontcharra (centre)</button><button data-v="here">Ma dernière position</button></div>'+
+  '<div class="gq">Distance</div><div class="row" style="align-items:center;flex-wrap:wrap"><label>de <input id="pd0" type="number" min="5" max="250" value="30"> km</label><label>à <input id="pd1" type="number" min="5" max="250" value="50"> km</label></div>'+
+  '<div class="gq">Dénivelé positif</div><div class="row" style="align-items:center;flex-wrap:wrap"><label>de <input id="ph0" type="number" min="0" max="6000" step="50" value="0"> m</label><label>à <input id="ph1" type="number" min="0" max="6000" step="50" value="3000"> m</label></div>'+
+  '<button id="pgo" class="on" style="width:100%;margin:10px 0;padding:12px;font-size:16px">Calculer les parcours</button>'+
+  '<div class="gq">Classer par</div><div id="pso" class="chips"><button data-v="d1">Distance ↑</button><button data-v="d-1">Distance ↓</button><button data-v="h1">Dénivelé ↑</button><button data-v="h-1">Dénivelé ↓</button></div>'+
+  '<div id="pfav"></div><div id="plst"></div></div>';
+ $('hs').appendChild(s);
+ const d=document.createElement('div');d.id='s-pdet';d.className='scr';
+ d.innerHTML='<div class="bar"><button class="back">←</button><b id="pdt"></b></div><div class="scrl"><div id="pdi" class="hw" style="display:block"></div>'+
+  '<canvas id="pdm" style="width:100%;height:min(46vh,420px);display:block;border-radius:12px"></canvas><canvas id="pdp" style="width:100%;height:90px;display:block;margin:8px 0;background:rgba(14,19,26,.72);border-radius:12px"></canvas>'+
+  '<div class="row"><button id="pfv">⭐ Garder en favori</button><button id="prd" class="on">▶ Rouler ce parcours</button></div></div>';
+ $('hs').appendChild(d);
+ s.querySelector('.back').onclick=()=>{roulRender();showScr('s-roul')};d.querySelector('.back').onclick=()=>planOpen();
+ const chip=(id,key)=>$(id).onclick=e=>{const b=e.target.closest('button');if(b){PLAN[key]=b.dataset.v;planRender()}};chip('pty','type');chip('pfr','from');chip('pso','sort');
+ for(const id of['pd0','pd1','ph0','ph1'])$(id).onkeydown=e=>e.stopPropagation();
+ $('pgo').onclick=()=>{if(PLAN.busy||!NET.ready)return;let a=+$('pd0').value||30,b=+$('pd1').value||50;if(b<a)[a,b]=[b,a];PLAN.dmin=clamp(a,3,250);PLAN.dmax=clamp(Math.max(b,a+2),5,260);
+  let h0=+$('ph0').value||0,h1=$('ph1').value===''?6000:+$('ph1').value;if(h1<h0)[h0,h1]=[h1,h0];PLAN.hmin=h0;PLAN.hmax=h1;PLAN.list=[];PLAN.done=0;planRender();
+  planRun(()=>{PLAN.done=1;planRender()},(f,n)=>{$('plst').innerHTML='<div class="hw">Calcul en cours… '+Math.round(f*100)+' % · '+n+' parcours trouvés</div>'})};
+ $('prd').onclick=()=>{if(PLAN.cur)planRide(PLAN.cur)};
+ $('pfv').onclick=()=>{const o=PLAN.cur;if(!o)return;GS.favr.push({p:o.path.map(s=>[s.e,s.d]),km:+o.km.toFixed(2),dp:o.dp,gm:o.gm,t:o.type,v:o.vias,n:o.n});if(GS.favr.length>30)GS.favr.shift();gsave();say('⭐ Parcours gardé dans tes favoris');$('pfv').style.display='none'}}
+// ---- accueil simplifié : 4 grands boutons (Rouler, S'entraîner, Mon suivi, Réglages) ----
+const hcard=(box,t,d,f)=>{const b=document.createElement('button');b.className='card';b.style.setProperty('--i',box.children.length);b.innerHTML='<b>'+t+'</b><span>'+d+'</span>';b.onclick=f;box.appendChild(b);return b};
+function roulRender(){const box=document.querySelector('#s-roul .cards');box.innerHTML='';
+ if(ROUTE)hcard(box,'▶ Reprendre l\'itinéraire',esc(ROUTE.name)+' · '+nf(ROUTE.len/1000,1)+' km · guidé aux carrefours',()=>nav('ride'));
+ hcard(box,'🚴 Sortie libre','Tout ton réseau · tu choisis ta route à chaque carrefour',()=>{ROUTE=null;try{delete localStorage.v3gpx;delete localStorage.v3gpxn;delete localStorage.v3gpxe}catch(e){}nav('ride')});
+ hcard(box,'🗺️ Choisir un parcours','Boucles ou allers simples calculés selon la distance et le dénivelé, à classer',()=>planOpen());
+ hcard(box,'↺ Parcours Pontcharra','Le parcours guidé intégré',()=>{setRoute(TRK.split(';').map(r=>r.split(',').map(Number)),'Parcours Pontcharra');nav('ride')});
+ hcard(box,'📂 Charger un GPX','Un itinéraire de ton choix, guidé aux carrefours',()=>$('gf').click());
+ hcard(box,'🤖 Exploration','Visite du réseau en pilote automatique',()=>nav('explore'))}
+function regRender(){const box=document.querySelector('#s-reg .cards');box.innerHTML='';
+ hcard(box,'🔌 Matériel',(conn?'Home trainer connecté':'Home trainer non connecté')+' · '+(hr?'cardio connectée':'cardio non connectée'),()=>showScr('s-hw'));
+ hcard(box,'🟧 Strava',STR.id&&STR.ref?'Connecté'+(STR.who?' · '+esc(STR.who):'')+' · '+GS.strv.length+' sortie'+(GS.strv.length>1?'s':'')+' envoyée'+(GS.strv.length>1?'s':''):'Non connecté · touche ici pour relier ton compte',()=>stravaPanel(()=>regRender()));
+ hcard(box,'👕 Vestiaire','Maillots, casque, lunettes, couleurs du vélo, roues',()=>{kitRender();showScr('s-kit')});
+ hcard(box,'🔧 Garage','Points, équipement, historique FTP, records de sprint',()=>{garage();showScr('s-gar')});
+ hcard(box,'🖥️ Graphismes','Qualité actuelle : '+QPRE[QK].n,()=>mod('Qualité graphique<br><small>Actuelle : '+QPRE[QK].n+'. L\'appli se recharge après le choix.</small>',
+  ['tab','low','med','high','ultra'].map(k=>[QPRE[k].n,()=>{try{localStorage.v3q2=k}catch(e){}location.reload()}]).concat([['Annuler',()=>{}]])))}
+{const sm=$('s-main');
+ sm.innerHTML='<div class="cards big">'+[['roul','🚴','Rouler','Sortie libre, choix du parcours, GPX, exploration'],['wk','🏋️','S\'entraîner','Créateur de séance (dont Dukan), séances guidées, test FTP'],
+  ['sui','📈','Mon suivi','Km, kcal, badges, niveaux, poids, historique'],['reg','⚙️','Réglages','Matériel, Strava, vestiaire, garage, graphismes']].map((c,i)=>'<button class="card" data-h="'+c[0]+'" style="--i:'+i+'"><b>'+c[1]+' '+c[2]+'</b><span>'+c[3]+'</span></button>').join('')+'</div>';
+ const mk=(id,title)=>{const s=document.createElement('div');s.id=id;s.className='scr';s.innerHTML='<div class="bar"><button class="back">←</button><b>'+title+'</b></div><div class="scrl"><div class="cards"></div></div>';$('hs').appendChild(s);s.querySelector('.back').onclick=()=>showScr('s-main')};
+ mk('s-roul','🚴 Rouler');mk('s-reg','⚙️ Réglages');
+ sm.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{const h=b.dataset.h;if(h==='roul'){roulRender();showScr('s-roul')}else if(h==='wk'){listWk();showScr('s-wk')}else if(h==='sui'){suiviRender();showScr('s-sui')}else{regRender();showScr('s-reg')}});
+ // les écrans Matériel, Garage et Vestiaire reviennent maintenant aux Réglages
+ document.querySelector('#s-hw .back').dataset.b='s-reg';for(const id of['s-gar','s-kit'])document.querySelector('#'+id+' .back').onclick=()=>{regRender();showScr('s-reg')}}
 // ===== sons de la nature (WebAudio) =====
 let AC=null,AU={},MUTE=false,aT=0;
 function audio(){if(AC){if(AC.state==='suspended')AC.resume();return}try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return}
@@ -2647,7 +2866,9 @@ function setRoute(pts,name){if(!pts||pts.length<2){ROUTE=null;return}
 function routeNear(x,z,k0,k1,R){if(!ROUTE)return-1;const ix=Math.floor(x/50),iz=Math.floor(z/50);let best=-1,bd=R*R;
  for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const L=ROUTE.hash.get(rkey(ix+a,iz+b));if(!L)continue;for(const i of L){if(i<k0||i>k1)continue;const p=ROUTE.P[i],d=(p[0]-x)**2+(p[1]-z)**2;if(d<bd){bd=d;best=i}}}
  return best}
-function routeIdx(st,opts){let bi=-1,bs=2;const k=ROUTE.k;
+function routeIdx(st,opts){if(ROUTE.edges){const E=ROUTE.edges,ei=ROUTE.ei||0;// parcours calculé : on suit la liste exacte des routes
+  for(let j=Math.max(0,ei-2);j<Math.min(E.length-1,ei+12);j++)if(E[j][0]===st.e&&E[j][1]===st.dir){if(st===RID)ROUTE.ei=j;const k=opts.findIndex(o=>o.e===E[j+1][0]&&o.d===E[j+1][1]);if(k>=0)return k;break}}
+ let bi=-1,bs=2;const k=ROUTE.k;
  opts.forEach((o,i)=>{const E=NET.E[o.e],L=Math.min(E.len,160);let c=0;for(let d=10;d<=L;d+=10){const u=o.d>0?d:E.len-d,[j,t]=sampleAt(o.e,u);if(routeNear(X[j],Z[j],k-20,k+700,25)>=0)c++}
   if(c>bs){bs=c;bi=i}});return bi}
 function routeTick(x,z){if(!ROUTE)return;const j=routeNear(x,z,Math.max(0,ROUTE.k-30),ROUTE.k+400,45);if(j>=0){if(j>ROUTE.k)ROUTE.k=j;ROUTE.off=0}else ROUTE.off+=1}
@@ -2934,6 +3155,7 @@ function offerStrava(R){const S=rideSummary(R),fit=fitEncode(R),d=new Date(R.t0)
  const desc='Vélo 3D (simulateur) · réseau de mes routes autour de Pontcharra'+(GS&&GS.pts?' · '+Math.floor(GS.pts)+' pts':'');
  const send=async()=>{mod('Envoi vers Strava…<br><small>'+S.txt+'</small>',[]);$('rb').innerHTML='';
   try{const id=await strUpload(fit,name,desc,k=>{$('rt').innerHTML='Strava traite la sortie… '+(k+1)});
+   GS.strv.push({t:Date.now(),id,n:name});if(GS.strv.length>50)GS.strv.shift();gsave();
    mod('Sortie envoyée sur Strava ✓<br><small>Type : vélo virtuel · '+S.txt+'</small>',[['Voir sur Strava',()=>window.open('https://www.strava.com/activities/'+id,'_blank')],['Fermer',()=>{}]])}
   catch(e){mod('Envoi impossible<br><small>'+String(e.message||e).replace(/</g,'')+'</small><br><small>Tu peux télécharger le fichier et l\'importer sur strava.com/upload</small>',[['Télécharger le .fit',()=>{downloadFit(fit,fname);window.open('https://www.strava.com/upload/select','_blank')}],['Fermer',()=>{}]])}};
  const btn=[];if(STR.id&&STR.ref)btn.push(['Envoyer sur Strava',send]);else btn.push(['Connecter Strava…',()=>{stravaPanel(()=>offerStrava(R))}]);
@@ -2941,7 +3163,7 @@ function offerStrava(R){const S=rideSummary(R),fit=fitEncode(R),d=new Date(R.t0)
  mod((R.ses?'Bravo ! 🎉'+sesHTML(R.ses):'')+'Envoyer cette sortie sur Strava ?<br><small>'+S.txt+'<br>Trace GPS réelle du parcours, marquée « vélo virtuel »</small>',btn)}
 // ---- réglages Strava ----
 function stravaPanel(after){const ok=!!(STR.id&&STR.ref);
- mod(`<div style="text-align:left;font-size:13.5px;line-height:1.45;max-width:min(84vw,420px);overflow-wrap:anywhere">Strava : ${ok?'<span style="font-weight:700;color:#7fd67a">connecté'+(STR.who?' · '+STR.who.replace(/</g,''):'')+'</span>':'non connecté'}<br>
+ mod(`<div style="text-align:left;font-size:13.5px;line-height:1.45;max-width:min(84vw,420px);overflow-wrap:anywhere">Strava : ${ok?'<span style="font-weight:700;color:#7fd67a">connecté'+(STR.who?' · '+STR.who.replace(/</g,''):'')+'</span>':'non connecté'}${GS.strv&&GS.strv.length?'<br><small>Dernières sorties envoyées : '+GS.strv.slice(-3).reverse().map(x=>new Date(x.t).toLocaleDateString('fr-FR')+' · '+esc(x.n)).join(' ; ')+'</small>':''}<br>
  <small>1. Sur <span style="color:var(--ac)">strava.com/settings/api</span>, crée une application (domaine de rappel : <span style="color:var(--ac)">localhost</span>).<br>2. Copie ici son ID client et son secret.<br>3. Clique « Autoriser », accepte, puis colle l'adresse de la page affichée ensuite (elle contient <span style="color:var(--ac)">code=</span>…).</small><br>
  <label style="margin-top:6px">ID client <input id="sid" style="flex:1" value="${(STR.id||'').replace(/"/g,'')}"></label>
  <label style="margin-top:6px">Secret <input id="ssec" type="password" style="flex:1" value="${(STR.sec||'').replace(/"/g,'')}"></label>
@@ -2991,7 +3213,7 @@ function resetWorld(){JOBS.length=0;JKEYS.clear();
  TER.near.clear();TER.cov=new Set();TER.cor=[];TER.mid.clear();TER.far=null;TER.ring=null;TER.lp.set(1e9,0,1e9);TER.ver++;
  ROAD.ch=[];ROAD.fur=[];ROAD.jn=new Map();ROAD.vil=null;VEG.cells.clear();VEG.lp.set(1e9,0,1e9);BT.clear();BLD.lp.set(1e9,0,1e9);WAT.cells.clear();
  DATA.bld.clear();DATA.veg.clear();DATA.wat.clear();DATA.tiles.clear();DATA.habit=[];DATA.places=[];DATA.signs=[];DATA.n={b:0,v:0,w:0};dataMode=0;DFAIL[0]=DFAIL[1]=DOK[0]=DOK[1]=0;
- VIDX.clear();WIDX.clear();BIDX.clear();MASKC.clear();WATC.clear();DEMS.length=0;DEMOK=false;WATERM=null;BRG=null;VIL=[];VILF=null;VDONE.clear();VG.g=null;GRASS.mesh=null;
+ VIDX.clear();WIDX.clear();BIDX.clear();ORL.clear();ORIDS.clear();ORIDX.clear();MASKC.clear();WATC.clear();DEMS.length=0;DEMOK=false;WATERM=null;BRG=null;VIL=[];VILF=null;VDONE.clear();VG.g=null;GRASS.mesh=null;
  TU.uPhoto.value=0;TU.uNearOn.value=0;CLIP.on=false;for(const k in LDP)delete LDP[k]}
 function llOf(Rg){const[n,w]=xz2ll(Rg.x0,Rg.z0),[s2,e]=xz2ll(Rg.x1,Rg.z1);return[s2,w,n,e]}
 function onDataTile(a,b){dataDirty=1;const x0=a*DT-64,x1=(a+1)*DT+64,z0=b*DT-64,z1=(b+1)*DT+64;
@@ -3083,7 +3305,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  if(hm){LD.set(-.5,.75,.42).normalize();SUNL.intensity=.55;SUNL.color.setHex(0xfff2dd);HL.intensity=.75;shadowFollow(V(0,0,0))}else shadowFollow(R.position);
  skyFollow();CLU.uT.value=now/1000;
  // niveaux de détail et chargements
- {const cp=hm?_hw.set(x,y+2,z):cam.position,rp=hm?cp:R.position;terrUpdate(cp);roadUpdate(cp);vegUpdate(cp);bldUpdate(cp);waterUpdate(cp);if(!hm)grassUpdate(cp,1.5);
+ {const cp=hm?_hw.set(x,y+2,z):cam.position,rp=hm?cp:R.position;terrUpdate(cp);roadUpdate(cp);if(!hm)oroadUpdate(cp,now);vegUpdate(cp);bldUpdate(cp);waterUpdate(cp);if(!hm)grassUpdate(cp,1.5);
   if(now-clipT2>600){clipT2=now;clipRecenter(rp.x,rp.z)}}
  dataTick(now);dataLoaderTick(now);villagesTick(now);mosaicsTick(now);clipTick(now);waterTick(dt);
  runJobs((hm?14:(fA>26?3.5:fA>20?5:7))+JOB_BOOST);
@@ -3102,6 +3324,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
 // ---- mini-carte : le réseau autour de toi (nord en haut) ----
 function drawMap(){const c=$('map');if(!c||!N)return;const W=c.width,g=c.getContext('2d'),Rm=2400,k=W/2/Rm,cx=RW.x,cz=RW.z,M=(x,z)=>[W/2+(x-cx)*k,W/2+(z-cz)*k];
  g.clearRect(0,0,W,W);g.save();g.beginPath();g.arc(W/2,W/2,W/2-2,0,6.283);g.clip();g.lineJoin=g.lineCap='round';
+ g.strokeStyle='rgba(200,210,222,.3)';g.lineWidth=1.1;g.beginPath();oroadsPath(g,M,cx,cz,Rm);g.stroke();// autres routes (non roulables)
  g.strokeStyle='rgba(220,230,240,.55)';g.lineWidth=2.2;g.beginPath();
  for(const ch of CHUNKS){if(Math.abs(ch.cx-cx)>Rm+ch.r||Math.abs(ch.cz-cz)>Rm+ch.r)continue;for(let i=ch.i0;i<=ch.i1;i+=4){const[a,b]=M(X[i],Z[i]);i===ch.i0?g.moveTo(a,b):g.lineTo(a,b)}const[a,b]=M(X[ch.i1],Z[ch.i1]);g.lineTo(a,b)}g.stroke();
  if(VILF){g.strokeStyle='rgba(215,38,61,.9)';g.lineWidth=3;g.beginPath();for(const ch of CHUNKS){if(Math.abs(ch.cx-cx)>Rm+ch.r||Math.abs(ch.cz-cz)>Rm+ch.r)continue;let pen=false;for(let i=ch.i0;i<=ch.i1;i+=2){const[a,b]=M(X[i],Z[i]);if(VILF[i]){pen?g.lineTo(a,b):g.moveTo(a,b);pen=true}else pen=false}}g.stroke()}
@@ -3119,7 +3342,7 @@ function drawMap(){const c=$('map');if(!c||!N)return;const W=c.width,g=c.getCont
  const h2=document.createElement('h4');h2.textContent='Itinéraire';t.appendChild(h2);
  const ut=document.createElement('button');ut.textContent='↶ Demi-tour';ut.onclick=()=>{uTurn();$('top').style.display='none'};t.appendChild(ut);
  const df=document.createElement('button');df.textContent='↺ Parcours Pontcharra (guidé)';df.onclick=()=>{setRoute(TRK.split(';').map(r=>r.split(',').map(Number)),'Parcours Pontcharra');$('top').style.display='none';say('Parcours Pontcharra : suis le côté en surbrillance aux carrefours.')};t.appendChild(df);
- const fr=document.createElement('button');fr.textContent='✕ Sortie libre (sans itinéraire)';fr.onclick=()=>{ROUTE=null;try{delete localStorage.v3gpx;delete localStorage.v3gpxn}catch(e){}$('top').style.display='none';say('Sortie libre : choisis ta route à chaque carrefour.')};t.appendChild(fr);
+ const fr=document.createElement('button');fr.textContent='✕ Sortie libre (sans itinéraire)';fr.onclick=()=>{ROUTE=null;try{delete localStorage.v3gpx;delete localStorage.v3gpxn;delete localStorage.v3gpxe}catch(e){}$('top').style.display='none';say('Sortie libre : choisis ta route à chaque carrefour.')};t.appendChild(fr);
  const h3=document.createElement('h4');h3.textContent='Strava';t.appendChild(h3);
  const sb=document.createElement('button');sb.textContent='Connexion Strava…';sb.onclick=()=>{$('top').style.display='none';stravaPanel()};t.appendChild(sb);
  const mb=document.createElement('button');mb.textContent='🔊 Sons nature';mb.onclick=()=>{MUTE=!MUTE;mb.textContent=MUTE?'🔇 Sons coupés':'🔊 Sons nature';audio()};t.appendChild(mb);
@@ -3134,7 +3357,7 @@ addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;if
 addEventListener('resize',()=>{if(BIGM.on)bigMapToggle(true)});
 // ---- démarrage ----
 {ftpLog(FTP);$('ftp').value=FTP;R.add(TR);progTick(true);applyKit();nav('home');rs();initNPCs();startWorld();
- try{if(localStorage.v3gpx){setRoute(JSON.parse(localStorage.v3gpx),localStorage.v3gpxn||'Itinéraire')}}catch(e){}
+ try{if(localStorage.v3gpx){setRoute(JSON.parse(localStorage.v3gpx),localStorage.v3gpxn||'Itinéraire');if(localStorage.v3gpxe&&ROUTE){ROUTE.edges=JSON.parse(localStorage.v3gpxe);ROUTE.ei=0}}}catch(e){}
  requestAnimationFrame(loop)}
 function onNav(m){TR.visible=m==='home';if(m!=='home')CAM.snap=true}
 

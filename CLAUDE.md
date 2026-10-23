@@ -45,6 +45,12 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - **Qualité graphique réglable** (Tablette, Basse, Moyenne, Élevée, Ultra) et résolution adaptative selon les images par seconde.
   - **Tablette** (pensée pour la Redmi Pad SE : Snapdragon 680, GPU Adreno 610) : pas d'anticrénelage, ombres 1024 non adoucies, pas de nuages, distances réduites (routes 3,2 km), 3 PNJ allégés, 8 piétons, résolution 1× pouvant descendre à 0,55×.
   - Choisie automatiquement au premier lancement quand le processeur graphique est d'entrée de gamme (Adreno ≤ 63x, Mali, PowerVR, SwiftShader), lu via `WEBGL_debug_renderer_info` : Chrome sur tablette se présente souvent comme un ordinateur.
+- **Autres routes et rues** (jamais roulées) : affichées en 3D mais **non roulables**.
+  - Source : couche IGN `BDTOPO_V3:troncon_de_route` chargée avec les bâtiments (attributs lus : `nature`, `largeur_de_chaussee`, `nombre_de_voies`, `position_par_rapport_au_sol`) ; sinon les `highway` d'OpenStreetMap.
+  - Les parties qui doublent une route du réseau sont retirées ; chaque morceau s'arrête au bord de la chaussée roulable.
+  - Goudron, chemin (gravier) ou sentier (terre), largeur selon les données ; tunnels et escaliers ignorés.
+  - Ribbons posés sur le terrain tel que le maillage le dessine (`terrH`), par cellules de 512 m (`ORL`), affichés jusqu'à `QP.near` (560 m en Tablette). Pas d'arbre ni d'herbe dessus (code 253 dans les masques).
+  - Dessinées en gris fin sur la mini-carte et la grande carte.
 - **Forêts allégées de 90 %** (`FOREST_K = 0,1` dans `genCell`) : massifs IGN/OSM et arbres déduits de la photo. Haies, vergers et peupliers inchangés.
 
 ### Navigation sur le réseau
@@ -61,6 +67,11 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
   - La même courbe arrondit la trajectoire du cycliste et des PNJ (`posSmooth`, `jPath`) : plus de virage à angle vif ni de saut de caméra. Le choix au carrefour est connu à l'avance (`riderNext`, `npcNext`).
 - **Grande carte** : un clic sur la mini-carte (ou touche M, ou menu ☰) l'agrandit au centre, en transparence, orientée dans le sens de marche. Un nouveau clic (ou Échap) la ferme.
   - Au carrefour, une zone ronde « Carte » au centre de l'écran partagé l'ouvre. Chaque branche y est dessinée sur 1,5 km avec sa lettre (A, B, C…), la même que sur l'écran partagé.
+- **Choix du parcours avant la sortie** (Rouler → Choisir un parcours) :
+  - boucle (retour au départ) ou aller simple ; départ au centre de Pontcharra ou à la dernière position ; fourchettes de distance et de dénivelé positif ;
+  - environ 30 parcours calculés (plus courts chemins de Dijkstra par 2 ou 3 points de passage, pénalité sur les routes déjà empruntées, moins de 15 % de routes répétées, doublons écartés) ;
+  - classement par distance ou par dénivelé (croissant ou décroissant) ; pour chacun : carte, profil, km, D+, pente maxi sur 200 m, communes traversées ;
+  - favoris (`GS.favr`) ; le parcours choisi est guidé aux carrefours en suivant la **liste exacte des routes** (`ROUTE.edges`), plus fiable que le guidage géométrique d'un GPX.
 - **Culs-de-sac** : demi-tour automatique. Demi-tour manuel avec la touche U ou le menu ☰.
 - **Mini-carte** : réseau sur 2,4 km autour du cycliste, trajet prévu en jaune, villages en rouge, cyclistes en points de couleur.
 - **Profil du bas** : altitude des 5 km à venir sur le trajet prévu.
@@ -125,6 +136,9 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - **Créateur de séance automatique** (`genWorkout`) : objectif (endurance, tempo, sweet spot, seuil, VO2max, 30/30, sprints, force, vélocité, pyramide, récupération, **régime Dukan**), durée de 20 à 180 min, niveau. Échauffement, blocs et retour au calme se calculent seuls ; variante aléatoire, séance gardée dans la liste (★).
   - **Régime Dukan** : zone « brûle-graisses » (63–72 % de la FTP selon la phase), relances d'1 min selon la phase (Attaque : 45 min maximum, sans relance). Affiche les kcal estimées et l'équivalent en graisse (7 700 kcal/kg).
   - En séance : consigne de chaque bloc, annonce du bloc suivant, bips 3-2-1.
+  - **Combiner deux travaux** (« Combiner avec ») : deux parties égales séparées de 3 min de récupération ; avec le régime Dukan, le second travail occupe ~34 % du temps au milieu de la base brûle-graisses, à intensité réduite de 8 % en phase d'attaque et de 4 % en croisière.
+  - **Raccourcir une séance en cours** (bouton ⏱) : on réduit d'abord l'endurance, puis on retire des répétitions entières par la fin ; les récupérations entre efforts et l'intensité ne changent pas ; retour au calme ramené à 2 min au moins.
+- **Accueil simplifié** : 4 grands boutons — **Rouler** (reprendre l'itinéraire, sortie libre, choix du parcours, parcours Pontcharra, GPX, exploration), **S'entraîner**, **Mon suivi**, **Réglages** (matériel, **Strava** avec état de connexion et sorties envoyées `GS.strv`, vestiaire, garage, graphismes).
 - **Plein écran** et **écran maintenu allumé** pendant les sorties (API Wake Lock), utiles sur tablette.
 - **Garage** : points, équipement améliorable, historique FTP, records de sprint.
 - **Pièce d'accueil en 3D** : vélo sur home trainer, bureau avec écran animé, posters.
@@ -148,7 +162,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 ## 3. Choix techniques
 
 ### Fichier unique
-- Livrable : **un seul fichier HTML** d'environ 1,3 Mo et 3 140 lignes, sans dépendance réseau pour le code.
+- Livrable : **un seul fichier HTML** d'environ 1,3 Mo et 3 365 lignes, sans dépendance réseau pour le code.
 - Le fichier `Index.html` du dépôt (avec un I majuscule) est ce fichier (livré à l'origine sous le nom `velo-3d-pontcharra.html`).
 - **three.js r150** est **inclus en entier dans le fichier** (version minifiée) : pas de CDN, pas de modules ES, pas d'outil de build.
 - JavaScript « classique » en mode strict, sans framework. Tout le code applicatif est dans un seul `<script>`.
@@ -158,31 +172,32 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 
 | Lignes ≈ | Contenu |
 |---|---|
-| 1–150 | `<head>` : CSS de l'interface, puis le HTML (HUD, menu ☰, accueil, écrans, fenêtre `#res`, grande carte `#bmap`, bandeau `#rw`) |
-| 151 | `<script>` **three.js r150 minifié**. **NE PAS LIRE NI MODIFIER** : lignes énormes. |
-| 152–3140 | `<script>` de l'application, sections ci-dessous |
-| ≈159 | `const TRK="lat,lon,alt;…"` : parcours Pontcharra par défaut (une seule ligne très longue) |
-| ≈160 | `const NETD={"E":[…]}` : **réseau routier** (une ligne d'environ 285 Ko, ne pas l'afficher en entier) |
-| ≈161 | Base : utilitaires, détection du GPU (`GPU`, `WEAK_GPU`), préréglages de qualité `QPRE`, file de tâches `job()`/`runJobs()`, cache réseau, classe `GB` |
-| ≈275 | Rendu, ciel, lumière, astronomie (`skyUpdate`, `FORCE_SUN` pour les tests) |
-| ≈394 | Textures procédurales |
-| ≈547 | **Réseau routier** : `initNetwork`, `roadQ`, `posAt`, **carrefours arrondis** (`jcOf`, `bez`, `jCtl`, `jPath`, `posSmooth`, `buildJunction`), `finishTrack`, `buildCoarse`, relief `ground`/`hT` |
-| ≈737 | Terrain : tuiles proches, moyennes et lointaines, horizon, couloir le long des routes, mosaïques photo, photo proche `CLIP` |
-| ≈962 | Données cartographiques : WFS IGN, Overpass, procédural ; chargement dynamique autour du cycliste (`dataLoaderTick`) |
-| ≈1128 | Route : chaussée par tronçon (rognée aux carrefours), chaussées de carrefour (`ROAD.jn`), ponts, mobilier |
-| ≈1248 | Végétation (`FOREST_K`) et herbe |
-| ≈1458 | Bâtiments |
-| ≈1683 | Eau |
-| ≈1710 | Agglomérations : détection par route, noms, panneaux, arches (`villagesTick`) |
-| ≈1801 | Cycliste et vélo : `jerseyCanvas` (styles de maillot), matériaux du joueur `KM`, finesse `GSEG`, `makeRiderInst`, `riderAnim`, compteur `compTick` |
-| ≈2133 | Application : état global, FTMS, cardio, séances (`WKALL`, `startW`), interface (`nav`, `prof`) |
-| ≈2245 | Jeu : sprints, points, garage |
-| ≈2292 | **Suivi et récompenses** (`SES`, `sesTick`, `reward`, `BADGES`, `progTick`, `suiviRender`), **créateur de séances** (`GOALS`, `genWorkout`, `wkStats`), **vestiaire** (`KITS`, `KIT`, `applyKit`), **grande carte** (`BIGM`, `drawBig`), veille et plein écran ; puis sons et pièce d'accueil |
-| ≈2610 | **Navigation** : `RID`, `advance` (mémorise `st.prev`), `optionsAt`, `defaultIdx`, `riderNext`, itinéraire GPX `setRoute`, choix au carrefour `jxTick` |
-| ≈2699 | **Cyclistes PNJ** : `npcTick`, `npcChoose`/`npcNext`, aspiration `draftOf`, sprints `exitAhead`, « Ride On » |
-| ≈2809 | **Piétons** : `pedTick`, applaudissements, sifflets, voix |
-| ≈2875 | **Strava** : enregistreur `REC`, `fitEncode`, OAuth, envoi, fenêtre `offerStrava`, `stravaPanel` |
-| ≈2957 | Monde et boucle principale : `startWorld`, caméras, `loop()`, mini-carte, menu ☰, démarrage |
+| 1–155 | `<head>` : CSS de l'interface, puis le HTML (HUD, menu ☰, accueil, écrans, fenêtre `#res`, grande carte `#bmap`, bandeau `#rw`) |
+| ≈156 | `<script>` **three.js r150 minifié**. **NE PAS LIRE NI MODIFIER** : lignes énormes. |
+| ≈157–3365 | `<script>` de l'application, sections ci-dessous |
+| ≈161 | `const TRK="lat,lon,alt;…"` : parcours Pontcharra par défaut (une seule ligne très longue) |
+| ≈162 | `const NETD={"E":[…]}` : **réseau routier** (une ligne d'environ 285 Ko, ne pas l'afficher en entier) |
+| ≈163 | Base : utilitaires, détection du GPU (`GPU`, `WEAK_GPU`), préréglages de qualité `QPRE`, file de tâches `job()`/`runJobs()`, cache réseau, classe `GB` |
+| ≈277 | Rendu, ciel, lumière, astronomie (`skyUpdate`, `FORCE_SUN` pour les tests) |
+| ≈396 | Textures procédurales |
+| ≈549 | **Réseau routier** : `initNetwork`, `roadQ`, `posAt`, **carrefours arrondis** (`jcOf`, `bez`, `jCtl`, `jPath`, `posSmooth`, `buildJunction`), `finishTrack`, `buildCoarse`, relief `ground`/`hT` |
+| ≈739 | Terrain : tuiles proches, moyennes et lointaines, horizon, couloir le long des routes, mosaïques photo, photo proche `CLIP` |
+| ≈964 | Données cartographiques : WFS IGN, Overpass, **autres routes** (`addORoad`, `parseBDTopoRoute`, `osmRoad`, `terrH`, `buildOCell`, `oroadUpdate`, `oroadsPath`), procédural ; chargement dynamique (`dataLoaderTick`) |
+| ≈1183 | Route : chaussée par tronçon (rognée aux carrefours), chaussées de carrefour (`ROAD.jn`), ponts, mobilier |
+| ≈1303 | Végétation (`FOREST_K`) et herbe |
+| ≈1513 | Bâtiments |
+| ≈1738 | Eau |
+| ≈1765 | Agglomérations : détection par route, noms, panneaux, arches (`villagesTick`) |
+| ≈1856 | Cycliste et vélo : `jerseyCanvas` (styles de maillot), matériaux du joueur `KM`, finesse `GSEG`, `makeRiderInst`, `riderAnim`, compteur `compTick` |
+| ≈2188 | Application : état global, FTMS, cardio, séances (`WKALL`, `startW`, `shortenWk`), interface (`nav`, `prof`) |
+| ≈2312 | Jeu : sprints, points, garage |
+| ≈2359 | **Suivi et récompenses** (`SES`, `sesTick`, `reward`, `BADGES`, `progTick`, `suiviRender`), **créateur de séances** (`GOALS`, `genWorkout` avec `g2`, `wkStats`), **vestiaire** (`KITS`, `KIT`, `applyKit`), **grande carte** (`BIGM`, `drawBig`), veille et plein écran |
+| ≈2615 | **Choix du parcours** (`PLAN`, `edgeClimb`, `dijk`, `planRun`, `planRender`, `planDetail`, `planRide`), **accueil à 4 boutons** (`roulRender`, `regRender`) ; puis sons et pièce d'accueil |
+| ≈2829 | **Navigation** : `RID`, `advance` (mémorise `st.prev`), `optionsAt`, `defaultIdx`, `riderNext`, itinéraire `setRoute`/`routeIdx` (suit `ROUTE.edges` s'il existe), choix au carrefour `jxTick` |
+| ≈2920 | **Cyclistes PNJ** : `npcTick`, `npcChoose`/`npcNext`, aspiration `draftOf`, sprints `exitAhead`, « Ride On » |
+| ≈3030 | **Piétons** : `pedTick`, applaudissements, sifflets, voix |
+| ≈3096 | **Strava** : enregistreur `REC`, `fitEncode`, OAuth, envoi, fenêtre `offerStrava`, `stravaPanel` |
+| ≈3179 | Monde et boucle principale : `startWorld`, caméras, `loop()`, mini-carte, menu ☰, démarrage |
 
 ### Repère et unités
 - L'origine est le **centre de Pontcharra** : `LA = 45.4225`, `LO0 = 6.0228`.
@@ -221,8 +236,8 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 - `v3q2` : qualité graphique (`tab`, `low`, `med`, `high`, `ultra`). L'ancienne clé `v3q` n'est plus lue, pour que la tablette reparte en « Tablette ».
 - `v3kit` : choix du vestiaire (maillot, couleurs, jantes, pneus…).
 - `ftp`, `kg` : FTP et poids.
-- `v3gpx`, `v3gpxn` : itinéraire GPX guidé.
-- `vg3` : jeu : points, records, équipement, et désormais `xp`, `kcal`, `asc` (D+), `spr` (sprints gagnés), `hist` (historique, 400 max), `bdg` (badges), `goal`/`wgoal` (objectifs de la semaine), `wlog` (poids), `myw` (séances gardées).
+- `v3gpx`, `v3gpxn` : itinéraire guidé (GPX ou parcours calculé) ; `v3gpxe` : liste exacte des routes d'un parcours calculé.
+- `vg3` : jeu : points, records, équipement, et désormais `xp`, `kcal`, `asc` (D+), `spr` (sprints gagnés), `hist` (historique, 400 max), `bdg` (badges), `goal`/`wgoal` (objectifs de la semaine), `wlog` (poids), `myw` (séances gardées), `favr` (parcours favoris, en liste de routes `[e, sens]`), `strv` (sorties envoyées sur Strava).
 - `velo3d-strava` : ID client, secret et jetons Strava. **Ne jamais les committer.**
 
 ### Tests utilisés jusqu'ici
@@ -265,7 +280,9 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
     - les kcal sont une estimation (rendement fixe de 24 %) ; l'équivalent graisse (7 700 kcal/kg) est un ordre de grandeur, pas une mesure ;
     - avec 90 % d'arbres en moins, les forêts de la photo aérienne paraissent clairsemées ;
     - carrefours : testés sur les 550 nœuds (aucune géométrie invalide) mais pas regardés un par un ; un carrefour aux branches très serrées peut montrer un petit recouvrement de chaussée ;
-    - aux culs-de-sac, le demi-tour automatique reste brusque (pas de courbe).
+    - aux culs-de-sac, le demi-tour automatique reste brusque (pas de courbe) ;
+    - **autres routes** : la couche IGN `troncon_de_route` et ses attributs n'ont pas pu être vérifiés (serveurs IGN et OSM injoignables depuis l'environnement de test). Le rendu a été testé avec des routes injectées. Si la couche IGN ne répond pas, l'appli bascule sur OpenStreetMap ;
+    - **choix du parcours** : D+ et pentes viennent de l'altitude du réseau ; ils ne sont justes qu'une fois le vrai relief SRTM chargé. Avec le relief de secours, certaines pentes atteignent le plafond de 25 %. Les favoris sont enregistrés par numéro de route : ils deviendront faux si le réseau est modifié (corrections de la carte 2D).
 14. **Confidentialité** : le réseau couvre les rues autour du domicile de Cyril. **Le dépôt doit rester privé.**
 
 ---
@@ -282,7 +299,8 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 3. **Tester l'envoi Strava réel** (création de l'application API, autorisation, envoi, type « Vélo virtuel »). Si CORS bloque, garder le .fit et améliorer les explications.
 4. **Alléger les PNJ** : partager les géométries entre PNJ, ou ajouter une version simplifiée au-delà de 60 m.
 5. **Régler la qualité « Tablette »** après un essai sur la Redmi Pad SE (images par seconde, distances, nombre de PNJ).
-6. **Petits plus envisagés, non demandés à ce stade** : messages au cul-de-sac et quand on sort de l'itinéraire, mémorisation de la dernière position, groupes de PNJ qui roulent ensemble.
+6. **Bâtiments plus ressemblants** (demandé, reporté par Cyril) : couleur des toits relevée sur la photo aérienne, style local dauphinois/savoyard, bâtiments marquants sur mesure à partir de photos.
+7. **Petits plus envisagés, non demandés à ce stade** : vraies sorties Strava proposées comme parcours (nécessite le droit `activity:read`), messages au cul-de-sac et quand on sort de l'itinéraire, mémorisation de la dernière position, groupes de PNJ qui roulent ensemble.
 
 ---
 
