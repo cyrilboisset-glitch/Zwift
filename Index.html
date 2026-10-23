@@ -104,6 +104,8 @@ body.hm #map{display:none}
 #spz,#kmz{position:fixed;left:50%;top:calc(110px + var(--sa));transform:translateX(-50%);display:none;z-index:7;background:rgba(10,60,30,.85);border:2px solid #22c55e;border-radius:14px;padding:8px 16px;text-align:center;min-width:min(86vw,360px);pointer-events:none;color:#fff}
 #kmz{top:calc(160px + var(--sa));background:rgba(120,15,30,.82);border-color:#ff5a4e;font-size:14px}
 #spz b{font:800 18px var(--num)}#spz .bar{height:10px;border-radius:5px;background:rgba(255,255,255,.2);margin:6px 0;overflow:hidden}#spz .bar i{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#ffd23f)}#spz span{font-size:14px}
+#ld{display:none!important}/* encadré d'état des chargements masqué (demande de Cyril) */
+#velp{position:fixed;left:50%;top:calc(26px + var(--sa));transform:translateX(-50%);display:none;z-index:9;background:rgba(6,10,18,.72);border:1px solid rgba(43,212,255,.35);color:#fff;font:600 13px/1.45 system-ui;padding:6px 14px;border-radius:12px;text-align:center;cursor:pointer;white-space:nowrap;backdrop-filter:blur(4px)}
 #dg{position:fixed;left:50%;top:calc(4px + var(--sa));transform:translateX(-50%);display:none;z-index:46;background:rgba(10,14,20,.78);color:#9ff0b0;font:700 12px system-ui;padding:3px 10px;border-radius:9px;cursor:pointer;white-space:nowrap}
 #cch{position:fixed;left:50%;bottom:calc(64px + var(--sb));transform:translateX(-50%);display:none;z-index:8;background:rgba(14,19,26,.8);border-radius:12px;padding:6px 14px;font:600 14px system-ui;color:#fff;max-width:min(92vw,560px);text-align:center;pointer-events:none}
 #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:45;display:none}
@@ -159,7 +161,7 @@ body.hm #map{display:none}
 <canvas id="map" width="224" height="224"></canvas>
 <canvas id="bmap"></canvas>
 <div id="rw"></div>
-<div id="dg" onclick="diagShow()"></div><div id="spr"></div><div id="spz"></div><div id="kmz"></div><div id="cch"></div><canvas id="fx"></canvas>
+<div id="dg" onclick="diagShow()"></div><div id="velp" onclick="velPaceNext()"></div><div id="spr"></div><div id="spz"></div><div id="kmz"></div><div id="cch"></div><canvas id="fx"></canvas>
 <div id="att">Routes : tes sorties Strava 2018-2026 · Relief © AWS Terrain Tiles (SRTM) · Photos © IGN · Bâtiments, forêts, eau © IGN BD TOPO / © contributeurs OpenStreetMap</div>
 
 <script>
@@ -2307,7 +2309,7 @@ function listWk(){const L=WKALL(),nx=tplanNext(),TP=GS.tplan&&TPLANS.find(t=>t.i
 function pickWk(i){const w=WKALL()[i];document.querySelectorAll('.wc').forEach(e=>e.classList.add(e.dataset.i===String(i)?'pick':'out'));
  setTimeout(()=>{$('dt').textContent=w.n;$('dd').textContent=w.d;$('db').innerHTML=bars(w,110);showScr('s-det');$('gob').onclick=()=>startW(w)},550)}
 function start(i){startW(WKALL()[i])}
-function startW(w){courseThen(()=>startW0(w),'séance')}// le parcours de la séance se choisit avant de démarrer
+function startW(w){mod('Où faire la séance ?<br><small>Au vélodrome, piste plate : idéal pour tenir les consignes. Sur un parcours, la pente n\'agit pas pendant une séance.</small>',[['🏟️ Vélodrome',()=>velStart(()=>startW0(w))],['🗺️ Sur un parcours',()=>courseThen(()=>startW0(w),'séance')],['Annuler',()=>{}]])}// le parcours de la séance se choisit avant de démarrer
 function startW0(w){wk={n:w.n,ramp:!!w.ramp,bl:w.b().map(x=>x.slice()),plan:w.plan!=null?w.plan:null};WC.bi=-1;WT=wk.bl.reduce((a,x)=>a+x[0],0);wt=0;ix=1;wpz=0;best=0;sA=0;sT=0;bad=0;stepI=-1;
  $('ixv').textContent=wk.ramp?'—':'100%';$('pz').textContent='⏸';$('home').style.opacity=0;let n=3;const c=$('cd');c.style.display='flex';
  const tick=()=>{if(!n){c.style.display='none';$('home').style.opacity='';nav('wk');return}c.innerHTML='<span>'+n+'</span>';n--;setTimeout(tick,1000)};tick()}
@@ -2325,7 +2327,7 @@ function nav(m){const pm=mode,wkn=wk&&wk.n,wkp=wk&&wk.plan!=null&&WT&&wt>=.8*WT?
  $('pad').style.display=m==='explore'?'flex':'none';$('wkb').style.display=m==='wk'?'flex':'none';$('home').style.display=m==='home'?'flex':'none';
  for(const i of['hud','bot','mn','vb'])$(i).style.display=m==='home'?'none':'';
  $('top').style.display='none';v=0;lastG=9;lastBi=-1;done=false;yaw=0;pit=m==='home'?.27:.28;dist=m==='home'?4.6:7;$('vw').style.display='none';
- if(m!=='home'){s=0;tt=0;CAM.snap=true}else{showScr('s-main');$('zn').innerHTML=zonesHTML();if(conn)sim(0)}
+ if(m!=='home'){s=0;tt=0;CAM.snap=true}else{if(VEL.on)velStop();showScr('s-main');$('zn').innerHTML=zonesHTML();if(conn)sim(0)}
  if(m==='explore'&&conn)sim(0);rs();if(typeof onNav==='function')onNav(m);
  if(m==='ride'||m==='wk'){recStart(m);sesStart(m);}
  KOM=null;$('spz').style.display=$('kmz').style.display='none';
@@ -2478,7 +2480,7 @@ function sesTick(dt,P,ds,y){if(!SES.on)return;P=Math.max(0,P);SES.el+=dt;SES.km+
  if(SES.kcal>=SES.nc){reward('🔥',nf(SES.nc)+' kcal brûlées',10+Math.round(SES.nc/20));SES.nc+=100}
  SES.tk+=dt;if(SES.tk>2){SES.tk=0;progTick()}}
 function sesStop(wkn){if(!SES.on)return null;progTick();SES.on=false;if(SES.el<60&&SES.km<.2)return null;
- const h={t:SES.t0,m:SES.mode,n:wkn||(ROUTE?ROUTE.name:'Sortie libre'),km:+SES.km.toFixed(2),el:Math.round(SES.el),kcal:Math.round(SES.kcal),ap:Math.round(SES.sP/Math.max(1,SES.el)),asc:Math.round(SES.asc),mx:Math.round(SES.mx),rew:SES.rew.slice()};
+ const h={t:SES.t0,m:SES.mode,n:(wkn&&VEL.on?wkn+' · vélodrome':wkn)||(VEL.on?'Vélodrome de Pontcharra · '+VEL.lap+' tours':ROUTE?ROUTE.name:'Sortie libre'),km:+SES.km.toFixed(2),el:Math.round(SES.el),kcal:Math.round(SES.kcal),ap:Math.round(SES.sP/Math.max(1,SES.el)),asc:Math.round(SES.asc),mx:Math.round(SES.mx),rew:SES.rew.slice()};
  GS.hist.push(h);if(GS.hist.length>400)GS.hist.shift();progTick();gsave();return h}
 function sesHTML(h){return '<div style="font-size:13.5px;line-height:1.55;margin:6px 0 10px">'+nf(h.km,1)+' km · '+fmt(h.el)+' · '+h.ap+' W moy. · D+ '+h.asc+' m<br><b style="font:700 20px var(--num);color:#ff9a3c">🔥 '+nf(h.kcal)+' kcal</b>'+
  (h.rew.length?'<div style="font-size:12px;color:var(--mut);margin-top:6px;max-height:30vh;overflow:auto">'+h.rew.join('<br>')+'</div>':'')+'</div>'}
@@ -2846,6 +2848,7 @@ function planOpen(){showScr('s-plan');planRender();$('prd').textContent=PLAN.aft
 const hcard=(box,t,d,f)=>{const b=document.createElement('button');b.className='card';b.style.setProperty('--i',box.children.length);b.innerHTML='<b>'+t+'</b><span>'+d+'</span>';b.onclick=f;box.appendChild(b);return b};
 function roulRender(){const box=document.querySelector('#s-roul .cards');box.innerHTML='';PLAN.after=null;
  if(COURSE)hcard(box,'▶ Rouler sur « '+esc(COURSE.name)+' »',(ROUTE?nf(ROUTE.len/1000,1)+' km · ':'')+(COURSE.loop?'boucle':'aller simple')+' · le dernier parcours choisi',()=>nav('ride'));
+ hcard(box,'🏟️ Vélodrome','Piste UCI 250 m · endurance zone 2 avec lumière de rythme · jeux de lumière',()=>velStart());
  hcard(box,'🗺️ Choisir un parcours','Boucles ou allers simples selon la distance et le dénivelé, à classer ; tes favoris',()=>planOpen());
  hcard(box,'↺ Parcours Pontcharra','Le parcours intégré',()=>{if(setCourse(gpxToEdges(TRK.split(';').map(r=>r.split(',').map(Number)),'Parcours Pontcharra'),'Parcours Pontcharra'))nav('ride')});
  hcard(box,'📂 Charger un GPX','Un tracé de ton choix, ramené sur tes routes',()=>$('gf').click());
@@ -3190,7 +3193,7 @@ function suiviExtraAfter(){$('sla').onclick=()=>anaOpen();requestAnimationFrame(
 const DIAG={on:false,wrapped:false};
 const DIAG_FN=['terrUpdate','roadUpdate','oroadUpdate','bldUpdate','waterUpdate','villagesTick','villageGroup','gameTick','npcTick','pedTick','riderAnim','drawMap','drawBig','prof','audioTick',
  'recTick','recSave','dataLoaderTick','mosaicsTick','clipTick','clipRecenter','camUpdate','skyUpdate','compTick','speak','sesTick','wkCoach','celebrate','fxLoop',
- 'parseBDTopoBld','parseBDTopoRoute','osmBld','osmRoad','addWater','computeBridges','clipDrawTile','finishTrack','buildCoarse','waterCell','computeNearCoverage','setCourse','buildNearTile','buildCorridor','updateEnv'];
+ 'parseBDTopoBld','parseBDTopoRoute','osmBld','osmRoad','addWater','computeBridges','clipDrawTile','finishTrack','buildCoarse','waterCell','computeNearCoverage','setCourse','buildNearTile','buildCorridor','updateEnv','velBuild','velShow','velNpcTick','velHud'];
 const DGN={'job:b':'Construction des bâtiments','job:n':'Terrain proche','job:c':'Terrain le long des routes','job:m':'Terrain moyen','job:far':'Terrain lointain','job:ring':'Horizon (montagnes)',
  'job:r':'Chaussées des routes','job:f':'Mobilier de route','job:j':'Carrefours','job:or':'Autres routes (3D)','job:w':'Eau (3D)','job:t':'Végétation','job:pm':'Sol simulé moyen','job:pf':'Sol simulé lointain','job:pr':'Sol simulé horizon',
  render:'Affichage 3D (carte graphique)',tex:'Envoi d\'images à la carte graphique',shader:'Préparation des effets 3D (shaders)',JSONparse:'Décodage des données reçues',
@@ -3198,7 +3201,7 @@ const DGN={'job:b':'Construction des bâtiments','job:n':'Terrain proche','job:c
  terrUpdate:'Suivi du terrain',roadUpdate:'Suivi des routes',oroadUpdate:'Suivi des autres routes',bldUpdate:'Suivi des bâtiments',waterUpdate:'Suivi de l\'eau',villagesTick:'Villages et panneaux',villageGroup:'Construction d\'un village',
  gameTick:'Jeu (sprints, côtes)',npcTick:'Cyclistes PNJ',pedTick:'Piétons',riderAnim:'Animation du cycliste',drawMap:'Mini-carte',drawBig:'Grande carte',prof:'Profil du bas',audioTick:'Sons',
  recTick:'Enregistrement de la sortie',recSave:'Sauvegarde automatique',dataLoaderTick:'Chargement des données',mosaicsTick:'Photos aériennes (mosaïques)',clipTick:'Photo proche',clipRecenter:'Photo proche (recentrage)',clipDrawTile:'Photo proche (collage)',
- finishTrack:'Relief des routes (recalcul)',buildCoarse:'Grille grossière du relief',waterCell:'Calcul des zones d\'eau',computeNearCoverage:'Zone du terrain proche',setCourse:'Préparation du parcours',buildNearTile:'Terrain proche (calcul)',buildCorridor:'Terrain le long des routes (calcul)',updateEnv:'Éclairage du ciel',camUpdate:'Caméra',skyUpdate:'Ciel et soleil',compTick:'Compteur du vélo',speak:'Voix',sesTick:'Suivi (km, kcal)',wkCoach:'Coach de séance',celebrate:'Célébrations',fxLoop:'Confettis',
+ finishTrack:'Relief des routes (recalcul)',buildCoarse:'Grille grossière du relief',waterCell:'Calcul des zones d\'eau',computeNearCoverage:'Zone du terrain proche',setCourse:'Préparation du parcours',buildNearTile:'Terrain proche (calcul)',buildCorridor:'Terrain le long des routes (calcul)',updateEnv:'Éclairage du ciel',velBuild:'Construction du vélodrome',velShow:'Vélodrome : jeux de lumière',velNpcTick:'Vélodrome : coureurs',velHud:'Vélodrome : affichage',camUpdate:'Caméra',skyUpdate:'Ciel et soleil',compTick:'Compteur du vélo',speak:'Voix',sesTick:'Suivi (km, kcal)',wkCoach:'Coach de séance',celebrate:'Célébrations',fxLoop:'Confettis',
  app:'Calculs divers de l\'appli',gpu:'Carte graphique (dessin de l\'image, mesuré)',other:'Navigateur / carte graphique (attente, mémoire, images…)'};
 const dgn=k=>DGN[k]||(k.startsWith('job:')?'Tâche « '+k.slice(4)+' »':k);
 function diagStart(){if(DIAG.on)return;
@@ -3266,6 +3269,292 @@ function diagPanel(){mod('🩺 Diagnostic des blocages<br><small style="display:
   (DIAG.on?'Le diagnostic est <span style="color:#22c55e;font-weight:800">en marche</span>.<br>':'')+
   '1. Touche « Démarrer ».<br>2. Lance une sortie comme d\'habitude et roule <span style="font-weight:800;color:#fff">10 à 15 minutes</span>, en passant si possible par un village.<br>3. Termine la sortie : touche « 🩺 Diagnostic » dans la fenêtre de fin (ou ☰ → Rapport diagnostic).<br>4. Touche « 📋 Copier » et colle le texte dans notre conversation (ou « 💾 Enregistrer » et envoie le fichier).<br><br>Un petit bandeau 🩺 en haut de l\'écran montre les images par seconde et le pire blocage. Le diagnostic reste actif après un redémarrage, jusqu\'à « Arrêter ».</small>',
   [[DIAG.on?'Arrêter':'▶ Démarrer',()=>{DIAG.on?diagStop():diagStart();say(DIAG.on?'Diagnostic en marche 🩺':'Diagnostic arrêté')}],['Voir le rapport',diagShow],['Fermer',()=>{}]])}
+// ====================== vélodrome UCI 250 m : piste en bois relevée, tribunes, toit, jeux de lumière, lumière de rythme ======================
+// Piste : 250 m mesurés sur la ligne de mesure (20 cm au-dessus du bord intérieur), largeur 7 m (minimum UCI catégories 1 et 2),
+// côte d'azur 0,70 m (10 % de la largeur), ligne des sprinteurs rouge à 85 cm, ligne des stayers bleue à 2,45 m (≥ 1/3 de 7 m),
+// virages relevés à 44°, lignes droites à 12°. Le bord intérieur est une courbe fermée : droites, raccordements progressifs (clothoïdes), virages de rayon constant.
+// Repère : u = abscisse le long du bord intérieur (0 = ligne de poursuite de la ligne droite d'arrivée), w = distance sur la piste depuis le bord intérieur.
+const VEL={on:false,built:false,LI:0,M:0,ds:0,u:0,wc:.45,wt:.45,lap:0,lapT:0,best:0,last:0,dist:0,pu:0,gu:0,show:0,showK:'',
+ uT:{value:0},uJ:{value:0},fx:{wave:-99,waveU:0,strobe:0,gold:0},paceK:0,npc:[],hudT:0,sbT:0,camI:0,heat:0};
+const VPACE=[['Z2 endurance',.65],['Z3 tempo',.83],['Seuil',1],['Éteinte',0]];
+function velBank(k,kmax){const t=clamp(k/kmax,0,1);return(12+32*t*t*(3-2*t))*Math.PI/180}
+function velTrace(S,R,T){// bord intérieur : demi-droite, raccordement, virage, raccordement, droite, raccordement, virage, raccordement, demi-droite
+ const segs=[[S/2,0,0],[T,0,1/R],[Math.PI*R-T,1/R,1/R],[T,1/R,0],[S,0,0],[T,0,1/R],[Math.PI*R-T,1/R,1/R],[T,1/R,0],[S/2,0,0]];
+ const L=segs.reduce((a,q)=>a+q[0],0),M=Math.round(L/.25),ds=L/M,X=new Float64Array(M+1),Z=new Float64Array(M+1),K=new Float64Array(M+1);
+ let x=0,z=0,tx=1,tz=0,si=0,s0=0;const kAt=s=>{while(si<segs.length-1&&s>s0+segs[si][0]){s0+=segs[si][0];si++}const q=segs[si],f=clamp((s-s0)/q[0],0,1);return q[1]+(q[2]-q[1])*f};
+ for(let i=0;i<=M;i++){X[i]=x;Z[i]=z;const k=kAt(i*ds);K[i]=k;if(i===M)break;const km=kAt((i+.5)*ds),a=km*ds,c=Math.cos(a),sn=Math.sin(a),lx=tz,lz=-tx;// on tourne à gauche (sens anti-horaire)
+  x+=(tx*Math.cos(a/2)+lx*Math.sin(a/2))*ds;z+=(tz*Math.cos(a/2)+lz*Math.sin(a/2))*ds;const nx=tx*c+lx*sn,nz=tz*c+lz*sn,l=Math.hypot(nx,nz);tx=nx/l;tz=nz/l}
+ const ex=X[M]-X[0],ez=Z[M]-Z[0];for(let i=0;i<=M;i++){X[i]-=ex*i/M;Z[i]-=ez*i/M}// fermeture exacte
+ return{L,M,ds,X,Z,K,kmax:1/R}}
+function velBuildCurve(){const R=22,T=13;let S=40,C=null;
+ for(let it=0;it<14;it++){C=velTrace(S,R,T);const Lm=velLineLen(C,.2);if(Math.abs(Lm-250)<.005)break;S+=(250-Lm)/2}
+ const M=C.M,TX=new Float64Array(M),TZ=new Float64Array(M),B=new Float64Array(M);
+ for(let i=0;i<M;i++){const a=(i-1+M)%M,b=(i+1)%M,dx=C.X[b]-C.X[a],dz=C.Z[b]-C.Z[a],l=Math.hypot(dx,dz);TX[i]=dx/l;TZ[i]=dz/l;B[i]=velBank(C.K[i],C.kmax)}
+ Object.assign(VEL,{S,R,T,LI:C.L,M,ds:C.ds,X:C.X,Z:C.Z,K:C.K,TX,TZ,B});
+ // longueur d'un tour selon la hauteur sur la piste (pour convertir la vitesse en avance le long du bord intérieur)
+ VEL.LW=[];for(let w=0;w<=7.01;w+=.5)VEL.LW.push(velLineLen(null,w));VEL.LM=VEL.LW[0]*0+velLineLen(null,.2);
+ // abscisses de la ligne de mesure, pour placer les lignes officielles
+ VEL.MC=new Float64Array(M+1);let acc=0;const p=V(),q=V();velPos(0,.2,q);for(let i=1;i<=M;i++){velPos(i*VEL.ds,.2,p);acc+=p.distanceTo(q);VEL.MC[i]=acc;q.copy(p)}}
+function velLineLen(C,w){let L=0;const M=C?C.M:VEL.M;let px=0,py=0,pz=0;
+ for(let i=0;i<=M;i++){let x,z,y,ox,oz,b;if(C){const a=(i-1+M)%M,bb=(i+1)%M,dx=C.X[bb]-C.X[a],dz=C.Z[bb]-C.Z[a],l=Math.hypot(dx,dz);ox=-dz/l;oz=dx/l;b=velBank(C.K[i%M],C.kmax);x=C.X[i%M];z=C.Z[i%M]}
+  else{const k=i%M;ox=-VEL.TZ[k];oz=VEL.TX[k];b=VEL.B[k];x=VEL.X[k];z=VEL.Z[k]}
+  x+=ox*w*Math.cos(b);z+=oz*w*Math.cos(b);y=w*Math.sin(b);if(i)L+=Math.hypot(x-px,y-py,z-pz);px=x;py=y;pz=z}
+ return L}
+const velLW=w=>{const f=clamp(w,0,7)/.5,i=Math.min(VEL.LW.length-2,Math.floor(f));return VEL.LW[i]+(VEL.LW[i+1]-VEL.LW[i])*(f-i)};
+const velMod=u=>((u%VEL.LI)+VEL.LI)%VEL.LI;
+// point de la piste (u, w) ; out : Vector3 ; renvoie l'angle de relevé
+function velPos(u,w,out,bk){u=velMod(u);const f=u/VEL.ds,i=Math.floor(f)%VEL.M,j=(i+1)%VEL.M,t=f-Math.floor(f);
+ const x=VEL.X[i]+(VEL.X[j]-VEL.X[i])*t,z=VEL.Z[i]+(VEL.Z[j]-VEL.Z[i])*t,ox=-(VEL.TZ[i]+(VEL.TZ[j]-VEL.TZ[i])*t),oz=VEL.TX[i]+(VEL.TX[j]-VEL.TX[i])*t,b=bk!=null?bk:VEL.B[i]+(VEL.B[j]-VEL.B[i])*t;
+ out.set(x+ox*w*Math.cos(b),w*Math.sin(b),z+oz*w*Math.cos(b));out.ox=ox;out.oz=oz;out.b=b;return b}
+const _vp=V(),_vq=V(),_vn=V(),_vf=V(),_vl=V(),_vm=new T.Matrix4();
+// pose d'un cycliste sur la piste : position + orientation perpendiculaire à la piste relevée
+function velPlace(obj,u,w){velPos(u+.5,w,_vq);velPos(u-.5,w,_vf);_vf.subVectors(_vq,_vf).normalize();const b=velPos(u,w,_vp);
+ _vn.set(-_vp.ox*Math.sin(b),Math.cos(b),-_vp.oz*Math.sin(b)).normalize();_vl.crossVectors(_vn,_vf).normalize();_vn.crossVectors(_vf,_vl).normalize();
+ obj.position.copy(_vp).addScaledVector(_vn,.055);obj.quaternion.setFromRotationMatrix(_vm.makeBasis(_vl,_vn,_vf));return _vp}
+// vitesse stabilisée sur le plat pour une puissance donnée
+function velSpeedFor(P,m,cda){if(P<=0)return 0;let a=0,b=25;const crr=.004*EQ.crr*m*9.81,k=.5*1.2*.32*cda;for(let it=0;it<40;it++){const c=(a+b)/2;if(c*crr+k*c*c*c<EQ.eff*P)a=c;else b=c}return a}
+// ---------- construction ----------
+const VELG=new T.Group();VELG.visible=false;sc.add(VELG);
+function velMesh(P,UV,I,mat,attr){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));if(UV)g.setAttribute('uv',new T.Float32BufferAttribute(UV,2));
+ if(attr)for(const k in attr)g.setAttribute(k,new T.Float32BufferAttribute(attr[k],1));g.setIndex(I);g.computeVertexNormals();const m=new T.Mesh(g,mat);m.matrixAutoUpdate=false;VELG.add(m);return m}
+// ruban le long de la piste entre w0 et w1 (nw divisions), relevé bk (null = relevé de la piste), décalé de lift selon la normale
+const velIdx=st=>{const L=[];for(let i=0;i<VEL.M;i+=st)L.push(i);L.push(VEL.M);return L};
+function velRibbon(w0,w1,nw,mat,o){o=o||{};const st=o.step||1,M=VEL.M,P=[],UV=[],I=[],AU=[],cols=nw+1;let r=0;
+ for(const i of velIdx(st)){const u=Math.min(i,M)*VEL.ds;for(let c=0;c<=nw;c++){const w=w0+(w1-w0)*c/nw,b=velPos(u,w,_vp,o.bank!=null?o.bank:(o.bankK!=null?VEL.B[i%M]*o.bankK:null));
+   let y=_vp.y+(o.dy||0);if(o.y!=null)y=o.y;if(o.lift){_vp.x+=-_vp.ox*Math.sin(b)*o.lift;_vp.z+=-_vp.oz*Math.sin(b)*o.lift;y+=Math.cos(b)*o.lift}
+   P.push(_vp.x,y,_vp.z);UV.push(u/(o.uRep||4),(w-w0)/(o.vRep||(w1-w0)));AU.push(u)}
+  if(r)for(let c=0;c<nw;c++){const a=(r-1)*cols+c,b2=r*cols+c;I.push(a,a+1,b2,a+1,b2+1,b2)}r++}
+ return velMesh(P,UV,I,mat,o.aU?{aU:AU}:null)}
+// ligne transversale (arrivée, 200 m, poursuite) à l'abscisse de mesure m
+function velCross(mDist,width,w0,w1,mat){let i=0;while(i<VEL.M&&VEL.MC[i]<mDist)i++;const u=i*VEL.ds,P=[],I=[];
+ for(const[k,du]of[[0,-width/2],[1,width/2]])for(const w of[w0,w1]){const b=velPos(u+du,w,_vp);P.push(_vp.x-_vp.ox*Math.sin(b)*.012,_vp.y+Math.cos(b)*.012,_vp.z-_vp.oz*Math.sin(b)*.012)}
+ I.push(0,1,2,1,3,2);return velMesh(P,null,I,mat)}
+function velWood(){const k=mkCanvas(512,1024),g=k.getContext('2d'),r=rng(77);g.fillStyle='#d6ad74';g.fillRect(0,0,512,1024);
+ // lames de bois dans le sens de la piste (≈ 4,7 cm), joints décalés, veinage
+ for(let y=0;y<1024;y+=34){const c=200+r()*30|0;g.fillStyle=`rgb(${c},${c*.78|0},${c*.52|0})`;g.fillRect(0,y,512,33);
+  for(let n=0;n<6;n++){g.strokeStyle=`rgba(120,80,40,${.06+r()*.08})`;g.lineWidth=1;g.beginPath();const yy=y+3+r()*27;g.moveTo(0,yy);for(let x=0;x<=512;x+=32)g.lineTo(x,yy+Math.sin(x/40+n)*2);g.stroke()}
+  g.fillStyle='rgba(70,45,20,.55)';g.fillRect(0,y+33,512,1);const j=r()*512;g.fillRect(j,y,1.5,33)}
+ const t=texOf(k,true,true);t.anisotropy=MAXANI;return t}
+function velBanner(){const k=mkCanvas(2048,128),g=k.getContext('2d');const items=[['VÉLODROME DE PONTCHARRA','#ffd23f'],['VÉLO 3D','#2bd4ff'],['ISÈRE · SAVOIE','#ff5a4e'],['PISTE UCI 250 m','#7fd67a'],['GRÉSIVAUDAN','#c79bff']];
+ g.fillStyle='#05070c';g.fillRect(0,0,2048,128);let x=20;for(let i=0;x<2048;i++){const[t,c]=items[i%items.length];g.font='900 64px Arial Black,Arial';g.fillStyle=c;g.shadowColor=c;g.shadowBlur=18;g.fillText(t,x,88);x+=g.measureText(t).width+90;g.shadowBlur=0;g.fillStyle='#fff';g.fillRect(x-50,40,10,48)}
+ const t=texOf(k,true,true);return t}
+const VSH_STRIP=`attribute float aU;varying float vU;varying float vY;void main(){vU=aU;vY=uv.y;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
+const FSH_STRIP=`uniform float uT,uLI,uPace,uGhost,uWave,uWaveT,uI,uPaceOn,uGhostOn,uStrobe,uSpd;uniform vec3 uCol,uCol2;varying float vU;varying float vY;
+float cd(float a,float b){return mod(a-b+uLI*1.5,uLI)-uLI*.5;}
+void main(){float pr=exp(-pow((vY-.5)*3.6,2.));float wv=.5+.5*sin(vU*.32-uT*uSpd);vec3 c=mix(uCol2,uCol,wv)*(.35+.65*wv)*.7;
+ float dp=cd(vU,uPace);c+=vec3(.2,1.,.5)*uPaceOn*(exp(-dp*dp*.6)*3.+(dp<0.?exp(dp/6.)*1.1:0.));
+ float dg=cd(vU,uGhost);c+=vec3(1.,.75,.15)*uGhostOn*(exp(-dg*dg*.8)*2.4+(dg<0.?exp(dg/4.)*.7:0.));
+ float w=uT-uWaveT;if(w>0.&&w<4.){float dw=abs(cd(vU,uWave))-w*70.;c+=vec3(1.)*exp(-dw*dw/40.)*(1.-w/4.)*2.;}
+ c*=uI*(1.+uStrobe);gl_FragColor=vec4(c*pr,1.);}`;
+const VSH_BEAM=`varying float vH;varying vec3 vN;varying vec3 vV;void main(){vH=-position.y;vec4 mv=modelViewMatrix*vec4(position,1.);vV=-mv.xyz;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*mv;}`;
+const FSH_BEAM=`uniform vec3 uCol;uniform float uI;varying float vH;varying vec3 vN;varying vec3 vV;void main(){float f=abs(dot(normalize(vN),normalize(vV)));float a=pow(f,2.2)*pow(1.-vH,1.3)*uI*.5;gl_FragColor=vec4(uCol*a,a);}`;
+function velBuild(){const t0=performance.now();velBuildCurve();const lowQ=QK==='tab'||QK==='low';VEL.lowQ=lowQ;const st=lowQ?2:1;
+ // piste en bois
+ velRibbon(0,7,lowQ?6:9,new T.MeshLambertMaterial({map:velWood()}),{step:st,uRep:4,vRep:1.4}).receiveShadow=true;
+ // côte d'azur (bande bleue, 0,70 m, relevé réduit), zone de sécurité, lignes officielles
+ const BC=14*Math.PI/180;velRibbon(-.7,0,2,new T.MeshLambertMaterial({color:0x2f8fd6}),{step:st,bank:BC}).receiveShadow=true;
+ const yS=-.7*Math.sin(BC);VEL.yS=yS;
+ velRibbon(-4.9,-.7,2,new T.MeshLambertMaterial({color:0x1d2738}),{step:st,bank:0,y:yS-.002,dy:0}).receiveShadow=true;
+ const lineM=c=>new T.MeshBasicMaterial({color:c,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+ velRibbon(.20,.25,1,lineM(0x111111),{step:st,lift:.006});velRibbon(.80,.85,1,lineM(0xd7263d),{step:st,lift:.006});velRibbon(2.40,2.45,1,lineM(0x1d5fd6),{step:st,lift:.006});
+ const fin=VEL.MC[Math.round((VEL.S/2-12)/VEL.ds)]||VEL.S/2-12;VEL.finU=Math.round((VEL.S/2-12)/VEL.ds)*VEL.ds;VEL.finM=fin;
+ velCross(fin,.72,0,7,lineM(0xffffff));velCross(fin,.04,0,7,lineM(0x111111));velCross(fin+50,.05,0,7,lineM(0xffffff));// arrivée, ligne des 200 m
+ velCross(0,.05,0,3.5,lineM(0xd7263d));velCross(125,.05,0,3.5,lineM(0xd7263d));// lignes de poursuite (milieu des lignes droites)
+ // rubans lumineux : bord intérieur (lumière de rythme) et pied de la rambarde
+ const mkStrip=()=>new T.ShaderMaterial({uniforms:{uT:VEL.uT,uLI:{value:VEL.LI},uPace:{value:0},uGhost:{value:0},uWave:{value:0},uWaveT:{value:-99},uI:{value:1},uPaceOn:{value:1},uGhostOn:{value:0},uStrobe:{value:0},uSpd:{value:2},uCol:{value:new T.Color(0x2bd4ff)},uCol2:{value:new T.Color(0x7a3dff)}},
+  vertexShader:VSH_STRIP,fragmentShader:FSH_STRIP,transparent:true,blending:T.AdditiveBlending,depthWrite:false});
+ VEL.stripIn=velRibbon(-.66,-.36,1,mkStrip(),{step:st,bank:BC,aU:true,lift:.02});
+ VEL.stripOut=velRibbon(6.75,7.0,1,mkStrip(),{step:st,aU:true,lift:.03});VEL.stripOut.material.uniforms.uPaceOn.value=0;
+ // rambarde (vitre + main courante) au bord extérieur
+ {const P=[],I=[];let r=0;for(const i of velIdx(st*2)){velPos(i*VEL.ds,7.02,_vp);P.push(_vp.x,_vp.y,_vp.z,_vp.x,_vp.y+1.15,_vp.z);if(r){const a=(r-1)*2;I.push(a,a+2,a+1,a+1,a+2,a+3)}r++}
+  velMesh(P,null,I,new T.MeshBasicMaterial({color:0x9fd4ff,transparent:true,opacity:.13,side:T.DoubleSide,depthWrite:false}));
+  velRibbon(7.0,7.06,1,new T.MeshLambertMaterial({color:0x2a2f38}),{step:st*2,dy:1.15})}
+ // passerelle, mur à LED, tribunes
+ const DW=7.6,Y0=5.8,NR=lowQ?8:14,RD=.85,RH=.42;VEL.DW=DW;
+ {const P=[],UV=[],I=[];let r=0;for(const i of velIdx(st*2)){const u=i*VEL.ds,b=velPos(u,7.06,_vp),yo=_vp.y,x0=_vp.x,z0=_vp.z,ox=_vp.ox,oz=_vp.oz,X=VEL.X[i%VEL.M],Z=VEL.Z[i%VEL.M];
+   P.push(x0,yo,z0,X+ox*DW,yo,Z+oz*DW,X+ox*DW,yo,Z+oz*DW,X+ox*DW,Y0,Z+oz*DW);UV.push(0,0,0,0,-u/42,0,-u/42,1);// texte lisible depuis l'intérieur de l'anneau
+   if(r){const a=(r-1)*4,c=r*4;I.push(a,a+1,c,a+1,c+1,c,a+2,c+2,a+3,a+3,c+2,c+3)}r++}
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('uv',new T.Float32BufferAttribute(UV,2));g.setIndex(I);g.computeVertexNormals();
+  const banner=velBanner();VEL.banner=banner;g.addGroup(0,I.length,0);
+  // passerelle (sombre) et mur (bandeau LED) : deux maillages pour deux matériaux
+  const I1=[],I2=[];for(let q=0;q<I.length;q+=12){I1.push(...I.slice(q,q+6));I2.push(...I.slice(q+6,q+12))}
+  const g1=g.clone();g1.setIndex(I1);const g2=g.clone();g2.setIndex(I2);
+  for(const[gg,mm]of[[g1,new T.MeshLambertMaterial({color:0x141922})],[g2,new T.MeshBasicMaterial({map:banner,side:T.DoubleSide})]]){const m=new T.Mesh(gg,mm);m.matrixAutoUpdate=false;VELG.add(m)}}
+ {const P=[],I=[];let r=0;const cols=NR*2+2;
+  for(const i of velIdx(st*4)){const X=VEL.X[i%VEL.M],Z=VEL.Z[i%VEL.M],ox=-VEL.TZ[i%VEL.M],oz=VEL.TX[i%VEL.M];
+   for(let k=0;k<=NR;k++){const d=DW+.3+k*RD,y=Y0+k*RH;P.push(X+ox*d,y,Z+oz*d);if(k<NR)P.push(X+ox*(d+RD),y,Z+oz*(d+RD))}
+   P.push(X+ox*(DW+.3+NR*RD+.4),Y0+NR*RH+9,Z+oz*(DW+.3+NR*RD+.4));
+   if(r)for(let c=0;c<cols-1;c++){const a=(r-1)*cols+c,b2=r*cols+c;I.push(a,a+1,b2,a+1,b2+1,b2)}r++}
+  velMesh(P,null,I,new T.MeshLambertMaterial({color:0x232a36,side:T.DoubleSide})).receiveShadow=true}
+ // sièges et public (instanciés) ; le public saute quand ça chauffe
+ {const seats=[],cr=rng(9);for(let k=0;k<NR;k++){const d=DW+.3+k*RD+RD*.55,y=Y0+k*RH;let acc=0;for(let i=0;i<VEL.M;i++){acc+=VEL.ds*(1+d*VEL.K[i]);if(acc<(lowQ?.95:.62))continue;acc=0;
+    const X=VEL.X[i],Z=VEL.Z[i],ox=-VEL.TZ[i],oz=VEL.TX[i];seats.push([X+ox*d,y,Z+oz*d,Math.atan2(-ox,-oz),k])}}
+  const sm2=new T.MeshLambertMaterial({color:0xffffff}),sg2=new T.BoxGeometry(.46,.36,.42);sg2.translate(0,.18,0);const SI=new T.InstancedMesh(sg2,sm2,seats.length);const _o=new T.Object3D(),_c=new T.Color();
+  const pal=[0x1f5fd6,0x1f5fd6,0xffffff,0xd7263d,0xffd23f];seats.forEach((p,n)=>{_o.position.set(p[0],p[1],p[2]);_o.rotation.set(0,p[3],0);_o.updateMatrix();SI.setMatrixAt(n,_o.matrix);SI.setColorAt(n,_c.setHex(pal[(p[4]+((n*7)>>5))%pal.length]))});
+  SI.matrixAutoUpdate=false;VELG.add(SI);
+  const crowd=seats.filter(()=>cr()<(lowQ?.3:.42));const pg=new T.BoxGeometry(.4,.52,.26);pg.translate(0,.62,0);const hg=new T.BoxGeometry(.2,.22,.22);hg.translate(0,1.02,0);
+  const merged=velMerge([pg,hg]);const cm=new T.MeshLambertMaterial({color:0xffffff});
+  if(GL2)cm.onBeforeCompile=sh=>{sh.uniforms.uJ=VEL.uJ;sh.uniforms.uTm=VEL.uT;sh.vertexShader='uniform float uJ,uTm;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n#ifdef USE_INSTANCING\n float ph=float(gl_InstanceID)*1.37;transformed.y+=uJ*max(0.,sin(uTm*9.+ph))*.3+.025*sin(uTm*1.7+ph);\n#endif')};
+  const CI=new T.InstancedMesh(merged,cm,crowd.length),shirts=[0xd7263d,0x1f5fd6,0xffd23f,0xffffff,0x22aa55,0xff7f2a,0x7a3dff,0x222222];
+  crowd.forEach((p,n)=>{_o.position.set(p[0],p[1]+.02,p[2]);_o.rotation.set(0,p[3]+(cr()-.5)*.5,0);_o.updateMatrix();CI.setMatrixAt(n,_o.matrix);CI.setColorAt(n,_c.setHex(shirts[(cr()*shirts.length)|0]))});CI.matrixAutoUpdate=false;VELG.add(CI);
+  // flashs de téléphones dans le public
+  const PP=[],PH=[];crowd.forEach((p,n)=>{if(n%3)return;PP.push(p[0],p[1]+1.35,p[2]);PH.push(cr()*100)});
+  const pgm=new T.BufferGeometry();pgm.setAttribute('position',new T.Float32BufferAttribute(PP,3));pgm.setAttribute('aP',new T.Float32BufferAttribute(PH,1));
+  VEL.phoneOn={value:.15};const pm=new T.ShaderMaterial({uniforms:{uT:VEL.uT,uOn:VEL.phoneOn},transparent:true,depthWrite:false,blending:T.AdditiveBlending,
+   vertexShader:`attribute float aP;varying float vA;uniform float uT,uOn;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);float k=fract(sin(aP*91.7+floor(uT*2.5+aP))*43758.5);vA=step(1.-uOn*.35,k);gl_PointSize=vA*7.*(160./max(1.,-mv.z));gl_Position=projectionMatrix*mv;}`,
+   fragmentShader:`varying float vA;void main(){vec2 d=gl_PointCoord-.5;float a=exp(-dot(d,d)*18.)*vA;gl_FragColor=vec4(vec3(.85,.92,1.)*a,a);}`});
+  const pts=new T.Points(pgm,pm);pts.frustumCulled=false;VELG.add(pts)}
+ // centre de l'arène, sol central avec logo et projections lumineuses
+ let cx=0,cz=0;for(let i=0;i<VEL.M;i++){cx+=VEL.X[i];cz+=VEL.Z[i]}cx/=VEL.M;cz/=VEL.M;VEL.C=V(cx,0,cz);
+ {const sh=new T.Shape();for(let i=0;i<VEL.M;i+=4){const x=VEL.X[i]-(-VEL.TZ[i])*4.9,z=VEL.Z[i]-VEL.TX[i]*4.9;i?sh.lineTo(x,z):sh.moveTo(x,z)}
+  const g=new T.ShapeGeometry(sh,4);g.rotateX(Math.PI/2);g.translate(0,yS-.004,0);
+  const k=mkCanvas(1024,512),c=k.getContext('2d');c.fillStyle='#121a26';c.fillRect(0,0,1024,512);c.strokeStyle='rgba(43,212,255,.25)';c.lineWidth=3;for(let r=40;r<500;r+=60){c.beginPath();c.ellipse(512,256,r*1.9,r,0,0,6.283);c.stroke()}
+  c.font='900 92px Arial Black,Arial';c.textAlign='center';c.fillStyle='rgba(255,210,63,.85)';c.fillText('PONTCHARRA',512,250);c.font='700 40px Arial';c.fillStyle='rgba(255,255,255,.7)';c.fillText('VÉLODROME · 250 m · UCI',512,310);
+  const tx=texOf(k,true,false);g.computeBoundingBox();const bb=g.boundingBox,uv=g.attributes.position;const U=[];for(let i=0;i<uv.count;i++)U.push((uv.getX(i)-bb.min.x)/(bb.max.x-bb.min.x),1-(uv.getZ(i)-bb.min.z)/(bb.max.z-bb.min.z));g.setAttribute('uv',new T.Float32BufferAttribute(U,2));
+  const fm=new T.Mesh(g,new T.MeshLambertMaterial({map:tx,side:T.DoubleSide}));fm.receiveShadow=true;VELG.add(fm);
+  const g2=g.clone();g2.translate(0,.02,0);VEL.floorU={uT:VEL.uT,uCol:{value:new T.Color(0x2bd4ff)},uI:{value:.6},uC:{value:new T.Vector2(cx,cz)}};
+  VELG.add(new T.Mesh(g2,new T.ShaderMaterial({uniforms:VEL.floorU,transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,
+   vertexShader:`varying vec2 vP;void main(){vec4 w=modelMatrix*vec4(position,1.);vP=w.xz;gl_Position=projectionMatrix*viewMatrix*w;}`,
+   fragmentShader:`uniform float uT,uI;uniform vec3 uCol;uniform vec2 uC;varying vec2 vP;void main(){vec2 d=vP-uC;float r=length(d*vec2(.55,1.));float a=atan(d.y,d.x);
+    float ring=pow(.5+.5*sin(r*.9-uT*3.),18.);float sw=pow(max(0.,cos(a-uT*.8)),40.)*.8;float grid=(step(.96,fract(vP.x*.25))+step(.96,fract(vP.y*.25)))*.12;
+    gl_FragColor=vec4(uCol*(ring*.55+sw+grid)*uI,1.);}`})))}
+ // sol général sombre (sous les tribunes) et toit en dôme avec arches et lampes
+ {const g=new T.PlaneGeometry(260,200);g.rotateX(-Math.PI/2);const m=new T.Mesh(g,new T.MeshBasicMaterial({color:0x07090f}));m.position.set(cx,yS-.05,cz);VELG.add(m);
+  const dg=new T.SphereGeometry(1,40,12,0,Math.PI*2,0,Math.PI/2);const dm=new T.Mesh(dg,new T.MeshBasicMaterial({color:0x0b1222,side:T.BackSide}));dm.scale.set(78,32,52);dm.position.set(cx,0,cz);VELG.add(dm);
+  const tm=new T.MeshLambertMaterial({color:0x3a4250});for(let a=0;a<10;a++){const x=-60+a*13.3,pts=[];for(let k=0;k<=16;k++){const t=k/16*Math.PI,zz=Math.cos(t)*50,yy=Math.sin(t)*30*Math.sqrt(Math.max(0,1-(x/78)**2));pts.push(V(cx+x,yy,cz+zz))}
+   const tb=new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts),24,.32,4,false),tm);VELG.add(tb)}
+  const LP=[];for(let r=0;r<4;r++)for(let a=0;a<48;a++){const t=a/48*6.283,f=.35+r*.17;LP.push(cx+Math.cos(t)*78*f*.97,30*Math.sqrt(1-f*f)*.97,cz+Math.sin(t)*52*f*.97)}
+  const lg=new T.BufferGeometry();lg.setAttribute('position',new T.Float32BufferAttribute(LP,3));VELG.add(new T.Points(lg,new T.PointsMaterial({color:0xfff1d0,size:.9,sizeAttenuation:true})))}
+ // écran circulaire suspendu au-dessus du centre
+ {const k=mkCanvas(2048,128);VEL.sbK=k;VEL.sbTex=texOf(k,true,false);VEL.sbTex.wrapS=T.RepeatWrapping;VEL.sbTex.repeat.x=2;
+  const sb=new T.Mesh(new T.CylinderGeometry(9,9,3.2,48,1,true),new T.MeshBasicMaterial({map:VEL.sbTex}));sb.position.set(cx,17,cz);VELG.add(sb);VEL.sb=sb;
+  VEL.ringM=new T.MeshBasicMaterial({color:0x2bd4ff});for(const y of[15.3,18.7]){const r=new T.Mesh(new T.TorusGeometry(9.05,.12,6,48),VEL.ringM);r.rotation.x=Math.PI/2;r.position.set(cx,y,cz);VELG.add(r)}}
+ // faisceaux lumineux mobiles (projecteurs du toit)
+ VEL.beams=[];const NB=lowQ?4:8;const bg=new T.ConeGeometry(1,1,20,1,true);bg.translate(0,-.5,0);
+ for(let i=0;i<NB;i++){const a=i/NB*6.283,o=V(cx+Math.cos(a)*42,25,cz+Math.sin(a)*28);
+  const mat=new T.ShaderMaterial({uniforms:{uCol:{value:new T.Color().setHSL(i/NB,1,.6)},uI:{value:.8}},vertexShader:VSH_BEAM,fragmentShader:FSH_BEAM,transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide});
+  const m=new T.Mesh(bg,mat);m.position.copy(o);VELG.add(m);
+  const spot=new T.Mesh(new T.CircleGeometry(1,24),new T.MeshBasicMaterial({color:mat.uniforms.uCol.value,transparent:true,opacity:.35,depthWrite:false,blending:T.AdditiveBlending}));VELG.add(spot);
+  VEL.beams.push({m,spot,o,ph:i*1.7,t:V()})}
+ // lasers (moments forts)
+ {const P=[];for(let i=0;i<24;i++){const a=i/24*6.283;P.push(cx,17,cz,cx+Math.cos(a)*70,4+((i*5)%9),cz+Math.sin(a)*46)}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));
+  VEL.laser=new T.LineSegments(g,new T.LineBasicMaterial({color:0x22ff88,transparent:true,opacity:.9,blending:T.AdditiveBlending,depthWrite:false}));VEL.laser.visible=false;VELG.add(VEL.laser)}
+ VEL.built=true;console.log('vélodrome construit en',Math.round(performance.now()-t0),'ms · ligne de mesure',velLineLen(null,.2).toFixed(2),'m')}
+function velMerge(gs){const P=[],N=[],I=[];let o=0;for(const g of gs){const gg=g.index?g:g;const p=gg.attributes.position,n=gg.attributes.normal;for(let i=0;i<p.count;i++){P.push(p.getX(i),p.getY(i),p.getZ(i));N.push(n.getX(i),n.getY(i),n.getZ(i))}
+  const ix=gg.index.array;for(let i=0;i<ix.length;i++)I.push(ix[i]+o);o+=p.count}
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('normal',new T.Float32BufferAttribute(N,3));g.setIndex(I);return g}
+// ---------- entrée / sortie ----------
+function velStart(after){audio();if(!VEL.built){say('🏟️ Construction du vélodrome…');velBuild()}
+ Object.assign(VEL,{on:true,u:0,wc:.45,wt:.45,lap:0,lapT:0,last:0,dist:0,pu:0,gu:0,show:0,showK:'',lapM:0,started:false,heat:0});VEL.best=(GS.vel&&GS.vel.best)||0;
+ VELG.visible=true;CAM.snap=true;
+ // trois coureurs sur la piste (pris parmi les cyclistes PNJ)
+ VEL.npc=[];const kinds=[['egal',.97],['fort',1.08],['faible',.78]];
+ NPCS.slice(0,3).forEach((n,i)=>{VELG.add(n.R);n.R.visible=true;n.alive=false;VEL.npc.push({n,u:VEL.LI*(.3+.25*i),w:.45,wt:.45,v:9,k:kinds[i][1]})});
+ if(after)after();else nav('ride');
+ if(conn&&mode==='ride'){sim(0,0);lastG=0;lastDr=0}
+ say('🏟️ Vélodrome : piste 250 m · lumière verte = ton rythme ('+VPACE[VEL.paceK][0]+'). Touche le bandeau du haut pour changer.')}
+function velStop(){if(!VEL.on)return;VEL.on=false;VELG.visible=false;for(const o of VEL.npc){WORLD.add(o.n.R);o.n.R.visible=false;o.n.alive=false}VEL.npc=[];
+ cam.up.set(0,1,0);skT=-1e9;$('velp').style.display='none';$('bot').style.display='';if(AU.crowd)AU.crowd.gain.setTargetAtTime(0,AC.currentTime,.3)}
+function velPaceNext(){VEL.paceK=(VEL.paceK+1)%VPACE.length;VEL.pu=VEL.u;say('💡 Lumière de rythme : '+VPACE[VEL.paceK][0])}
+// ---------- image par image ----------
+function velFrame(now,dt,P){const riding=mode==='ride'||mode==='wk';
+ WORLD.visible=false;sky.visible=clouds.visible=stars.visible=moon.visible=false;RM.visible=TR.visible=false;sc.background=VEL.bg||(VEL.bg=new T.Color(0x03050a));sc.fog.density=0;HEAD.intensity=0;
+ LD.set(.18,1,.25).normalize();SUNL.intensity=1.25;SUNL.color.setHex(0xfff4e8);HL.intensity=.55;HL.color.setHex(0x9fb8ff);
+ // physique : piste plate, aspiration derrière les autres coureurs
+ const m=Math.max(40,(+$('kg').value||80)-EQ.mass),sprinting=P>FTP*1.45,surge=riding?standLogic(dt,P,0,v):false,stand=(sprinting||surge)&&v>1.2;
+ RDRAFT=0;for(const o of VEL.npc){const d=velGap(o.u,VEL.u);if(d>0&&d<15&&Math.abs(o.w-VEL.wc)<.95)RDRAFT=Math.max(RDRAFT,Math.min(.5,.42*Math.exp(-(d-.4)/2.9)))}
+ if(riding){const cda=EQ.cda*(stand?1.12:1)*(1-RDRAFT),F=EQ.eff*P/Math.max(v,1.2)-.004*EQ.crr*m*9.81-.5*1.2*.32*cda*v*v;v=Math.max(0,Math.min(25,v+F/(m+1.5)*dt));if(P<5&&v<.25)v=0;
+  if(mode==='ride'){if(v>.1)tt+=dt;if(conn&&now-lastSim>1500&&(Math.abs(lastG)>.002||Math.abs(RDRAFT-lastDr)>.06)){sim(0,RDRAFT);lastG=0;lastDr=RDRAFT;lastSim=now}}}
+ else v=$('sp')?$('sp').value/3.6:8;
+ // file : on monte pour doubler, on redescend à la corde ensuite
+ let block=false;for(const o of VEL.npc){const d=velGap(o.u,VEL.u);if(d>0&&d<4&&Math.abs(o.w-VEL.wc)<.8&&v>o.v+.15)block=true}
+ if(block)VEL.wt=1.6;else if(VEL.wt>.5&&!VEL.npc.some(o=>{const d=velGap(o.u,VEL.u);return d>-5&&d<3&&o.w<1.2}))VEL.wt=.45;
+ VEL.wc+=clamp(VEL.wt-VEL.wc,-dt*.9,dt*.9);
+ const ds=v*dt,du=ds*VEL.LI/velLW(VEL.wc);if(riding){s+=ds;VEL.dist+=ds;PEMA=PEMA?PEMA+(P-PEMA)*Math.min(1,dt/180):P}
+ const before=VEL.u;VEL.u=velMod(VEL.u+du);if(riding&&v>.1)VEL.lapT+=dt;
+ if(riding&&velCrossed(before,VEL.u,VEL.finU))velLap(now);
+ // position et pose du cycliste (perpendiculaire à la piste relevée)
+ const p=velPlace(R,VEL.u,VEL.wc);(VEL.rf||(VEL.rf=V())).copy(_vf);(VEL.rn||(VEL.rn=V())).copy(_vn);Object.assign(RW,{x:p.x,z:p.z,tx:_vf.x,tz:_vf.z,v,lat:0});
+ if(riding){sesTick(dt,P,ds,0);recTick(now,P,p.x,p.z,0)}
+ const pedal=riding?P>5&&v>.3:v>.3,cadT=conn&&riding?cad:clamp(86+(P/FTP-.7)*14+(stand?-14:0),58,118);cadS+=(cadT-cadS)*Math.min(1,dt*2);
+ Object.assign(RS2,{cad:pedal?cadS:0,P,v,g:0,coast:!pedal,stand,tuck:false,steer:0});riderAnim(dt,RS2);
+ velNpcTick(dt,now);velCam(dt);velShow(now,dt,P,sprinting||surge);
+ audioTick(P);velAudio(now,P);rewardTick(now);compTick(now,v,P,hr);musTick();P3+=(P-P3)*Math.min(1,dt/1.5);
+ shadowFollow(R.position);dprTick(now);
+ if(now-VEL.hudT>120){VEL.hudT=now;velHud(P)}
+ firstFrames++;renderScene()}
+const velGap=(a,b)=>{let d=velMod(a-b);if(d>VEL.LI/2)d-=VEL.LI;return d*250/VEL.LI};// écart en mètres (positif = devant)
+const velCrossed=(a,b,x)=>{const d=velMod(b-a);return d<VEL.LI/2&&velMod(x-a)<=d&&d>0};
+function velLap(now){if(!VEL.started){VEL.started=true;VEL.lapT=0;VEL.lap=0;return}// premier passage : départ lancé
+ VEL.lap++;const t=VEL.lapT;VEL.last=t;VEL.lapT=0;VEL.gu=VEL.finU;VEL.fx.wave=VEL.uT.value;VEL.fx.waveU=VEL.finU;
+ GS.vel=GS.vel||{best:0,laps:0,km:0};GS.vel.laps++;
+ const rec=t>8&&(!VEL.best||t<VEL.best);VEL.sbFlash=now;
+ if(rec){const old=VEL.best;VEL.best=t;GS.vel.best=Math.min(GS.vel.best||1e9,t);VEL.fx.gold=6;celebrate(!!old);sfx('fanfare');velCheer(3);
+  speak('Nouveau record du tour : '+t.toFixed(1).replace('.',' virgule ')+' secondes.',null,0,true);if(old)reward('🏟️','Record du tour au vélodrome · '+t.toFixed(2).replace('.',',')+' s',60)}
+ else if(VEL.lap%5===0)speak('Tour '+VEL.lap+' : '+t.toFixed(1).replace('.',' virgule ')+' secondes.','vlap',20000);
+ gsave()}
+function velNpcTick(dt,now){for(const o of VEL.npc){const n=o.n,base=Math.max(FTP*.55,PEMA||FTP*.7);let Pn=base*o.k;
+  let dr=0;for(const q of[...VEL.npc.filter(x=>x!==o),{u:VEL.u,w:VEL.wc}]){const d=velGap(q.u,o.u);if(d>0&&d<15&&Math.abs(q.w-o.w)<.95)dr=Math.max(dr,Math.min(.5,.42*Math.exp(-(d-.4)/2.9)))}
+  const vt=velSpeedFor(Pn,n.m||75,(n.cda||.32)*(1-dr));o.v+=clamp(vt-o.v,-dt*.8,dt*.6);
+  const ahead=[...VEL.npc.filter(x=>x!==o),{u:VEL.u,w:VEL.wc,v}].some(q=>{const d=velGap(q.u,o.u);return d>0&&d<4&&Math.abs(q.w-o.w)<.8&&o.v>(q.v||0)+.15});
+  if(ahead)o.wt=1.7;else if(o.wt>.5&&![...VEL.npc.filter(x=>x!==o),{u:VEL.u,w:VEL.wc}].some(q=>{const d=velGap(q.u,o.u);return d>-5&&d<3&&q.w<1.2}))o.wt=.45;
+  o.w+=clamp(o.wt-o.w,-dt*.9,dt*.9);o.u=velMod(o.u+o.v*dt*VEL.LI/velLW(o.w));velPlace(n.R,o.u,o.w);n.v=o.v;n.P=Pn;n.cadS=(n.cadS||88)+(92-(n.cadS||88))*dt;
+  riderAnim(dt,{cad:n.cadS,P:Pn,v:o.v,g:0,coast:false,stand:false,tuck:false,steer:0},n.inst)}}
+const _cw=V(),_cl2=V(),_cu=V();
+function velCam(dt){const vw=CAM.view%4,f=VEL.rf,k=CAM.snap?1:1-Math.exp(-dt*5);let upK=.3;const up=VEL.rn;
+ if(vw===0){_cw.copy(R.position).addScaledVector(f,-5.6).add(_cu.set(0,1.7,0)).addScaledVector(up,.5);_cl2.copy(R.position).addScaledVector(f,5).add(_cu.set(0,.8,0))}
+ else if(vw===1){_cw.copy(VEL.C).lerp(R.position,.62);_cw.y=2.6;_cl2.copy(R.position).add(_cu.set(0,.9,0));upK=0}// caméra « télé » depuis le centre
+ else if(vw===2){_cw.copy(R.position).sub(VEL.C).setY(0).normalize().multiplyScalar(-26).add(VEL.C);_cw.y=21;_cl2.copy(R.position);upK=0}// vue haute depuis les tribunes d'en face
+ else{_cw.copy(R.position).addScaledVector(up,1.5).addScaledVector(f,.25);_cl2.copy(_cw).addScaledVector(f,10).addScaledVector(up,-.6);upK=1}// vue du cycliste
+ if(CAM.snap){cam.position.copy(_cw);CAM.snap=false}else cam.position.lerp(_cw,k);
+ cam.up.set(0,1,0).lerp(up,upK).normalize();cam.lookAt(_cl2)}
+// ---------- jeux de lumière ----------
+const _hc=new T.Color(),_hc2=new T.Color();
+function velShow(now,dt,P,hot){const t=now/1000;VEL.uT.value=t;const fx=VEL.fx;fx.gold=Math.max(0,fx.gold-dt);
+ const Pt=mode==='wk'&&wk&&loop.Pt?loop.Pt:P,zc=ZN[zi(Math.max(.01,Pt)/FTP)][1];_hc.set(zc);
+ const sprint=P>FTP*1.4,gold=fx.gold>0;VEL.heat+=((sprint?1:P>FTP*1.05?.6:.2)-VEL.heat)*Math.min(1,dt*1.5);const heat=VEL.heat;
+ // rubans : couleur de ta zone, lumière de rythme (verte) et record du tour (or)
+ const paceP=mode==='wk'&&wk&&loop.Pt?loop.Pt:VPACE[VEL.paceK][1]*FTP,m=Math.max(40,(+$('kg').value||80)-EQ.mass);VEL.paceP=paceP;VEL.paceV=velSpeedFor(paceP,m,EQ.cda);
+ if(!VEL.started){VEL.pu=VEL.u;}else VEL.pu=velMod(VEL.pu+VEL.paceV*dt*VEL.LI/VEL.LM);
+ if(Math.abs(velGap(VEL.pu,VEL.u))>60)VEL.pu=VEL.u;
+ if(VEL.best&&VEL.started)VEL.gu=velMod(VEL.finU+VEL.LI*Math.min(1,VEL.lapT/VEL.best));
+ for(const s of[VEL.stripIn,VEL.stripOut]){const U=s.material.uniforms;U.uPace.value=VEL.pu;U.uGhost.value=VEL.gu;U.uGhostOn.value=VEL.best&&VEL.started&&s===VEL.stripIn?1:0;U.uPaceOn.value=s===VEL.stripIn&&paceP>0?1:0;
+  U.uWave.value=fx.waveU;U.uWaveT.value=fx.wave;U.uStrobe.value=sprint?(Math.sin(t*40)>.3?1.5:0):0;U.uSpd.value=2+heat*6;
+  if(gold){U.uCol.value.setHex(0xffd23f);U.uCol2.value.setHex(0xff8a00)}else{U.uCol.value.copy(_hc);U.uCol2.value.setHSL((t*.03)%1,.9,.5)}U.uI.value=.8+heat*.9}
+ // faisceaux : la moitié suit le cycliste, l'autre balaie la piste ; tous sur toi pendant un sprint
+ VEL.beams.forEach((b,i)=>{let tu;if(sprint||gold||i%2===0)tu=VEL.u+(i%4-1.5)*3*(sprint?.3:1)+Math.sin(t*.7+b.ph)*(sprint?1:6);else tu=(t*(8+heat*20)+b.ph*30)%VEL.LI;
+  const bb=velPos(tu,1.5+Math.sin(t*.9+b.ph)*1.5,b.t);_vn.set(-b.t.ox*Math.sin(bb),Math.cos(bb),-b.t.oz*Math.sin(bb));b.spot.quaternion.setFromUnitVectors(_cl2.set(0,0,1),_vn);const d=b.t.clone().sub(b.o),L=d.length();b.m.quaternion.setFromUnitVectors(_cu.set(0,-1,0),d.normalize());const sp=sprint?1.6:2.6+Math.sin(t+b.ph);b.m.scale.set(sp,L,sp);
+  const c=b.m.material.uniforms.uCol.value;if(gold)c.setHex(0xffd23f);else if(sprint)c.setRGB(1,1,1);else c.setHSL((i/VEL.beams.length+t*.05)%1,1,.6);
+  b.m.material.uniforms.uI.value=(sprint?(Math.sin(t*30+i)>0?1.4:.2):.55+heat*.5);b.spot.position.copy(b.t).addScaledVector(_vn,.03);b.spot.scale.setScalar(sp*.9);b.spot.material.opacity=(sprint||gold?.07:.12)+heat*.06});
+ VEL.floorU.uCol.value.copy(gold?_hc2.setHex(0xffd23f):_hc);VEL.floorU.uI.value=.45+heat*.6;
+ VEL.ringM.color.copy(gold?_hc2.setHex(0xffd23f):_hc);
+ VEL.laser.visible=sprint||gold;if(VEL.laser.visible){VEL.laser.rotation.y=t*.9;VEL.laser.position.set(VEL.C.x*(1-Math.cos(t*.9))-VEL.C.z*Math.sin(t*.9),0,VEL.C.z*(1-Math.cos(t*.9))+VEL.C.x*Math.sin(t*.9));VEL.laser.material.color.set(gold?0xffd23f:0x22ff88)}
+ VEL.uJ.value+=((gold||sprint?1:v>12.5?.45:.05)-VEL.uJ.value)*Math.min(1,dt*3);VEL.phoneOn.value=gold?1:.15+heat*.5;
+ VEL.banner.offset.x-=dt*(.05+heat*.12);
+ // écran circulaire
+ if(now-VEL.sbT>500){VEL.sbT=now;const g=VEL.sbK.getContext('2d'),W=2048,fl=now-(VEL.sbFlash||0)<1200;g.fillStyle=fl?(VEL.best===VEL.last?'#5a4300':'#0b2a3a'):'#04070d';g.fillRect(0,0,W,128);
+  g.font='900 70px Arial Black,Arial';g.textBaseline='middle';const items=[['TOUR '+(VEL.lap+1),'#ffffff'],[VEL.last?VEL.last.toFixed(2).replace('.',',')+' s':'—','#2bd4ff'],['RECORD '+(VEL.best?VEL.best.toFixed(2).replace('.',',')+' s':'—'),'#ffd23f'],[(v*3.6).toFixed(1).replace('.',',')+' km/h','#7fd67a'],[Math.round(P)+' W',zc]];
+  let x=30;for(const[s2,c]of items){g.fillStyle=c;g.shadowColor=c;g.shadowBlur=14;g.fillText(s2,x,66);x+=g.measureText(s2).width+70}g.shadowBlur=0;VEL.sbTex.needsUpdate=true}}
+// ---------- sons de l'arène : rumeur du public, ovation ----------
+function velAudio(now,P){if(!AC||AC.state!=='running'||MUTE)return;if(!AU.crowd){const nb=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate),d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  const so=AC.createBufferSource();so.buffer=nb;so.loop=true;const b=AC.createBiquadFilter();b.type='bandpass';b.frequency.value=700;b.Q.value=.6;const g=AC.createGain();g.gain.value=0;so.connect(b);b.connect(g);g.connect(AC.destination);so.start();AU.crowd=g}
+ const t=AC.currentTime,lvl=.012+.03*(VEL.heat||0)+(VEL.cheer>now?.06:0);AU.crowd.gain.setTargetAtTime(lvl*(SET.natV??1),t,.4);
+ if(VEL.cheer>now&&Math.random()<.35)clap(t+Math.random()*.1,.08)}
+function velCheer(s){VEL.cheer=performance.now()+s*1000}
+// ---------- affichage ----------
+function velHud(P){$('vs').textContent=(v*3.6).toFixed(0);$('vp').textContent=Math.round(P);$('vc').textContent=Math.round(P>5&&v>.3?cadS:0);$('vh').textContent=hr||'–';$('vg').textContent='0.0';
+ $('vd').textContent=(s/1000).toFixed(1);$('va').textContent=R.position.y.toFixed(1).replace('.',',');$('vrl').textContent='tour';$('vr').textContent=VEL.lap+1;$('vru').textContent='';$('vt').textContent=fmt(tt);$('vk').textContent=SES.on?nf(SES.kcal):'0';
+ $('vdrf').textContent=RDRAFT>.04?' · aspiration −'+Math.round(RDRAFT*100)+' %':'';$('vp').style.color=ZN[zi(P/FTP)][1];$('vp3').textContent=Math.round(P3);$('vwk').textContent=(P3/riderKg()).toFixed(1).replace('.',',');
+ $('vnp').textContent=REC.on?Math.round(npLive()):'–';$('vdp').textContent=0;$('bot').style.display='none';
+ if(mode==='wk'&&wk&&!wk.ramp)$('wi2').textContent=(conn?'ERG · ':'')+'toi '+Math.round(P)+' W · '+Math.round(conn?cad:cadS)+' tr/min'+(hr?' · ♥ '+hr:'');
+ const el=$('velp');el.style.display='block';const pk=mode==='wk'&&wk&&loop.Pt?'consigne '+loop.Pt+' W':VPACE[VEL.paceK][0]+(VEL.paceP?' · '+Math.round(VEL.paceP)+' W':'');
+ el.innerHTML='🏟️ <b>Tour '+(VEL.lap+1)+'</b> · '+(VEL.started?VEL.lapT.toFixed(1).replace('.',',')+' s':'départ')+' · dernier <b>'+(VEL.last?VEL.last.toFixed(2).replace('.',','):'–')+'</b> · record <b style="color:#ffd23f">'+(VEL.best?VEL.best.toFixed(2).replace('.',','):'–')+'</b>'+
+  '<br><span style="color:#5dff9e">💡 '+pk+(VEL.paceV?' · '+(VEL.paceV*3.6).toFixed(1).replace('.',',')+' km/h':'')+'</span>';
+ if(Date.now()-(VEL.mapT||0)>300){VEL.mapT=Date.now();velMap()}}
+function velMap(){const c=$('map');if(!c)return;const W=c.width,g=c.getContext('2d');g.clearRect(0,0,W,W);g.save();g.beginPath();g.arc(W/2,W/2,W/2-2,0,6.283);g.clip();g.fillStyle='rgba(8,12,20,.55)';g.fillRect(0,0,W,W);
+ const sc2=W*.82/(VEL.S+2*VEL.R+16),M=(x,z)=>[W/2+(x-VEL.C.x)*sc2,W/2+(z-VEL.C.z)*sc2];g.lineWidth=W*.06;g.strokeStyle='#c9a06a';g.beginPath();for(let i=0;i<=VEL.M;i+=4){velPos(i*VEL.ds,3.5,_vp);const[a,b]=M(_vp.x,_vp.z);i?g.lineTo(a,b):g.moveTo(a,b)}g.closePath();g.stroke();
+ const dot=(u,w,col,r)=>{velPos(u,w,_vp);const[a,b]=M(_vp.x,_vp.z);g.fillStyle=col;g.beginPath();g.arc(a,b,r,0,6.283);g.fill()};
+ if(VEL.paceP)dot(VEL.pu,-.5,'#22ff88',4);if(VEL.best&&VEL.started)dot(VEL.gu,-.5,'#ffd23f',4);for(const o of VEL.npc)dot(o.u,o.w,'#ff7f2a',4);dot(VEL.u,VEL.wc,'#ffffff',6);g.restore()}
 // ===== sons de la nature (WebAudio) =====
 let AC=null,AU={},MUTE=false,aT=0;
 function audio(){if(AC){if(AC.state==='suspended')AC.resume();return}try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return}
@@ -3274,11 +3563,11 @@ function audio(){if(AC){if(AC.state==='suspended')AC.resume();return}try{AC=new(
  AU.wind=ns('bandpass',600,.5);AU.leaf=ns('highpass',3500,.4);AU.river=ns('lowpass',380,.7);AU.rain=ns('highpass',1800,.3);
  const cr=AC.createOscillator(),lf=AC.createOscillator(),lg=AC.createGain(),cm=AC.createGain();cr.frequency.value=4300;lf.frequency.value=32;lg.gain.value=.5;cm.gain.value=.5;AU.cri=AC.createGain();AU.cri.gain.value=0;lf.connect(lg);lg.connect(cm.gain);cr.connect(cm);cm.connect(AU.cri);AU.cri.connect(AC.destination);cr.start();lf.start();
  const fw=AC.createOscillator(),fg=AC.createGain(),ff=AC.createBiquadFilter();fw.type='sawtooth';fg.gain.value=0;ff.type='lowpass';ff.frequency.value=2200;fw.connect(ff);ff.connect(fg);fg.connect(AC.destination);fw.start();AU.fw=fw;AU.fg=fg;
- setInterval(()=>{if(!AC||AC.state!=='running'||mode==='home'||MUTE||DAYF<.35||Math.random()>.55)return;const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime,f=2200+Math.random()*2200,n=2+(Math.random()*4|0);g.gain.value=.0001;o.connect(g);g.connect(AC.destination);
+ setInterval(()=>{if(!AC||AC.state!=='running'||mode==='home'||VEL.on||MUTE||DAYF<.35||Math.random()>.55)return;const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime,f=2200+Math.random()*2200,n=2+(Math.random()*4|0);g.gain.value=.0001;o.connect(g);g.connect(AC.destination);
   for(let k=0;k<n;k++){const u=t+k*.09;o.frequency.setValueAtTime(f*(1+.15*(k%2)),u);o.frequency.exponentialRampToValueAtTime(f*1.4,u+.07);g.gain.setValueAtTime(.0001,u);g.gain.exponentialRampToValueAtTime(.05,u+.02);g.gain.exponentialRampToValueAtTime(.0001,u+.08)}o.start(t);o.stop(t+n*.09+.1)},1800)}
 let nearWater=0;
 function audioTick(P){if(!AC||AC.state!=='running'||performance.now()-aT<120)return;aT=performance.now();const t=AC.currentTime,on=!MUTE&&mode!=='home',ni=ELEV<-3,vv=Math.min(1,Math.max(0,v+WX.head)/14),co=on&&(mode==='ride'||mode==='wk')&&P<=5&&v>1.5;
- AU.wind.gain.setTargetAtTime(on?(.03+.22*vv*vv)*(1-1.4*(typeof RDRAFT==='number'?RDRAFT:0)):0,t,.2);AU.leaf.gain.setTargetAtTime(on&&!ni?.008+.02*vv:0,t,.3);AU.river.gain.setTargetAtTime(on?.012+.08*nearWater:0,t,.5);AU.cri.gain.setTargetAtTime(on&&ni?.012:0,t,.5);
+ AU.wind.gain.setTargetAtTime(on?(.03+.22*vv*vv)*(1-1.4*(typeof RDRAFT==='number'?RDRAFT:0)):0,t,.2);const out=!VEL.on;AU.leaf.gain.setTargetAtTime(on&&out&&!ni?.008+.02*vv:0,t,.3);AU.river.gain.setTargetAtTime(on&&out?.012+.08*nearWater:0,t,.5);AU.cri.gain.setTargetAtTime(on&&out&&ni?.012:0,t,.5);
  AU.fw.frequency.setTargetAtTime(40+v*14,t,.1);AU.fg.gain.setTargetAtTime(co?Math.min(.03,v*.004):0,t,.1);
  AU.nat.gain.setTargetAtTime(SET.natV,t,.3);AU.rain.gain.setTargetAtTime(on&&WX.rain?.06:0,t,.6)}
 addEventListener('pointerdown',audio);addEventListener('keydown',audio);
@@ -3801,16 +4090,17 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
    const wh='<span style="color:'+z[1]+'">●</span> '+Pt+' W · '+z[2]+' · '+fmt(B[1])+(cb&&cb[3]?'<div style="font:600 13px system-ui;color:var(--mut)">'+cb[3]+'</div>':'')+
     (nb&&B[1]<=20?'<div style="font:600 13px system-ui;color:var(--ac)">Ensuite : '+fmt(nb[0])+' à '+Math.round(nb[1]*FTP*(wk.ramp?1:ix))+' W</div>':'');if(wh!==loop.wh){loop.wh=wh;$('wi').innerHTML=wh}
    if(!wk.ramp)wkCoach(dt,B,Pt,P);loop.Pt=Pt}}
- const pos=posAt(RID.e,RID.u,RID.dir,_PS),g=pos.g;
- const tuck=v>13.2&&P<FTP*.45&&g<-.015,sprinting=P>FTP*1.45&&v<16,surge=riding?standLogic(dt,P,g,v):false;
- if(g>.06&&(riding||mode==='explore')){standT+=dt;if(standT>75)standT=0}else standT=0;
- const stand=(sprinting||surge||(g>.075&&P>FTP*.95)||(standT>60))&&v>1.2;
+ if(VEL.on&&!hm){velFrame(now,dt,P);return}// vélodrome : piste plate, monde extérieur caché
+ const pos=posAt(RID.e,RID.u,RID.dir,_PS),g=pos.g,gP=mode==='wk'?0:g;// séance : la pente du terrain n'agit pas (ni résistance, ni vitesse, ni danseuse)
+ const tuck=v>13.2&&P<FTP*.45&&gP<-.015,sprinting=P>FTP*1.45&&v<16,surge=riding?standLogic(dt,P,gP,v):false;
+ if(gP>.06&&(riding||mode==='explore')){standT+=dt;if(standT>75)standT=0}else standT=0;
+ const stand=(sprinting||surge||(gP>.075&&P>FTP*.95)||(standT>60))&&v>1.2;
  RDRAFT=!hm?riderDraft():0;
  WX.head=hm?0:wxHead(pos.tx,pos.tz);
- if(riding){const m=Math.max(40,(+$('kg').value||80)-EQ.mass),a=Math.atan(g),cda=EQ.cda*(tuck?.82:stand?1.12:1)*(1-RDRAFT),va=v+WX.head,// vitesse de l'air (vent de face > 0)
+ if(riding){const m=Math.max(40,(+$('kg').value||80)-EQ.mass),a=Math.atan(gP),cda=EQ.cda*(tuck?.82:stand?1.12:1)*(1-RDRAFT),va=v+WX.head,// vitesse de l'air (vent de face > 0)
   F=EQ.eff*P/Math.max(v,1.2)-m*9.81*Math.sin(a)-.004*EQ.crr*m*9.81*Math.cos(a)-.5*1.2*.32*cda*va*Math.abs(va),
   gW=clamp(.5*1.2*.32*cda*(va*Math.abs(va)-v*v)/(m*9.81),-.08,.08);// le vent envoyé au home trainer sous forme de pente équivalente
-  v=Math.max(0,Math.min(25,v+F/(m+1.5)*dt));if(P<5&&v<.25&&g>-.015)v=0;
+  v=Math.max(0,Math.min(25,v+F/(m+1.5)*dt));if(P<5&&v<.25&&gP>-.015)v=0;
   const ah=riderAhead();if(ah&&ah.d<.6&&RLAT>1&&v>ah.o.v)v=ah.o.v;// on ne rentre pas dans la roue de devant
   const ds=v*dt;advance(RID,ds,riderChoose);histTick();s+=ds;PEMA=PEMA?PEMA+(P-PEMA)*Math.min(1,dt/180):P;
   if(mode==='ride'){if(v>.1)tt+=dt;if(conn&&now-lastSim>1500&&(Math.abs(g+gW-lastG)>.002||Math.abs(RDRAFT-lastDr)>.06)){sim(g+gW,RDRAFT);lastG=g+gW;lastDr=RDRAFT;lastSim=now}}
@@ -3832,8 +4122,8 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  if(riding)sesTick(dt,P,v*dt,y);// km, kcal, D+ et récompenses de la sortie ou de la séance
  // pédalage
  const pedal=riding?P>5&&v>.3:hm?true:v>.3&&g>-.03;
- const cadT=hm?78:conn&&riding?cad:clamp(86+(P/FTP-.7)*14-Math.max(0,g-.04)*220+(stand?-14:0),58,118);cadS+=(cadT-cadS)*Math.min(1,dt*2);
- Object.assign(RS2,{cad:pedal?cadS:0,P,v:hm?0:v,g,coast:!pedal,stand:stand&&!hm,tuck:tuck&&!hm,steer:clamp(-cur*30,-1,1)});riderAnim(dt,RS2);
+ const cadT=hm?78:conn&&riding?cad:clamp(86+(P/FTP-.7)*14-Math.max(0,gP-.04)*220+(stand?-14:0),58,118);cadS+=(cadT-cadS)*Math.min(1,dt*2);
+ Object.assign(RS2,{cad:pedal?cadS:0,P,v:hm?0:v,g:gP,coast:!pedal,stand:stand&&!hm,tuck:tuck&&!hm,steer:clamp(-cur*30,-1,1)});riderAnim(dt,RS2);
  if(hm){FAN.rotation.z+=dt*22;if(now-(loop.mt||0)>100){loop.mt=now;mon(now)}}
  // caméra
  if(!dr&&riding)yaw*=Math.pow(.2,dt);
@@ -3851,13 +4141,9 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
   if(now-clipT2>600){clipT2=now;clipRecenter(rp.x,rp.z)}}
  dataTick(now);dataLoaderTick(now);villagesTick(now);mosaicsTick(now);clipTick(now);waterTick(dt);
  runJobs((hm?14:(fA>26?3.5:fA>20?5:7))+JOB_BOOST);
- // résolution adaptative
- if(now-dprT>2500){dprT=now;const fps=1000/fA,mn=Math.min(QP.minPR||.75,PRMAX());
-  // chaque changement réalloue l'image (petit blocage) : on baisse après 5 s de lenteur, on remonte après 15 s de fluidité, jamais deux fois en moins de 10 s
-  DPRS.lo=fps<(QP.fpsLo||40)?DPRS.lo+1:0;DPRS.hi=fps>(QP.fpsHi||57)?DPRS.hi+1:0;
-  if(now-DPRS.t>10000){if(DPRS.lo>=2&&PR>mn){PR=Math.max(mn,PR-.1);ren.setPixelRatio(PR);rs();DPRS.t=now;DPRS.lo=0}else if(DPRS.hi>=6&&PR<PRMAX()-.04){PR=Math.min(PRMAX(),PR+.05);ren.setPixelRatio(PR);rs();DPRS.t=now;DPRS.hi=0}}}
+ dprTick(now);
  if(!hm&&now-hudT>100){hudT=now;$('vs').textContent=(v*3.6).toFixed(0);$('vp').textContent=mode==='explore'?'–':Math.round(P);$('vc').textContent=mode==='explore'?'–':Math.round(pedal?cadS:0);$('vh').textContent=hr||'–';
-  $('vg').textContent=(g*100).toFixed(1);$('vd').textContent=(s/1000).toFixed(1);$('va').textContent=Math.round(y);
+  $('vg').textContent=(gP*100).toFixed(1);$('vd').textContent=(s/1000).toFixed(1);$('va').textContent=Math.round(y);
   if(ROUTE){$('vrl').textContent=ROUTE.off>40?'hors itinéraire ·':'reste';$('vr').textContent=Math.max(0,(ROUTE.len-ROUTE.cum[ROUTE.k])/1000).toFixed(1);$('vru').textContent='km'}
   else{const dn=distToNode(RID);$('vrl').textContent=optionsAt(RID).length>=2?'carrefour dans':'route';$('vr').textContent=dn>=1000?(dn/1000).toFixed(1):Math.round(dn);$('vru').textContent=dn>=1000?'km':'m'}
   $('vdrf').textContent=RDRAFT>.04?' · aspiration −'+Math.round(RDRAFT*100)+' %':'';
@@ -3870,6 +4156,13 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
   if(BIGM.on&&now-BIGM.t>300){BIGM.t=now;drawBig()}
   nearWater=DATA.n.w?clamp(1-((()=>{let m=1e9;for(const o of[-30,0,30]){const w=waterAt(x-tz*o,z+tx*o);if(w>.3)m=Math.min(m,Math.abs(o))}return m})())/60,0,1):0}
  firstFrames++;renderScene()}
+// résolution adaptative (partagée avec le vélodrome)
+function dprTick(now){
+ if(now-dprT>2500){dprT=now;const fps=1000/fA,mn=Math.min(QP.minPR||.75,PRMAX());
+  // chaque changement réalloue l'image (petit blocage) : on baisse après 5 s de lenteur, on remonte après 15 s de fluidité, jamais deux fois en moins de 10 s
+  DPRS.lo=fps<(QP.fpsLo||40)?DPRS.lo+1:0;DPRS.hi=fps>(QP.fpsHi||57)?DPRS.hi+1:0;
+  if(now-DPRS.t>10000){if(DPRS.lo>=2&&PR>mn){PR=Math.max(mn,PR-.1);ren.setPixelRatio(PR);rs();DPRS.t=now;DPRS.lo=0}else if(DPRS.hi>=6&&PR<PRMAX()-.04){PR=Math.min(PRMAX(),PR+.05);ren.setPixelRatio(PR);rs();DPRS.t=now;DPRS.hi=0}}}
+}
 // ---- mini-carte : le réseau autour de toi (nord en haut) ----
 // fond de la mini-carte (autres routes, réseau, villages) dessiné une fois dans une image en mémoire, centrée sur (MC.cx, MC.cz) et deux fois plus grande :
 // redessiné seulement quand on s'est éloigné de ~2 km ou que de nouvelles données arrivent (avant : des milliers de traits redessinés 2 à 3 fois par seconde)

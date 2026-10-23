@@ -60,6 +60,20 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - **Aucun arbre ni herbe en 3D** (fin octobre 2026, demande de Cyril : `NOVEG = true`) : forêts, haies, vergers, vignes et touffes d'herbe ne sont plus construits (`vegUpdate` et `initGrass` sortent tout de suite, géométries d'arbres non créées). Restent : relief, montagnes, horizon, photos aériennes au sol, bâtiments, eau, routes. Pour les remettre : `NOVEG = false`. Le code ci-dessous est conservé.
 - **Arbres simplifiés** (fin octobre 2026) : feuillus proches 84 triangles au lieu de 142 (moins de cartes de feuillage, 2 branches, cœur en dodécaèdre), conifères 96 au lieu de 124 ; arbres détaillés seulement jusqu'à `treeNear` × 0,6 (33 m en Tablette au lieu de 55), version simple au-delà. Distance d'affichage des arbres, relief lointain, horizon et montagnes inchangés.
 
+### Vélodrome (fin octobre 2026)
+- **Piste UCI 250 m** (Rouler → 🏟️ Vélodrome, ou au départ d'une séance : « Où faire la séance ? » → Vélodrome) ; module `VEL`, `velBuild`, `velFrame` (branche de `loop()` : monde extérieur caché, `VELG` affiché).
+  - Bord intérieur : demi-droite, raccordements progressifs (clothoïdes 13 m), virages R = 22 m ; longueur des droites ajustée (≈ 42,4 m) pour que la **ligne de mesure (20 cm au-dessus du bord intérieur) fasse 250,000 m** (vérifié). Largeur 7 m (minimum UCI cat. 1 et 2), relevé 12° en ligne droite → 44° en virage (≈ 45° pour une piste de 250 m).
+  - Côte d'azur 0,70 m (10 % de la largeur, relevé 14°), zone de sécurité 4,2 m, lignes : mesure noire à 20 cm, sprinteurs rouge à 85 cm (certaines sources disent 90 cm), stayers bleue à 2,45 m (≥ 1/3 de 7 m), arrivée, 200 m, lignes de poursuite.
+  - Repère : `u` le long du bord intérieur (0 = ligne de poursuite de la ligne droite d'arrivée), `w` = distance sur la piste depuis le bord intérieur ; `velPos`, `velPlace` (cycliste perpendiculaire à la piste relevée), `velLW(w)` longueur d'un tour selon la hauteur.
+- **Physique** : piste plate (pente 0 envoyée au home trainer en sortie libre, ERG en séance), aspiration derrière les coureurs (même formule que sur route), on monte doubler par le haut puis on redescend à la corde.
+- **Tours** : chrono au passage de la ligne d'arrivée (le premier passage lance le chrono), dernier tour, record de la session et record absolu (`GS.vel = {best, laps}`), annonce vocale tous les 5 tours, célébration au record.
+- **Lumière de rythme** (ruban LED sur la côte d'azur) : point vert qui roule à la vitesse correspondant à la puissance cible (sortie : Z2 65 % FTP, Z3 83 %, seuil, éteinte — touche le bandeau du haut ; séance : consigne du bloc). Point doré = rythme de ton record du tour.
+- **Arène** : piste en bois (lames), rambarde vitrée, mur LED défilant, tribunes (14 rangs, 8 en Tablette/Basse), sièges et public instanciés (le public saute quand ça accélère, flashs de téléphones), toit en dôme avec arches et lampes, écran circulaire suspendu (tour, chrono, record, vitesse, puissance), sol central lumineux.
+- **Jeux de lumière** (`velShow`) : couleurs selon ta zone de puissance, faisceaux mobiles (8, ou 4 en Tablette/Basse) qui suivent le cycliste ou balaient la piste, stroboscope et lasers en sprint (> 140 % FTP), mode doré + confettis + ovation au record du tour, vague lumineuse à chaque passage de ligne.
+- **Caméras** (`velCam`, bouton caméra) : poursuite, « télé » depuis le centre, vue haute, vue du cycliste (penchée avec la piste). Mini-carte : l'ovale, toi, les coureurs, la lumière de rythme et le fantôme du record.
+- **Sons** : rumeur du public et applaudissements ; sons de nature coupés en salle. Trois cyclistes PNJ (pris dans `NPCS`) roulent sur la piste.
+- Enregistrement Strava : la trace GPS est un petit ovale au centre de Pontcharra (le vélodrome est placé à l'origine du repère) ; nom « Vélodrome de Pontcharra · N tours ».
+
 ### Navigation sur le réseau
 - **Parcours imposé (depuis octobre 2026, à la demande de Cyril après essai sur smartphone)** : plus de sortie libre sur tout le réseau.
   - On choisit un parcours avant chaque sortie, séance ou exploration (`courseThen`) : parcours calculé, favori, parcours Pontcharra ou GPX.
@@ -184,6 +198,8 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
   - **Raccourcir une séance en cours** (bouton ⏱) : on réduit d'abord l'endurance, puis on retire des répétitions entières par la fin ; les récupérations entre efforts et l'intensité ne changent pas ; retour au calme ramené à 2 min au moins.
 - **Accueil simplifié** : 4 grands boutons — **Rouler** (rouler sur le dernier parcours, choisir un parcours, parcours Pontcharra, GPX, exploration ; plus de sortie libre), **S'entraîner**, **Mon suivi**, **Réglages** (matériel, **Strava** avec état de connexion et sorties envoyées `GS.strv`, vestiaire, garage, graphismes).
 - **Diagnostic des blocages** (Réglages → 🩺, `diagStart`, `diagReport`, `diagShow`, clé `v3diag` = actif, reste actif après redémarrage) : pendant une sortie, mesure image par image le temps de chaque tâche (fonctions de la boucle enveloppées, tâches `job` par préfixe de clé, `ren.render`, envois de textures `texImage2D`/`texSubImage2D`, nouveaux shaders, lecture des données entre les images, `JSON.parse`) et, si Chrome le permet, le temps réel de la carte graphique (`EXT_disjoint_timer_query_webgl2`). Une image > 50 ms est attribuée à sa plus grosse cause ; le reste du temps hors appli est classé « Navigateur / carte graphique ». Bandeau 🩺 en haut (images/s, blocages > 100 ms, pire), rapport texte à copier ou enregistrer (☰ → Rapport diagnostic, ou bouton dans la fenêtre de fin de sortie).
+- **Encadré d'état des chargements masqué** (`#ld`, demande de Cyril) ; les messages importants passent par des fenêtres.
+- **Séances : la pente ne joue pas** (`gP` dans `loop`) : sur un parcours, résistance en ERG (comme avant), et désormais vitesse, danseuse et posture calculées comme sur le plat.
 - **Vérification au lancement** (`netCheck`) : si Internet ou le Bluetooth sont bloqués (fichier ouvert dans un aperçu, par exemple l'appli Claude ou un gestionnaire de fichiers), une fenêtre explique de télécharger le fichier et de l'ouvrir dans Chrome ; le panneau de chargement l'indique aussi.
 - **Plein écran** et **écran maintenu allumé** pendant les sorties (API Wake Lock), utiles sur tablette.
 - **Garage** : points, équipement améliorable, historique FTP, records de sprint.
@@ -245,6 +261,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 | ≈2920 | **Cyclistes PNJ** : `npcTick`, `npcChoose`/`npcNext`, aspiration `draftOf`, sprints `exitAhead`, « Ride On » |
 | ≈3030 | **Piétons** : `pedTick`, applaudissements, sifflets, voix |
 | ≈2846 | **Préférences et ambiance** (`SET`, `speak`, `resultShow`, `celebrate`, musique, `WX` (neutre), `todApply`), **arches, sprints et côtes** (`lightArch`, `sprintTick`, `sprintEnd2`, `courseClimbs`, `komTick`), **analyse** (`analyzeRide`, `prCheck`, `streakTick`, `fitnessSeries`, `anaOpen`, `postcard`), **plans** (`TPLANS`), **coach et HUD** (`wkCoach`, `HUDF`, `prefRender`, `suiviExtra`) |
+| ≈3300 | **Vélodrome** (`VEL`, `velBuildCurve`, `velBuild`, `velStart`/`velStop`, `velFrame`, `velShow`, `velCam`, `velHud`, `velMap`) — juste avant les sons de la nature |
 | ≈3096 | **Strava** : enregistreur `REC`, `fitEncode`, OAuth, envoi, fenêtre `offerStrava`, `stravaPanel` |
 | ≈3179 | Monde et boucle principale : `startWorld`, caméras, `loop()`, mini-carte, menu ☰, démarrage |
 
