@@ -114,12 +114,12 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - **Pancartes de secours** : sans données de bâtiments, des pancartes « synthétiques » sont placées aux centres des communes.
 
 ### Préférences, ambiance et météo (octobre 2026)
-- **Préférences** (Réglages → 🎛️, `prefRender`, clé `v3set`) : longueur du sprint, commentateur vocal, coach de séance, musique (aucune / calme / motivation) et volumes, vent, moment de la journée, FC max, poids du cycliste, HUD.
-- **Commentateur vocal** en français (`speak`, synthèse vocale du navigateur) : départ, villages, sprints, côtes, récompenses.
+- **Préférences** (Réglages → 🎛️, `prefRender`, clé `v3set`) : longueur du sprint, commentateur vocal, coach de séance, musique (aucune / calme / motivation) et volumes, moment de la journée, FC max, poids du cycliste, HUD.
+- **Commentateur vocal** en français (`speak`, synthèse vocale du navigateur) : villages, sprints, côtes, records, récompenses. **Plus d'encouragements vocaux** (fin octobre 2026, demande de Cyril) : ni « Bonne route » au départ, ni « Bravo » en fin de séance, ni encouragements de mi-bloc, ni cris « Allez ! » des spectateurs (applaudissements et sifflets gardés). Le coach garde ses consignes (puissance, cadence, « Dix secondes. »).
 - **Célébrations** (`celebrate`) : confettis, feux d'artifice et fanfare pour records, badges, niveaux.
 - **Musique d'ambiance** générée (`MUS`, `musTick`), cloches de vaches et cloches d'église (`countrySounds`, `churchBell` à l'entrée des villages).
 - **Météo retirée** (fin octobre 2026, à la demande de Cyril : la pluie faisait ramer l'appli) : plus de pluie, neige, brouillard ni météo réelle (Open-Meteo n'est plus appelé). Ciel normal.
-  - **Vent** réglable à la main (aucun par défaut, léger 2,5 m/s, fort 6 m/s, direction tirée au hasard ; `WX`, `wxApply`, `wxHead`). Il entre dans la physique (vitesse de l'air) et est envoyé au home trainer **sous forme de pente équivalente** (±8 % max), car le signe du champ vent FTMS n'a pas pu être vérifié. HUD : « 💨 vent de face/de dos ».
+  - **Vent retiré** aussi (fin octobre 2026) : air calme (`WX` à zéro, `wxHead` renvoie 0), plus d'option ni de champ « Vent » dans le HUD ; le home trainer ne reçoit que la vraie pente et l'aspiration.
 - **Moment de la journée** (`todApply`) : heure réelle, jour, coucher de soleil, nuit. La nuit : phare renforcé (portée 120 m), feu arrière clignotant.
 - **HUD personnalisable** (`HUDF`, `hudApply`) : champs au choix (vitesse, puissance, puissance 3 s, W/kg, NP, cadence, pente, cardio coloré par zone, distance, reste, altitude, D+, temps, kcal) et grand format.
 
@@ -127,7 +127,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - Leur nombre dépend de la qualité : 10 en Basse, 18 en Moyenne, 26 en Élevée, 34 en Ultra. Ils sont dessinés en instanciation (7 maillages pour tous).
 - Les promeneurs marchent sur les trottoirs des villages et, plus rarement, sur le bas-côté.
 - Des spectateurs sont présents à 3 pancartes de sortie sur 4.
-- Ils **applaudissent, sautent, sifflent et crient « Allez ! »** (synthèse vocale en français) quand Cyril sprinte, roule à plus de 41 km/h, ou quand un PNJ sprinte près d'eux.
+- Ils **applaudissent, sautent et sifflent** (plus de cris « Allez ! » vocaux depuis fin octobre 2026) quand Cyril sprinte, roule à plus de 41 km/h, ou quand un PNJ sprinte près d'eux.
 
 ### Cycliste et animation
 - Cycliste à squelette avec pédalage correct, réalisé par cinématique inverse.
@@ -237,7 +237,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 | ≈2829 | **Navigation** : `RID`, `advance` (mémorise `st.prev`), `optionsAt`, `defaultIdx`, `riderNext`, itinéraire `setRoute`/`routeIdx` (suit `ROUTE.edges` s'il existe), choix au carrefour `jxTick` |
 | ≈2920 | **Cyclistes PNJ** : `npcTick`, `npcChoose`/`npcNext`, aspiration `draftOf`, sprints `exitAhead`, « Ride On » |
 | ≈3030 | **Piétons** : `pedTick`, applaudissements, sifflets, voix |
-| ≈2846 | **Préférences et ambiance** (`SET`, `speak`, `resultShow`, `celebrate`, musique, météo `WX`, `todApply`), **arches, sprints et côtes** (`lightArch`, `sprintTick`, `sprintEnd2`, `courseClimbs`, `komTick`), **analyse** (`analyzeRide`, `prCheck`, `streakTick`, `fitnessSeries`, `anaOpen`, `postcard`), **plans** (`TPLANS`), **coach et HUD** (`wkCoach`, `HUDF`, `prefRender`, `suiviExtra`) |
+| ≈2846 | **Préférences et ambiance** (`SET`, `speak`, `resultShow`, `celebrate`, musique, `WX` (neutre), `todApply`), **arches, sprints et côtes** (`lightArch`, `sprintTick`, `sprintEnd2`, `courseClimbs`, `komTick`), **analyse** (`analyzeRide`, `prCheck`, `streakTick`, `fitnessSeries`, `anaOpen`, `postcard`), **plans** (`TPLANS`), **coach et HUD** (`wkCoach`, `HUDF`, `prefRender`, `suiviExtra`) |
 | ≈3096 | **Strava** : enregistreur `REC`, `fitEncode`, OAuth, envoi, fenêtre `offerStrava`, `stravaPanel` |
 | ≈3179 | Monde et boucle principale : `startWorld`, caméras, `loop()`, mini-carte, menu ☰, démarrage |
 
@@ -281,7 +281,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 - `v3gpxe`, `v3gpxn` : **parcours imposé** (liste des routes `[e, sens]` et nom). `v3gpx` (ancien GPX en points) n'est plus écrit : il est seulement relu une fois et recalé.
 - `v3rec` : sortie en cours, sauvegardée toutes les 30 s (effacée à la fin normale de la sortie).
 - `vg3` : jeu : points, records, équipement, et désormais `xp`, `kcal`, `asc` (D+), `spr` (sprints gagnés), `hist` (historique, 400 max), `bdg` (badges), `goal`/`wgoal` (objectifs de la semaine), `wlog` (poids), `myw` (séances gardées), `favr` (parcours favoris, en liste de routes `[e, sens]`), `strv` (sorties envoyées sur Strava), `sprh` (10 meilleurs sprints par pancarte), `komh` (10 meilleurs temps par côte), `pc` (records de puissance), `stk` (série de jours), `tplan` (plan en cours).
-- `v3set` : préférences (sprint, voix, coach, musique, météo, vent, moment de la journée, FC max, HUD).
+- `v3set` : préférences (sprint, voix, coach, musique, moment de la journée, FC max, HUD).
 - `v3last` : dernière sortie (points réduits à 3 000 au plus) pour l'analyse.
 - `velo3d-strava` : ID client, secret et jetons Strava. **Ne jamais les committer.**
 
@@ -319,7 +319,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 11. **Changements par rapport à la version précédente** :
     - en mode Exploration, le bouton ◀ fait maintenant demi-tour ;
     - les anciens records de sprint ne correspondent plus aux nouvelles clés (`NOM@route±`).
-12. **Voix « Allez ! »** : elle dépend d'une voix française installée dans le navigateur.
+12. **Voix du commentateur** : elle dépend d'une voix française installée dans le navigateur.
 13. **Nouveautés d'octobre 2026 non testées sur le vrai matériel** :
     - la qualité « Tablette » n'a tourné qu'en rendu logiciel ; la fluidité réelle sur la Redmi Pad SE est inconnue ;
     - les kcal sont une estimation (rendement fixe de 24 %) ; l'équivalent graisse (7 700 kcal/kg) est un ordre de grandeur, pas une mesure ;
@@ -330,7 +330,6 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
     - **parcours imposé** : chaque changement de parcours relance la construction du monde (quelques secondes de chargement, données en cache) ;
     - **choix du parcours** : D+ et pentes viennent de l'altitude du réseau ; ils ne sont justes qu'une fois le vrai relief SRTM chargé. Avec le relief de secours, certaines pentes atteignent le plafond de 25 %. Les favoris sont enregistrés par numéro de route : ils deviendront faux si le réseau est modifié (corrections de la carte 2D).
 14. **Nouveautés de fin octobre 2026 non testées sur le vrai matériel** :
-    - vent envoyé comme pente équivalente : effet réel sur le home trainer inconnu ;
     - réponses FTMS (`onCP`), plage de puissance (0x2AD8) et cardio transmis par le home trainer : testés avec des données simulées seulement ;
     - voix : dépend d'une voix française installée ; musique et sons de cloche générés, jamais écoutés ;
     - côtes : détectées sur l'altitude du réseau, donc justes seulement avec le vrai relief.
