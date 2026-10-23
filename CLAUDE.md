@@ -79,6 +79,8 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
   - boucle (retour au départ) ou aller simple ; départ au centre de Pontcharra ou à la dernière position ; fourchettes de distance et de dénivelé positif ;
   - environ 30 parcours calculés (plus courts chemins de Dijkstra par 2 ou 3 points de passage, pénalité sur les routes déjà empruntées, moins de 15 % de routes répétées, doublons écartés) ;
   - classement par distance ou par dénivelé (croissant ou décroissant) ; pour chacun : carte, profil, km, D+, pente maxi sur 200 m, communes traversées ;
+  - toute la carte d'un parcours se touche pour l'ouvrir ; bouton ▶ pour rouler directement ; bouton « Rouler ce parcours » collé en bas de l'écran ;
+  - les zones qui défilent s'arrêtent au bas de la partie visible (`fitScr`, barre d'adresse de Chrome, paysage) ; en-tête de l'accueil réduit dans les sous-écrans sur les petits écrans ;
   - favoris (`GS.favr`) ; le parcours choisi est guidé aux carrefours en suivant la **liste exacte des routes** (`ROUTE.edges`), plus fiable que le guidage géométrique d'un GPX.
 - **Culs-de-sac** : demi-tour automatique. Demi-tour manuel avec la touche U ou le menu ☰.
 - **Mini-carte** : réseau sur 2,4 km autour du cycliste, trajet prévu en jaune, villages en rouge, cyclistes en points de couleur.
