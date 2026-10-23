@@ -104,6 +104,7 @@ body.hm #map{display:none}
 #spz,#kmz{position:fixed;left:50%;top:calc(110px + var(--sa));transform:translateX(-50%);display:none;z-index:7;background:rgba(10,60,30,.85);border:2px solid #22c55e;border-radius:14px;padding:8px 16px;text-align:center;min-width:min(86vw,360px);pointer-events:none;color:#fff}
 #kmz{top:calc(160px + var(--sa));background:rgba(120,15,30,.82);border-color:#ff5a4e;font-size:14px}
 #spz b{font:800 18px var(--num)}#spz .bar{height:10px;border-radius:5px;background:rgba(255,255,255,.2);margin:6px 0;overflow:hidden}#spz .bar i{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#ffd23f)}#spz span{font-size:14px}
+#dg{position:fixed;left:50%;top:calc(4px + var(--sa));transform:translateX(-50%);display:none;z-index:46;background:rgba(10,14,20,.78);color:#9ff0b0;font:700 12px system-ui;padding:3px 10px;border-radius:9px;cursor:pointer;white-space:nowrap}
 #cch{position:fixed;left:50%;bottom:calc(64px + var(--sb));transform:translateX(-50%);display:none;z-index:8;background:rgba(14,19,26,.8);border-radius:12px;padding:6px 14px;font:600 14px system-ui;color:#fff;max-width:min(92vw,560px);text-align:center;pointer-events:none}
 #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:45;display:none}
 .zb{display:grid;grid-template-columns:110px 1fr 54px;gap:6px;align-items:center;font-size:12px;margin:3px 0}.zb div{height:10px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden}.zb i{display:block;height:100%}.zb b{text-align:right;font-weight:600}
@@ -158,7 +159,7 @@ body.hm #map{display:none}
 <canvas id="map" width="224" height="224"></canvas>
 <canvas id="bmap"></canvas>
 <div id="rw"></div>
-<div id="spr"></div><div id="spz"></div><div id="kmz"></div><div id="cch"></div><canvas id="fx"></canvas>
+<div id="dg" onclick="diagShow()"></div><div id="spr"></div><div id="spz"></div><div id="kmz"></div><div id="cch"></div><canvas id="fx"></canvas>
 <div id="att">Routes : tes sorties Strava 2018-2026 · Relief © AWS Terrain Tiles (SRTM) · Photos © IGN · Bâtiments, forêts, eau © IGN BD TOPO / © contributeurs OpenStreetMap</div>
 
 <script>
@@ -2846,6 +2847,7 @@ function regRender(){const box=document.querySelector('#s-reg .cards');box.inner
  hcard(box,'🟧 Strava',STR.id&&STR.ref?'Connecté'+(STR.who?' · '+esc(STR.who):'')+' · '+GS.strv.length+' sortie'+(GS.strv.length>1?'s':'')+' envoyée'+(GS.strv.length>1?'s':''):'Non connecté · touche ici pour relier ton compte',()=>stravaPanel(()=>regRender()));
  hcard(box,'👕 Vestiaire','Maillots, casque, lunettes, couleurs du vélo, roues',()=>{kitRender();showScr('s-kit')});
  hcard(box,'🔧 Garage','Points, équipement, historique FTP, records de sprint',()=>{garage();showScr('s-gar')});
+ hcard(box,'🩺 Diagnostic des blocages','Mesure ce qui ralentit l\'appli pendant une sortie, puis rapport à copier',diagPanel);
  hcard(box,'🎛️ Préférences','Sprints, voix, musique, météo, nuit, affichage, FC max',()=>{prefRender();showScr('s-pref')});
  hcard(box,'🖥️ Graphismes','Qualité actuelle : '+QPRE[QK].n,()=>mod('Qualité graphique<br><small>Actuelle : '+QPRE[QK].n+'. L\'appli se recharge après le choix.</small>',
   ['tab','low','med','high','ultra'].map(k=>[QPRE[k].n,()=>{try{localStorage.v3q2=k}catch(e){}location.reload()}]).concat([['Annuler',()=>{}]])))}
@@ -3174,6 +3176,87 @@ function suiviExtra(){const S=fitnessSeries(90),l=S[S.length-1]||{ctl:0,atl:0,ts
  const kk=Object.keys(GS.komh);if(kk.length)o+='<div class="gq">⛰️ Mes côtes (meilleurs temps)</div><div class="hist">'+kk.map(k=>{const L=GS.komh[k];return '<div><span>Côte de '+esc(L[0].n)+' · '+L.length+' montée'+(L.length>1?'s':'')+'</span><span>'+L.slice(0,3).map(x=>fmt(x.s)).join(' · ')+'</span></div>'}).join('')+'</div>';
  return o}
 function suiviExtraAfter(){$('sla').onclick=()=>anaOpen();requestAnimationFrame(()=>{fitChart($('sfc'));pcChart($('spc'),null)})}
+// ====================== diagnostic des blocages : mesure image par image pendant une sortie (Réglages → Diagnostic) ======================
+// Chaque image : durée depuis l'image précédente, temps de chaque tâche de l'appli, envois d'images à la carte graphique, préparation des effets 3D.
+// Une image « lente » (> 50 ms) est attribuée à sa plus grosse cause ; « Navigateur » = temps hors de l'appli (mémoire, carte graphique, décodage d'images…).
+const DIAG={on:false,wrapped:false};
+const DIAG_FN=['terrUpdate','roadUpdate','oroadUpdate','bldUpdate','waterUpdate','villagesTick','villageGroup','gameTick','npcTick','pedTick','riderAnim','drawMap','drawBig','prof','audioTick',
+ 'recTick','recSave','dataLoaderTick','mosaicsTick','clipTick','clipRecenter','camUpdate','skyUpdate','compTick','speak','sesTick','wkCoach','celebrate','fxLoop',
+ 'parseBDTopoBld','parseBDTopoRoute','osmBld','osmRoad','addWater','computeBridges','clipDrawTile'];
+const DGN={'job:b':'Construction des bâtiments','job:n':'Terrain proche','job:c':'Terrain le long des routes','job:m':'Terrain moyen','job:far':'Terrain lointain','job:ring':'Horizon (montagnes)',
+ 'job:r':'Chaussées des routes','job:f':'Mobilier de route','job:j':'Carrefours','job:or':'Autres routes (3D)','job:w':'Eau (3D)','job:t':'Végétation','job:pm':'Sol simulé moyen','job:pf':'Sol simulé lointain','job:pr':'Sol simulé horizon',
+ render:'Affichage 3D (carte graphique)',tex:'Envoi d\'images à la carte graphique',shader:'Préparation des effets 3D (shaders)',JSONparse:'Décodage des données reçues',
+ parseBDTopoBld:'Lecture des bâtiments IGN',parseBDTopoRoute:'Lecture des autres routes IGN',osmBld:'Lecture des bâtiments OSM',osmRoad:'Lecture des autres routes OSM',addWater:'Lecture de l\'eau',computeBridges:'Calcul des ponts',
+ terrUpdate:'Suivi du terrain',roadUpdate:'Suivi des routes',oroadUpdate:'Suivi des autres routes',bldUpdate:'Suivi des bâtiments',waterUpdate:'Suivi de l\'eau',villagesTick:'Villages et panneaux',villageGroup:'Construction d\'un village',
+ gameTick:'Jeu (sprints, côtes)',npcTick:'Cyclistes PNJ',pedTick:'Piétons',riderAnim:'Animation du cycliste',drawMap:'Mini-carte',drawBig:'Grande carte',prof:'Profil du bas',audioTick:'Sons',
+ recTick:'Enregistrement de la sortie',recSave:'Sauvegarde automatique',dataLoaderTick:'Chargement des données',mosaicsTick:'Photos aériennes (mosaïques)',clipTick:'Photo proche',clipRecenter:'Photo proche (recentrage)',clipDrawTile:'Photo proche (collage)',
+ camUpdate:'Caméra',skyUpdate:'Ciel et soleil',compTick:'Compteur du vélo',speak:'Voix',sesTick:'Suivi (km, kcal)',wkCoach:'Coach de séance',celebrate:'Célébrations',fxLoop:'Confettis',
+ app:'Calculs divers de l\'appli',gpu:'Carte graphique (dessin de l\'image, mesuré)',other:'Navigateur / carte graphique (attente, mémoire, images…)'};
+const dgn=k=>DGN[k]||(k.startsWith('job:')?'Tâche « '+k.slice(4)+' »':k);
+function diagStart(){if(DIAG.on)return;
+ Object.assign(DIAG,{on:true,t0:performance.now(),last:0,frames:0,ride:0,cur:{},bw:{},curTot:0,agg:{},slow:[],cause:{},causeMs:{},cnt:[0,0,0,0],worst:0,lt:0,ltMs:0,texMB:0,texT:0,shaders:0,fpsN:0,fpsT:performance.now(),fps:0,inLoop:false});
+ try{localStorage.v3diag='1'}catch(e){}
+ $('dg').style.display='block';
+ if(DIAG.wrapped)return;DIAG.wrapped=true;
+ const add=(k,d)=>{const o=DIAG.inLoop?DIAG.cur:DIAG.bw;o[k]=(o[k]||0)+d};DIAG.add=add;
+ for(const n of DIAG_FN){const f=window[n];if(typeof f!=='function')continue;window[n]=function(...a){if(!DIAG.on)return f.apply(this,a);const t0=performance.now();try{return f.apply(this,a)}finally{add(n,performance.now()-t0)}}}
+ const J0=window.job;window.job=function(fn,pri,key){if(!DIAG.on)return J0(fn,pri,key);const it=fn&&fn.next?fn:null,f=it?(()=>it.next().done):fn,kp='job:'+String(key||'?').replace(/[-0-9.,]+.*$/,'');
+  return J0(function(){const t0=performance.now();try{return f()}finally{add(kp,performance.now()-t0)}},pri,key)};
+ const jp=JSON.parse;JSON.parse=function(...a){if(!DIAG.on)return jp.apply(this,a);const t0=performance.now();try{return jp.apply(this,a)}finally{add('JSONparse',performance.now()-t0)}};
+ const gl=ren.getContext();for(const fn of['texImage2D','texSubImage2D']){const o=gl[fn].bind(gl);gl[fn]=(...a)=>{if(!DIAG.on)return o(...a);const t0=performance.now();o(...a);const d=performance.now()-t0;DIAG.texT+=d;add('tex',d);
+  const s=a.find(x=>x&&(x.width||x.naturalWidth));const px=s?(s.width||s.naturalWidth)*(s.height||s.naturalHeight):(typeof a[3]==='number'&&typeof a[4]==='number'?a[3]*a[4]:0);DIAG.texMB+=px*4/1048576}}
+ // temps réel de la carte graphique, si Chrome le permet sur cet appareil (WebGL2 + EXT_disjoint_timer_query_webgl2)
+ let ext=null;try{ext=GL2?gl.getExtension('EXT_disjoint_timer_query_webgl2'):null}catch(e){}DIAG.gpuExt=!!ext;DIAG.q=[];DIAG.gpuRead=0;DIAG.gpuSum=0;DIAG.gpuN=0;let rd=0;
+ DIAG.gpuPoll=()=>{if(!ext)return;let dj=false;try{dj=gl.getParameter(ext.GPU_DISJOINT_EXT)}catch(e){}
+  while(DIAG.q.length&&gl.getQueryParameter(DIAG.q[0],gl.QUERY_RESULT_AVAILABLE)){const q=DIAG.q.shift();if(!dj){const ms=gl.getQueryParameter(q,gl.QUERY_RESULT)/1e6;DIAG.gpuRead+=ms;DIAG.gpuSum+=ms;DIAG.gpuN++}gl.deleteQuery(q)}};
+ const R0=ren.render.bind(ren);ren.render=(s,c)=>{if(!DIAG.on)return R0(s,c);const t0=performance.now(),x0=DIAG.texT,p0=ren.info.programs?ren.info.programs.length:0;
+  let q=null;if(ext&&rd===0&&DIAG.q.length<10){q=gl.createQuery();gl.beginQuery(ext.TIME_ELAPSED_EXT,q)}rd++;try{R0(s,c)}finally{rd--;if(q){gl.endQuery(ext.TIME_ELAPSED_EXT);DIAG.q.push(q)}}
+  const d=performance.now()-t0-(DIAG.texT-x0),p1=ren.info.programs?ren.info.programs.length:0;if(p1>p0){DIAG.shaders+=p1-p0;add('shader',d)}else add('render',d)};
+ const L0=window.loop;window.loop=function(now){if(!DIAG.on||mode==='home'){if(DIAG.on){DIAG.last=0;DIAG.cur={};DIAG.bw={}}return L0(now)}
+  const gap=DIAG.last?now-DIAG.last:0;DIAG.last=now;
+  if(gap>0){// bilan de l'image précédente
+   const parts={};let js=0;for(const o of[DIAG.cur,DIAG.bw])for(const k in o){parts[k]=(parts[k]||0)+o[k];js+=o[k]}
+   let inLoopParts=0;for(const k in DIAG.cur)inLoopParts+=DIAG.cur[k];parts.app=Math.max(0,DIAG.curTot-inLoopParts);
+   let bwSum=0;for(const k in DIAG.bw)bwSum+=DIAG.bw[k];parts.other=Math.max(0,gap-DIAG.curTot-bwSum-16.7);
+   DIAG.gpuPoll();if(DIAG.gpuRead>0){parts.gpu=Math.min(parts.other,DIAG.gpuRead);parts.other-=parts.gpu;DIAG.gpuRead=0}
+   for(const k in parts)DIAG.agg[k]=(DIAG.agg[k]||0)+parts[k];DIAG.frames++;DIAG.ride+=gap;
+   if(gap>50){const top=Object.entries(parts).sort((a,b)=>b[1]-a[1]);const c=top[0][0];DIAG.cause[c]=(DIAG.cause[c]||0)+1;DIAG.causeMs[c]=(DIAG.causeMs[c]||0)+gap;
+    DIAG.cnt[0]++;if(gap>100)DIAG.cnt[1]++;if(gap>250)DIAG.cnt[2]++;if(gap>500)DIAG.cnt[3]++;DIAG.worst=Math.max(DIAG.worst,gap);
+    DIAG.slow.push({t:Math.round((now-DIAG.t0)/1000),g:Math.round(gap),top:top.slice(0,3).map(([k,v])=>[k,Math.round(v)])});if(DIAG.slow.length>400){DIAG.slow.sort((a,b)=>b.g-a.g);DIAG.slow.length=200}}}
+  DIAG.cur={};DIAG.bw={};DIAG.inLoop=true;const t0=performance.now();try{L0(now)}finally{DIAG.inLoop=false;DIAG.curTot=performance.now()-t0}
+  DIAG.fpsN++;if(now-DIAG.fpsT>1000){DIAG.fps=DIAG.fpsN*1000/(now-DIAG.fpsT);DIAG.fpsN=0;DIAG.fpsT=now;
+   $('dg').textContent='🩺 '+Math.round(DIAG.fps)+' img/s · blocages '+DIAG.cnt[1]+' · pire '+Math.round(DIAG.worst)+' ms'}};
+ try{new PerformanceObserver(l=>{if(!DIAG.on)return;for(const e of l.getEntries()){DIAG.lt++;DIAG.ltMs+=e.duration}}).observe({type:'longtask'})}catch(e){}}
+function diagStop(){DIAG.on=false;try{delete localStorage.v3diag}catch(e){}$('dg').style.display='none'}
+const dgf=(v,d)=>nf(v,d===undefined?1:d);
+function diagReport(){if(!DIAG.frames)return 'Diagnostic : aucune image mesurée pendant une sortie pour l\'instant.\nLance une sortie (ou une séance) et roule au moins 5 minutes.';
+ const D=DIAG,n=D.frames,sec=D.ride/1000,L=[];let dbg='';try{const e=ren.getContext().getExtension('WEBGL_debug_renderer_info');dbg=e?ren.getContext().getParameter(e.UNMASKED_RENDERER_WEBGL):''}catch(e){}
+ L.push('DIAGNOSTIC VÉLO 3D — '+new Date().toLocaleString('fr-FR'));
+ L.push('Appareil : '+(dbg||'carte graphique inconnue')+' · '+navigator.userAgent.replace(/^.*?\(([^)]*)\).*$/,'$1'));
+ L.push('Qualité '+QPRE[QK].n+' · image '+ren.domElement.width+'×'+ren.domElement.height+' px (résolution ×'+dgf(PR,2)+') · écran '+innerWidth+'×'+innerHeight);
+ L.push('');L.push('Durée mesurée en sortie : '+fmt(sec)+' · '+n+' images · '+dgf(n/Math.max(1,sec))+' images/s en moyenne');
+ L.push('Images lentes : > 50 ms : '+D.cnt[0]+' ('+dgf(100*D.cnt[0]/n)+' %) · > 100 ms : '+D.cnt[1]+' · > 250 ms : '+D.cnt[2]+' · > 500 ms : '+D.cnt[3]+' · pire : '+Math.round(D.worst)+' ms');
+ L.push('Tâches longues du navigateur : '+D.lt+' ('+dgf(D.ltMs/1000)+' s au total)');
+ L.push(D.gpuExt?'Temps de la carte graphique (mesuré) : '+dgf(D.gpuSum/Math.max(1,D.gpuN))+' ms par image en moyenne ('+D.gpuN+' mesures)':'Temps de la carte graphique : mesure directe non disponible sur cet appareil');
+ L.push('');L.push('CAUSE PRINCIPALE DES IMAGES LENTES (> 50 ms) :');
+ Object.entries(D.cause).sort((a,b)=>D.causeMs[b[0]]-D.causeMs[a[0]]).slice(0,12).forEach(([k,c],i)=>L.push('  '+(i+1)+'. '+dgn(k)+' — '+c+' fois — '+dgf(D.causeMs[k]/1000)+' s'));
+ L.push('');L.push('TEMPS MOYEN PAR IMAGE (ms) :');
+ Object.entries(D.agg).sort((a,b)=>b[1]-a[1]).slice(0,16).forEach(([k,v])=>L.push('  '+dgn(k)+' : '+dgf(v/n,2)));
+ L.push('');L.push('15 PIRES BLOCAGES (seconde · durée · 3 plus grosses causes en ms) :');
+ D.slow.slice().sort((a,b)=>b.g-a.g).slice(0,15).forEach(s=>L.push('  à '+fmt(s.t)+' · '+s.g+' ms · '+s.top.map(([k,v])=>dgn(k)+' '+v).join(' · ')));
+ const mem=performance.memory?dgf(performance.memory.usedJSHeapSize/1048576,0)+' Mo':'?';
+ L.push('');L.push('Mémoire JavaScript : '+mem+' · triangles : '+nf(ren.info.render.triangles)+' · appels de dessin : '+ren.info.render.calls+' · effets 3D préparés pendant la sortie : '+D.shaders+' · images envoyées : '+dgf(D.texMB,0)+' Mo');
+ L.push('Bâtiments : '+nf(DATA.n.b)+' · zones de carte : '+DATA.tiles.size+' · tâches en attente : '+JOBS.length+' · PNJ : '+NPCS.length+' · parcours : '+(COURSE?COURSE.name:'aucun'));
+ return L.join('\n')}
+function diagShow(){const txt=diagReport();
+ mod('🩺 Rapport de diagnostic<pre style="text-align:left;font:12px/1.4 ui-monospace,monospace;white-space:pre-wrap;max-height:58vh;overflow:auto;background:rgba(0,0,0,.35);padding:10px;border-radius:10px;margin:10px 0 0">'+esc(txt)+'</pre>',
+  [['📋 Copier',()=>{(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>say('Rapport copié ✓ : colle-le dans la conversation')).catch(()=>say('Copie impossible : utilise « Enregistrer »'))}],
+   ['💾 Enregistrer',()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));a.download='diagnostic-velo3d.txt';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}],
+   ['Fermer',()=>{}]])}
+function diagPanel(){mod('🩺 Diagnostic des blocages<br><small style="display:block;text-align:left;margin-top:8px;line-height:1.5">'+
+  (DIAG.on?'Le diagnostic est <span style="color:#22c55e;font-weight:800">en marche</span>.<br>':'')+
+  '1. Touche « Démarrer ».<br>2. Lance une sortie comme d\'habitude et roule <span style="font-weight:800;color:#fff">10 à 15 minutes</span>, en passant si possible par un village.<br>3. Termine la sortie : touche « 🩺 Diagnostic » dans la fenêtre de fin (ou ☰ → Rapport diagnostic).<br>4. Touche « 📋 Copier » et colle le texte dans notre conversation (ou « 💾 Enregistrer » et envoie le fichier).<br><br>Un petit bandeau 🩺 en haut de l\'écran montre les images par seconde et le pire blocage. Le diagnostic reste actif après un redémarrage, jusqu\'à « Arrêter ».</small>',
+  [[DIAG.on?'Arrêter':'▶ Démarrer',()=>{DIAG.on?diagStop():diagStart();say(DIAG.on?'Diagnostic en marche 🩺':'Diagnostic arrêté')}],['Voir le rapport',diagShow],['Fermer',()=>{}]])}
 // ===== sons de la nature (WebAudio) =====
 let AC=null,AU={},MUTE=false,aT=0;
 function audio(){if(AC){if(AC.state==='suspended')AC.resume();return}try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return}
@@ -3600,7 +3683,7 @@ function offerStrava(R){const S=rideSummary(R),fit=fitEncode(R),d=new Date(R.t0)
    mod('Sortie envoyée sur Strava ✓<br><small>Type : vélo virtuel · '+S.txt+'</small>',[['Voir sur Strava',()=>window.open('https://www.strava.com/activities/'+id,'_blank')],['Fermer',()=>{}]])}
   catch(e){mod('Envoi impossible<br><small>'+String(e.message||e).replace(/</g,'')+'</small><br><small>Tu peux télécharger le fichier et l\'importer sur strava.com/upload</small>',[['Télécharger le .fit',()=>{downloadFit(fit,fname);window.open('https://www.strava.com/upload/select','_blank')}],['Fermer',()=>{}]])}};
  const btn=[];if(STR.id&&STR.ref)btn.push(['Envoyer sur Strava',send]);else btn.push(['Connecter Strava…',()=>{stravaPanel(()=>offerStrava(R))}]);
- btn.push(['📊 Analyse',()=>anaOpen(R)],['🖼️ Carte souvenir',()=>postcard(R)]);
+ btn.push(['📊 Analyse',()=>anaOpen(R)],['🖼️ Carte souvenir',()=>postcard(R)]);if(DIAG.on&&DIAG.frames)btn.push(['🩺 Diagnostic',diagShow]);
  btn.push(['Télécharger le .fit',()=>downloadFit(fit,fname)],['Ne pas envoyer',()=>{}]);
  mod((R.ses?'Bravo ! 🎉'+sesHTML(R.ses):'')+'Envoyer cette sortie sur Strava ?<br><small>'+S.txt+'<br>Trace GPS réelle du parcours, marquée « vélo virtuel »</small>',btn)}
 // ---- réglages Strava ----
@@ -3814,7 +3897,8 @@ function drawMap(){const c=$('map');if(!c||!N)return;const W=c.width,g=c.getCont
  const mb=document.createElement('button');mb.textContent='🔊 Sons nature';mb.onclick=()=>{MUTE=!MUTE;mb.textContent=MUTE?'🔇 Sons coupés':'🔊 Sons nature';audio()};t.appendChild(mb);
  const h5=document.createElement('h4');h5.textContent='Tablette';t.appendChild(h5);
  const fs=document.createElement('button');fs.textContent='⛶ Plein écran';fs.onclick=()=>{fullScreen();$('top').style.display='none'};t.appendChild(fs);
- const bmb=document.createElement('button');bmb.textContent='🗺️ Grande carte (touche M)';bmb.onclick=()=>{$('top').style.display='none';bigMapToggle(true)};t.appendChild(bmb)}
+ const bmb=document.createElement('button');bmb.textContent='🗺️ Grande carte (touche M)';bmb.onclick=()=>{$('top').style.display='none';bigMapToggle(true)};t.appendChild(bmb);
+ const dgb=document.createElement('button');dgb.textContent='🩺 Rapport diagnostic';dgb.onclick=()=>{$('top').style.display='none';diagShow()};t.appendChild(dgb)}
 addEventListener('keydown',e=>{if((e.key==='u'||e.key==='U')&&mode!=='home'&&!(e.target&&e.target.tagName==='INPUT'))uTurn()});
 // grande carte : clic sur la mini-carte (ou touche M) pour l'ouvrir, clic sur la carte (ou Échap) pour la fermer
 $('map').onclick=()=>bigMapToggle();$('bmap').onpointerdown=e=>{e.preventDefault();e.stopPropagation();bigMapToggle(false)};
@@ -3826,7 +3910,7 @@ addEventListener('resize',()=>{if(BIGM.on)bigMapToggle(true)});
  // dernier parcours choisi (ou ancien GPX) ; sinon le monde attend qu'un parcours soit choisi
  let okC=false;try{if(localStorage.v3gpxe)okC=setCourse(JSON.parse(localStorage.v3gpxe),localStorage.v3gpxn||'Parcours');else if(localStorage.v3gpx)okC=setCourse(gpxToEdges(JSON.parse(localStorage.v3gpx),localStorage.v3gpxn||'Itinéraire'),localStorage.v3gpxn||'Itinéraire')}catch(e){console.warn('parcours',e)}
  if(!okC)ldSet('crs','Aucun parcours : Rouler → Choisir un parcours',0);
- recOfferSaved();netCheck();requestAnimationFrame(loop)}
+ recOfferSaved();netCheck();try{if(localStorage.v3diag==='1')diagStart()}catch(e){}requestAnimationFrame(loop)}
 // accès Internet et Bluetooth : un aperçu de fichier (appli Claude, gestionnaire de fichiers…) bloque souvent les deux
 async function netCheck(){let net=false;try{await fetchT('https://s3.amazonaws.com/elevation-tiles-prod/terrarium/0/0/0.png',{},12000);net=true}catch(e){}
  const bt=!!navigator.bluetooth;if(net&&bt)return;
