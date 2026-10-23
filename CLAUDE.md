@@ -52,6 +52,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
   - Ribbons posés sur le terrain tel que le maillage le dessine (`terrH`), par cellules de 512 m (`ORL`), affichés jusqu'à `QP.near` (560 m en Tablette). Pas d'arbre ni d'herbe dessus (code 253 dans les masques).
   - Dessinées en gris fin sur la mini-carte et la grande carte.
 - **Forêts allégées de 90 %** (`FOREST_K = 0,1` dans `genCell`) : massifs IGN/OSM et arbres déduits de la photo. Haies, vergers et peupliers inchangés.
+- **Arbres simplifiés** (fin octobre 2026) : feuillus proches 84 triangles au lieu de 142 (moins de cartes de feuillage, 2 branches, cœur en dodécaèdre), conifères 96 au lieu de 124 ; arbres détaillés seulement jusqu'à `treeNear` × 0,6 (33 m en Tablette au lieu de 55), version simple au-delà. Distance d'affichage des arbres, relief lointain, horizon et montagnes inchangés.
 
 ### Navigation sur le réseau
 - **Parcours imposé (depuis octobre 2026, à la demande de Cyril après essai sur smartphone)** : plus de sortie libre sur tout le réseau.
@@ -113,12 +114,12 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - **Pancartes de secours** : sans données de bâtiments, des pancartes « synthétiques » sont placées aux centres des communes.
 
 ### Préférences, ambiance et météo (octobre 2026)
-- **Préférences** (Réglages → 🎛️, `prefRender`, clé `v3set`) : longueur du sprint, commentateur vocal, coach de séance, musique (aucune / calme / motivation) et volumes, météo, vent, moment de la journée, FC max, poids du cycliste, HUD.
+- **Préférences** (Réglages → 🎛️, `prefRender`, clé `v3set`) : longueur du sprint, commentateur vocal, coach de séance, musique (aucune / calme / motivation) et volumes, vent, moment de la journée, FC max, poids du cycliste, HUD.
 - **Commentateur vocal** en français (`speak`, synthèse vocale du navigateur) : départ, villages, sprints, côtes, récompenses.
 - **Célébrations** (`celebrate`) : confettis, feux d'artifice et fanfare pour records, badges, niveaux.
 - **Musique d'ambiance** générée (`MUS`, `musTick`), cloches de vaches et cloches d'église (`countrySounds`, `churchBell` à l'entrée des villages).
-- **Météo** (`WX`, `wxApply`, `wxTick`) : réelle à Pontcharra via Open-Meteo (tous les 15 min) ou imposée (beau, nuageux, pluie, brouillard, neige). Pluie/neige autour de la caméra, brouillard, routes mouillées plus sombres.
-  - **Vent** : vent à 10 m × 0,65 à hauteur de cycliste. Il entre dans la physique (vitesse de l'air) et est envoyé au home trainer **sous forme de pente équivalente** (±8 % max), car le signe du champ vent FTMS n'a pas pu être vérifié. HUD : « 💨 vent de face/de dos ».
+- **Météo retirée** (fin octobre 2026, à la demande de Cyril : la pluie faisait ramer l'appli) : plus de pluie, neige, brouillard ni météo réelle (Open-Meteo n'est plus appelé). Ciel normal.
+  - **Vent** réglable à la main (aucun par défaut, léger 2,5 m/s, fort 6 m/s, direction tirée au hasard ; `WX`, `wxApply`, `wxHead`). Il entre dans la physique (vitesse de l'air) et est envoyé au home trainer **sous forme de pente équivalente** (±8 % max), car le signe du champ vent FTMS n'a pas pu être vérifié. HUD : « 💨 vent de face/de dos ».
 - **Moment de la journée** (`todApply`) : heure réelle, jour, coucher de soleil, nuit. La nuit : phare renforcé (portée 120 m), feu arrière clignotant.
 - **HUD personnalisable** (`HUDF`, `hudApply`) : champs au choix (vitesse, puissance, puissance 3 s, W/kg, NP, cadence, pente, cardio coloré par zone, distance, reste, altitude, D+, temps, kcal) et grand format.
 
@@ -331,7 +332,6 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 14. **Nouveautés de fin octobre 2026 non testées sur le vrai matériel** :
     - vent envoyé comme pente équivalente : effet réel sur le home trainer inconnu ;
     - réponses FTMS (`onCP`), plage de puissance (0x2AD8) et cardio transmis par le home trainer : testés avec des données simulées seulement ;
-    - météo réelle Open-Meteo : serveur injoignable depuis l'environnement de test, testée avec des données injectées ;
     - voix : dépend d'une voix française installée ; musique et sons de cloche générés, jamais écoutés ;
     - côtes : détectées sur l'altitude du réseau, donc justes seulement avec le vrai relief.
 15. **Ouverture sur Android** : dans l'aperçu de l'appli Claude, Internet et le Bluetooth sont bloqués (constaté par Cyril : relief et photos simulés). Ouverture directe dans Chrome (Fichiers → Ouvrir avec → Chrome) non vérifiée par nos soins : si Chrome bloque encore, il faudra héberger le fichier en HTTPS (attention à la confidentialité).
