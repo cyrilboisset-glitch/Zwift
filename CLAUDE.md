@@ -176,6 +176,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
   - **Combiner deux travaux** (« Combiner avec ») : deux parties égales séparées de 3 min de récupération ; avec le régime Dukan, le second travail occupe ~34 % du temps au milieu de la base brûle-graisses, à intensité réduite de 8 % en phase d'attaque et de 4 % en croisière.
   - **Raccourcir une séance en cours** (bouton ⏱) : on réduit d'abord l'endurance, puis on retire des répétitions entières par la fin ; les récupérations entre efforts et l'intensité ne changent pas ; retour au calme ramené à 2 min au moins.
 - **Accueil simplifié** : 4 grands boutons — **Rouler** (rouler sur le dernier parcours, choisir un parcours, parcours Pontcharra, GPX, exploration ; plus de sortie libre), **S'entraîner**, **Mon suivi**, **Réglages** (matériel, **Strava** avec état de connexion et sorties envoyées `GS.strv`, vestiaire, garage, graphismes).
+- **Vérification au lancement** (`netCheck`) : si Internet ou le Bluetooth sont bloqués (fichier ouvert dans un aperçu, par exemple l'appli Claude ou un gestionnaire de fichiers), une fenêtre explique de télécharger le fichier et de l'ouvrir dans Chrome ; le panneau de chargement l'indique aussi.
 - **Plein écran** et **écran maintenu allumé** pendant les sorties (API Wake Lock), utiles sur tablette.
 - **Garage** : points, équipement améliorable, historique FTP, records de sprint.
 - **Pièce d'accueil en 3D** : vélo sur home trainer, bureau avec écran animé, posters.
@@ -333,7 +334,8 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
     - météo réelle Open-Meteo : serveur injoignable depuis l'environnement de test, testée avec des données injectées ;
     - voix : dépend d'une voix française installée ; musique et sons de cloche générés, jamais écoutés ;
     - côtes : détectées sur l'altitude du réseau, donc justes seulement avec le vrai relief.
-15. **Confidentialité** : le réseau couvre les rues autour du domicile de Cyril. **Le dépôt doit rester privé.**
+15. **Ouverture sur Android** : dans l'aperçu de l'appli Claude, Internet et le Bluetooth sont bloqués (constaté par Cyril : relief et photos simulés). Ouverture directe dans Chrome (Fichiers → Ouvrir avec → Chrome) non vérifiée par nos soins : si Chrome bloque encore, il faudra héberger le fichier en HTTPS (attention à la confidentialité).
+16. **Confidentialité** : le réseau couvre les rues autour du domicile de Cyril. **Le dépôt doit rester privé.**
 
 ---
 

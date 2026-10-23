@@ -3826,7 +3826,17 @@ addEventListener('resize',()=>{if(BIGM.on)bigMapToggle(true)});
  // dernier parcours choisi (ou ancien GPX) ; sinon le monde attend qu'un parcours soit choisi
  let okC=false;try{if(localStorage.v3gpxe)okC=setCourse(JSON.parse(localStorage.v3gpxe),localStorage.v3gpxn||'Parcours');else if(localStorage.v3gpx)okC=setCourse(gpxToEdges(JSON.parse(localStorage.v3gpx),localStorage.v3gpxn||'Itinéraire'),localStorage.v3gpxn||'Itinéraire')}catch(e){console.warn('parcours',e)}
  if(!okC)ldSet('crs','Aucun parcours : Rouler → Choisir un parcours',0);
- recOfferSaved();requestAnimationFrame(loop)}
+ recOfferSaved();netCheck();requestAnimationFrame(loop)}
+// accès Internet et Bluetooth : un aperçu de fichier (appli Claude, gestionnaire de fichiers…) bloque souvent les deux
+async function netCheck(){let net=false;try{await fetchT('https://s3.amazonaws.com/elevation-tiles-prod/terrarium/0/0/0.png',{},12000);net=true}catch(e){}
+ const bt=!!navigator.bluetooth;if(net&&bt)return;
+ if(!net)ldSet('net',navigator.onLine===false?'Pas de connexion Internet : relief, photos et bâtiments simulés':'Internet bloqué ici : ouvre le fichier dans Chrome',-1);
+ if(!bt)ldSet('bt','Bluetooth indisponible ici : home trainer et cardio impossibles',-1);
+ if(navigator.onLine===false)return;
+ while($('res').style.display==='block')await new Promise(ok=>setTimeout(ok,1500));// ne pas masquer une autre fenêtre (sortie interrompue…)
+ mod('⚠️ Ce navigateur bloque '+(!net&&!bt?'Internet et le Bluetooth':!net?'Internet':'le Bluetooth')+'<br><small style="display:block;text-align:left;margin-top:8px;line-height:1.5">'+
+  (!net?'Sans Internet : relief, photos aériennes, bâtiments et météo sont <span style="font-weight:800;color:#fff">simulés</span>.<br>':'')+(!bt?'Sans Bluetooth : le home trainer et la ceinture cardio ne peuvent pas se connecter.<br>':'')+
+  '<br><span style="font-weight:800;color:#fff">Solution :</span><br>1. Si le fichier est ouvert dans un aperçu (appli Claude, Fichiers…), touche ⬇ pour le <span style="font-weight:800;color:#fff">télécharger</span>.<br>2. Ouvre l\'appli <span style="font-weight:800;color:#fff">Fichiers</span> → Téléchargements.<br>3. Appui long sur <span style="font-weight:800;color:#fff">Index.html</span> → Ouvrir avec → <span style="font-weight:800;color:#fff">Chrome</span>.</small>',[['Compris',()=>{}]])}
 function onNav(m){TR.visible=m==='home';if(m!=='home')CAM.snap=true}
 
 </script>
