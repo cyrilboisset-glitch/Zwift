@@ -102,10 +102,23 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 ### Jeu des pancartes (sprints)
 - Les agglomérations sont détectées par densité de bâtiments le long de chaque route et nommées avec les données IGN, OSM et l'API géo.
 - Panneaux EB10 (entrée) et EB20 (sortie) dans les deux sens.
-- Arche de sprint 300 m avant la sortie, si le village fait au moins 350 m.
-- **Zone de sprint** : les 300 derniers mètres avant un panneau de sortie, dans le sens de marche, pour les villages d'au moins 300 m.
-- **Résultat** : classement contre les PNJ (« 1er devant… » ou « 2e derrière… »), puissance maximale, record par pancarte, points.
+- **Arches lumineuses** (`lightArch`, `sprintArches`) : arche verte « Départ sprint » et arche rouge « Arrivée » au panneau de sortie, bandeaux LED animés (`LEDTX`).
+- **Longueur du sprint** : 150 m par défaut, réglable de 100 à 500 m (Réglages → Préférences, `SET.sprLen`, `sprL()`), pour les villages d'au moins 200 m.
+- **Avant le sprint** : annonce vocale à moins de 260 m, compte à rebours 3-2-1 plein écran, puis « GO ». Pendant : barre de distance restante, puissance et max (`#spz`, `sprintTick`).
+- **Résultat plein écran** (`sprintEnd2`, `resultShow`) : puissance maximale en très grand, moyenne, W/kg, vitesse max, durée, écart au record. **Uniquement mes résultats** (plus de classement contre les PNJ).
+- **Classement par pancarte** : mes 10 meilleurs passages avec la date (`GS.sprh`). Un sprint « réussi » (`GS.spr`) = pic ≥ FTP.
+- **Côtes chronométrées** (`courseClimbs`, `komTick`, `komEnd`) : montées du parcours d'au moins 500 m, +35 m et 4 % de moyenne, nommées d'après la commune la plus proche ; arches « Côte » / « Sommet », chrono, W/kg, VAM, mes 10 meilleurs temps (`GS.komh`).
 - **Pancartes de secours** : sans données de bâtiments, des pancartes « synthétiques » sont placées aux centres des communes.
+
+### Préférences, ambiance et météo (octobre 2026)
+- **Préférences** (Réglages → 🎛️, `prefRender`, clé `v3set`) : longueur du sprint, commentateur vocal, coach de séance, musique (aucune / calme / motivation) et volumes, météo, vent, moment de la journée, FC max, poids du cycliste, HUD.
+- **Commentateur vocal** en français (`speak`, synthèse vocale du navigateur) : départ, villages, sprints, côtes, récompenses.
+- **Célébrations** (`celebrate`) : confettis, feux d'artifice et fanfare pour records, badges, niveaux.
+- **Musique d'ambiance** générée (`MUS`, `musTick`), cloches de vaches et cloches d'église (`countrySounds`, `churchBell` à l'entrée des villages).
+- **Météo** (`WX`, `wxApply`, `wxTick`) : réelle à Pontcharra via Open-Meteo (tous les 15 min) ou imposée (beau, nuageux, pluie, brouillard, neige). Pluie/neige autour de la caméra, brouillard, routes mouillées plus sombres.
+  - **Vent** : vent à 10 m × 0,65 à hauteur de cycliste. Il entre dans la physique (vitesse de l'air) et est envoyé au home trainer **sous forme de pente équivalente** (±8 % max), car le signe du champ vent FTMS n'a pas pu être vérifié. HUD : « 💨 vent de face/de dos ».
+- **Moment de la journée** (`todApply`) : heure réelle, jour, coucher de soleil, nuit. La nuit : phare renforcé (portée 120 m), feu arrière clignotant.
+- **HUD personnalisable** (`HUDF`, `hudApply`) : champs au choix (vitesse, puissance, puissance 3 s, W/kg, NP, cadence, pente, cardio coloré par zone, distance, reste, altitude, D+, temps, kcal) et grand format.
 
 ### Piétons et promeneurs
 - Leur nombre dépend de la qualité : 10 en Basse, 18 en Moyenne, 26 en Élevée, 34 en Ultra. Ils sont dessinés en instanciation (7 maillages pour tous).
@@ -132,8 +145,22 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - Récapitulatif (km, temps, kcal, récompenses) en fin de sortie, avant la question Strava.
 - **Vestiaire** : 11 maillots (styles dégradé, bandes, écharpe, néon, pois, tricolore, arc-en-ciel…, certains à débloquer), couleurs du casque, des chaussures, chaussettes, gants, verres des lunettes ; cadre (couleur, finition brillante/mate/métallisée), accent, jantes carbone 45/60 mm ou alu, pneus à flancs beiges, guidoline, selle. Compteur GPS du cintre qui affiche vitesse, puissance et cardio.
 
+### Analyse et progression (octobre 2026)
+- **Analyse de fin de sortie** (`analyzeRide`, `anaOpen`, écran `s-ana`) : NP, IF, TSS, max, FC moyenne/max, cadence, kcal ; graphiques puissance, cardio, cadence, altitude ; temps par zone de puissance (Coggan) et par zone cardio (% de FC max : 60/70/80/90). Accessible depuis la fenêtre Strava et depuis Mon suivi (dernière sortie gardée dans `v3last`).
+- **Courbe de puissance et records** (`PCD`, `prCheck`, `GS.pc`) : 5 s à 1 h.
+- **Détection automatique de FTP** : si 95 % du meilleur 20 min dépasse la FTP de plus de 3 W, l'appli propose la nouvelle valeur (rien n'est changé sans accord).
+- **Forme CTL/ATL/TSB** (`fitnessSeries`) : moyennes exponentielles du TSS sur 42 et 7 jours, graphique 90 jours.
+- **Série de jours** (`streakTick`, `GS.stk`) : sortie d'au moins 10 min par jour, points bonus, badges 3/7/14/30 jours.
+- **Carte souvenir** (`postcard`) : image 1080×1350 (trace, chiffres clés) à télécharger ou partager.
+- **Plans d'entraînement** (`TPLANS`, `tplanStart`, `tplanDone`, écran `s-tpl`, `GS.tplan`) : FTP 8 semaines, fond 6, perte de poids Dukan 8, sprint 6, remise en forme 4 ; semaine allégée toutes les 4 semaines ; la séance du jour est créée par `genWorkout`. Une séance compte si 80 % est fait.
+- **Équipement à débloquer** (`OLOCK`, vestiaire) : casque aéro (niveau 8), jantes carbone 80 mm (2 000 km), roue lenticulaire arrière (niveau 15), cadre or (25 000 kcal), cadre chrome (15 000 m D+), verres irisés (7 jours d'affilée).
+
 ### Matériel et entraînement
-- **Home trainer FTMS** en Web Bluetooth.
+- **Home trainer FTMS** en Web Bluetooth (`setupTrainer`).
+  - Réponses du point de contrôle lues (`onCP`) : si le contrôle est perdu (code 5), il est redemandé et la dernière consigne renvoyée ; commande refusée signalée.
+  - Plage de puissance lue (0x2AD8, `PRNG`) : la consigne ERG y est bornée. Consigne ERG renvoyée au moins toutes les 10 s.
+  - Cardio transmis par le home trainer utilisé si aucune ceinture n'est connectée (`HRBELT`). Reconnexion automatique (3 essais).
+  - **Coach de séance** (`wkCoach`) : annonce de chaque bloc (puissance, cadence conseillée), mi-bloc, 10 dernières secondes, rappels « augmente / baisse la puissance » et « pédale plus vite / plus en force » toutes les 25 s si l'écart est net. Ligne « toi X W · Y tr/min · ♥ » sous la consigne (`#wi2`).
   - Service 0x1826 ; Indoor Bike Data 0x2AD2 ; Control Point 0x2AD9.
   - Filtres de nom : CYCPLUS, Cycplus, T2.
   - Simulation de pente : opcode 0x11, pente en 0,01 %, Crr 0,0040, Cw 0,19 kg/m réduit par l'aspiration.
@@ -184,7 +211,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 |---|---|
 | 1–155 | `<head>` : CSS de l'interface, puis le HTML (HUD, menu ☰, accueil, écrans, fenêtre `#res`, grande carte `#bmap`, bandeau `#rw`) |
 | ≈156 | `<script>` **three.js r150 minifié**. **NE PAS LIRE NI MODIFIER** : lignes énormes. |
-| ≈157–3365 | `<script>` de l'application, sections ci-dessous |
+| ≈157–3820 | `<script>` de l'application, sections ci-dessous |
 | ≈161 | `const TRK="lat,lon,alt;…"` : parcours Pontcharra par défaut (une seule ligne très longue) |
 | ≈162 | `const NETD={"E":[…]}` : **réseau routier** (une ligne d'environ 285 Ko, ne pas l'afficher en entier) |
 | ≈163 | Base : utilitaires, détection du GPU (`GPU`, `WEAK_GPU`), préréglages de qualité `QPRE`, file de tâches `job()`/`runJobs()`, cache réseau, classe `GB` |
@@ -206,6 +233,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 | ≈2829 | **Navigation** : `RID`, `advance` (mémorise `st.prev`), `optionsAt`, `defaultIdx`, `riderNext`, itinéraire `setRoute`/`routeIdx` (suit `ROUTE.edges` s'il existe), choix au carrefour `jxTick` |
 | ≈2920 | **Cyclistes PNJ** : `npcTick`, `npcChoose`/`npcNext`, aspiration `draftOf`, sprints `exitAhead`, « Ride On » |
 | ≈3030 | **Piétons** : `pedTick`, applaudissements, sifflets, voix |
+| ≈2846 | **Préférences et ambiance** (`SET`, `speak`, `resultShow`, `celebrate`, musique, météo `WX`, `todApply`), **arches, sprints et côtes** (`lightArch`, `sprintTick`, `sprintEnd2`, `courseClimbs`, `komTick`), **analyse** (`analyzeRide`, `prCheck`, `streakTick`, `fitnessSeries`, `anaOpen`, `postcard`), **plans** (`TPLANS`), **coach et HUD** (`wkCoach`, `HUDF`, `prefRender`, `suiviExtra`) |
 | ≈3096 | **Strava** : enregistreur `REC`, `fitEncode`, OAuth, envoi, fenêtre `offerStrava`, `stravaPanel` |
 | ≈3179 | Monde et boucle principale : `startWorld`, caméras, `loop()`, mini-carte, menu ☰, démarrage |
 
@@ -248,7 +276,9 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 - `ftp`, `kg` : FTP et poids.
 - `v3gpxe`, `v3gpxn` : **parcours imposé** (liste des routes `[e, sens]` et nom). `v3gpx` (ancien GPX en points) n'est plus écrit : il est seulement relu une fois et recalé.
 - `v3rec` : sortie en cours, sauvegardée toutes les 30 s (effacée à la fin normale de la sortie).
-- `vg3` : jeu : points, records, équipement, et désormais `xp`, `kcal`, `asc` (D+), `spr` (sprints gagnés), `hist` (historique, 400 max), `bdg` (badges), `goal`/`wgoal` (objectifs de la semaine), `wlog` (poids), `myw` (séances gardées), `favr` (parcours favoris, en liste de routes `[e, sens]`), `strv` (sorties envoyées sur Strava).
+- `vg3` : jeu : points, records, équipement, et désormais `xp`, `kcal`, `asc` (D+), `spr` (sprints gagnés), `hist` (historique, 400 max), `bdg` (badges), `goal`/`wgoal` (objectifs de la semaine), `wlog` (poids), `myw` (séances gardées), `favr` (parcours favoris, en liste de routes `[e, sens]`), `strv` (sorties envoyées sur Strava), `sprh` (10 meilleurs sprints par pancarte), `komh` (10 meilleurs temps par côte), `pc` (records de puissance), `stk` (série de jours), `tplan` (plan en cours).
+- `v3set` : préférences (sprint, voix, coach, musique, météo, vent, moment de la journée, FC max, HUD).
+- `v3last` : dernière sortie (points réduits à 3 000 au plus) pour l'analyse.
 - `velo3d-strava` : ID client, secret et jetons Strava. **Ne jamais les committer.**
 
 ### Tests utilisés jusqu'ici
@@ -295,7 +325,13 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
     - **autres routes** : la couche IGN `troncon_de_route` et ses attributs n'ont pas pu être vérifiés (serveurs IGN et OSM injoignables depuis l'environnement de test). Le rendu a été testé avec des routes injectées. Si la couche IGN ne répond pas, l'appli bascule sur OpenStreetMap ;
     - **parcours imposé** : chaque changement de parcours relance la construction du monde (quelques secondes de chargement, données en cache) ;
     - **choix du parcours** : D+ et pentes viennent de l'altitude du réseau ; ils ne sont justes qu'une fois le vrai relief SRTM chargé. Avec le relief de secours, certaines pentes atteignent le plafond de 25 %. Les favoris sont enregistrés par numéro de route : ils deviendront faux si le réseau est modifié (corrections de la carte 2D).
-14. **Confidentialité** : le réseau couvre les rues autour du domicile de Cyril. **Le dépôt doit rester privé.**
+14. **Nouveautés de fin octobre 2026 non testées sur le vrai matériel** :
+    - vent envoyé comme pente équivalente : effet réel sur le home trainer inconnu ;
+    - réponses FTMS (`onCP`), plage de puissance (0x2AD8) et cardio transmis par le home trainer : testés avec des données simulées seulement ;
+    - météo réelle Open-Meteo : serveur injoignable depuis l'environnement de test, testée avec des données injectées ;
+    - voix : dépend d'une voix française installée ; musique et sons de cloche générés, jamais écoutés ;
+    - côtes : détectées sur l'altitude du réseau, donc justes seulement avec le vrai relief.
+15. **Confidentialité** : le réseau couvre les rues autour du domicile de Cyril. **Le dépôt doit rester privé.**
 
 ---
 
