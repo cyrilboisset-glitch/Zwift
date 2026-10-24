@@ -729,7 +729,7 @@ function groundDem(x,z){let h=NaN;
 // couches éloignées (moyen, lointain, horizon) : relief seul, sans creusement de l'eau ni micro-relief (invisibles de si loin ; le calcul de l'eau était très coûteux)
 const groundFar=(x,z)=>groundDem(x,z);
 function ground(x,z){let h=groundDem(x,z);
- if(WATERM){const w=waterAt(x,z);if(w>0)h-=2.4*w}
+ if(WATERM){const w=waterAt(x,z);if(w>0)h-=3.6*w}
  return h+(vn(x/37,z/37)-.5)*1.4+(vn(x/9.3,z/9.3)-.5)*.3}
 let BRG=null; // tronçons en pont (pas de remblai sous la route)
 function hT(x,z){const g=ground(x,z),r=roadQ(x,z);if(!r||r.d>32||(BRG&&BRG[r.i]))return g;const t=sm(5.6,31,r.d);return (r.y-.18)*(1-t)+g*t}
@@ -1823,7 +1823,11 @@ function bldInvalidate(){BLD.ver++;BLD.lp.set(1e9,0,1e9)}
 const waterMat=addCurv(new T.MeshStandardMaterial({color:0x3e5a55,roughness:.07,metalness:0,normalMap:TXR.waterN,normalScale:new T.Vector2(.55,.55),envMapIntensity:1.15}),'w');
 TXR.waterN.repeat.set(1,1);
 const WAT={cells:new Map(),lp:V(1e9,0,1e9),ver:1};
-function waterLevel(x,z){return(groundDem(x,z)*2+groundDem(x+12,z)+groundDem(x-12,z)+groundDem(x,z+12)+groundDem(x,z-12))/6-.45}
+// niveau de l'eau : relief SRTM moyenné (≈ 30 m de précision, souvent trop haut au bord des rivières), puis gardé SOUS les routes proches :
+// au moins 1,4 m sous la chaussée au bord de la route (3,2 m sous un pont), l'écart se relâche de 5 cm par mètre en s'éloignant (jusqu'à 90 m)
+const _RQW={};
+function waterLevel(x,z){let h=(groundDem(x,z)*2+groundDem(x+12,z)+groundDem(x-12,z)+groundDem(x,z+12)+groundDem(x,z-12)+groundDem(x+24,z)+groundDem(x-24,z)+groundDem(x,z+24)+groundDem(x,z-24))/10-.6;
+ const q=NET.ready?roadQ(x,z,_RQW):null;if(q&&q.d<90){const br=BRG&&BRG[q.i];h=Math.min(h,q.y-(br?3.2:1.4)+.05*q.d)}return h}
 function buildWaterCell(a,b){const M=waterCell(a,b);if(!M)return null;const R=MRES,x0=a*VC,z0=b*VC,st=MS4;
  // masque dilaté (une case) pour que l'eau passe sous les berges
  const D=new Uint8Array((R+1)*(R+1));let any=false;
@@ -4522,7 +4526,7 @@ async function startWorld(){const id=++WID;resetWorld();if(!NOVEG&&!TREEG.b)init
  // relief : z12 sur la zone moyenne, puis z10 (lointain) et z8 (horizon, jusqu'au Mont-Blanc)
  const dz=async(z,Rg,maxT)=>{const[s2,w,n,e]=llOf(Rg);return loadDEMLevel(z,s2,w,n,e,maxT,(ok,tot)=>{if(id===WID&&z===12)ldSet('dem','Relief '+Math.round(ok/tot*100)+' %',0)})};
  let ok12=false;try{const L=await dz(12,{x0:REG.mid.x0-1500,x1:REG.mid.x1+1500,z0:REG.mid.z0-1500,z1:REG.mid.z1+1500},160);if(id!==WID)return;DEMS.push(L);ok12=true}catch(e){console.warn('MNT z12',e)}
- if(ok12){finishTrack(groundDem);buildCoarse();DEMOK=true;courseClimbs();ldSet('dem','Relief réel (SRTM 30 m)',0)}else ldSet('dem','Relief simulé (hors ligne)',-1);
+ if(ok12){finishTrack(groundDem);buildCoarse();DEMOK=true;waterInvalidate();courseClimbs();ldSet('dem','Relief réel (SRTM 30 m)',0)}else ldSet('dem','Relief simulé (hors ligne)',-1);
  terrInvalidate();roadInvalidate();bldInvalidate();vegInvalidate();
  job(procMosaic(MOS_RING,4),9000,'pr');job(procMosaic(MOS_FAR,4),8500,'pf');job(procMosaic(MOS_MID,4),8000,'pm');
  loadMosaicPhotos(MOS_MID,'ph');loadMosaicPhotos(MOS_FAR,null);loadMosaicPhotos(MOS_RING,null);

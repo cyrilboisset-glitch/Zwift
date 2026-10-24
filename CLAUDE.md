@@ -36,6 +36,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
   - Haies, vergers, vignes.
   - Herbe animée par le vent.
 - **Eau** (Isère, lacs) et ponts automatiques là où une route franchit l'eau.
+  - **Niveau de l'eau sous les routes** (24 octobre 2026, `waterLevel`) : le relief SRTM (≈ 30 m) est souvent trop haut au bord des rivières, l'eau recouvrait la route (on roulait dedans ou dessous). L'eau est maintenant moyennée sur ±24 m et gardée au moins 1,4 m sous la chaussée au bord de la route (3,2 m sous un pont), écart relâché de 5 cm par mètre jusqu'à 90 m ; relief creusé de 3,6 m sous l'eau (au lieu de 2,4) ; eau recalculée quand le vrai relief arrive. Mesuré sur le banc : points d'eau à moins de 12 m de la route plus hauts que la chaussée : 291 sur 475 avant (jusqu'à 5,4 m), 0 après.
 - **Équipements de route** :
   - balises J6, bornes kilométriques, glissières, panneaux de virage dangereux ;
   - trottoirs et lampadaires en agglomération ;
