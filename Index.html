@@ -126,7 +126,10 @@ body.hm #map{display:none}
 #spr{overflow-y:auto;justify-content:safe center;overscroll-behavior:contain;touch-action:pan-y}
 .scrl{max-height:calc(100dvh - 150px - var(--sa) - var(--sb))}#top{max-height:calc(100dvh - 76px - var(--sa) - var(--sb));overscroll-behavior:contain;touch-action:pan-y}
 @media (max-height:520px){#res{padding:12px}#rt{font-size:16px;margin-bottom:8px}#rt b{font-size:30px}#spr .bg{font-size:clamp(48px,14vh,120px)}#spr .gr b{font-size:22px}}
-</style></head><body>
+#lv{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(8,12,18,.97);color:#fff;text-align:center;padding:24px;font:600 18px system-ui}
+#lv i{font-style:normal;font-size:84px;line-height:1;animation:lvr 2.2s ease-in-out infinite}#lv b{font-size:24px}#lv small{color:#b8c4d0;font-size:15px}
+@keyframes lvr{0%,25%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}
+</style></head><body><div id="lv"><i>📱</i><b>Touche l'écran</b><small>pour passer en plein écran, en paysage</small></div>
 <canvas id="c"></canvas>
 <div id="hud" class="p"><div class="m"><span data-f="spd"><b id="vs">0</b><i>km/h</i></span><span data-f="pw"><b id="vp">0</b><i>W</i></span><span data-f="p3"><b id="vp3">0</b><i>W 3 s</i></span><span data-f="wkg"><b id="vwk">0</b><i>W/kg</i></span><span data-f="cad"><b id="vc">0</b><i>tr/min</i></span><span data-f="grd"><b id="vg">0.0</b><i>%</i></span><span data-f="hr"><b id="vh">–</b><i>bpm</i></span><span data-f="np"><b id="vnp">0</b><i>NP</i></span></div><div class="n"><span data-f="dist"><span id="vd">0.0</span> km · </span><span data-f="rest"><span id="vrl">reste</span> <span id="vr">0.0</span> <span id="vru">km</span> · </span><span data-f="alt"><span id="va">0</span> m · </span><span data-f="dp">D+ <span id="vdp">0</span> m · </span><span data-f="time"><span id="vt">0:00</span> · </span><span data-f="kcal"><span id="vk">0</span> kcal</span><span data-f="wind" id="vwd"></span><span id="vdrf" style="color:var(--ac);font-weight:700"></span></div></div>
 <div id="toast" class="p"></div>
@@ -2980,7 +2983,17 @@ function drawBig(){const c=$('bmap');if(!c||!N||!BIGM.on)return;const W=c.width,
 let WLK=null;async function wakeLock(on){try{if(on&&!WLK&&navigator.wakeLock){WLK=await navigator.wakeLock.request('screen');WLK.addEventListener('release',()=>WLK=null)}else if(!on&&WLK){await WLK.release();WLK=null}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&mode!=='home')wakeLock(true)});
 function fsEnter(){if(!document.fullscreenElement)fullScreen()}
-function fullScreen(){try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen({navigationUI:'hide'}).then(()=>{try{screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}).catch(()=>{})}catch(e){}}
+function fullScreen(){try{if(document.fullscreenElement){LANDOFF=true;document.exitFullscreen()}else{LANDOFF=false;document.documentElement.requestFullscreen({navigationUI:'hide'}).then(lockLand).catch(()=>{})}}catch(e){}}
+// paysage dès le lancement (tablette, téléphone) : Chrome ne verrouille l'écran en paysage qu'en plein écran, et n'accepte le plein écran
+// qu'après un toucher. Le tout premier toucher (n'importe où) bascule donc en plein écran paysage ; en attendant, en portrait, un voile invite à toucher.
+// Sur ordinateur (souris), rien ne change. Si on quitte le plein écran avec ⛶, on n'y revient pas tout seul.
+const TOUCHDEV=(matchMedia&&matchMedia('(pointer:coarse)').matches)||navigator.maxTouchPoints>1;let LANDOFF=false,LANDT=false;
+function lockLand(){try{screen.orientation.lock('landscape').catch(()=>{})}catch(e){}landVeil()}
+function landNow(){if(!TOUCHDEV||LANDOFF)return;LANDT=true;try{if(!document.fullscreenElement)document.documentElement.requestFullscreen({navigationUI:'hide'}).then(lockLand).catch(()=>landVeil());else lockLand()}catch(e){landVeil()}landVeil()}
+function landVeil(){const v=$('lv');if(v)v.style.display=TOUCHDEV&&!LANDT&&!LANDOFF&&innerHeight>innerWidth&&!document.fullscreenElement?'flex':'none'}
+addEventListener('pointerup',landNow,true);addEventListener('touchend',landNow,true);
+addEventListener('resize',landVeil);document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)LANDT=false;landVeil()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!document.fullscreenElement){LANDT=false;landVeil()}});
 // ====================== choix du parcours avant la sortie : boucles et allers simples classés par distance ou dénivelé ======================
 GS.favr=GS.favr||[];GS.strv=GS.strv||[];
 const esc=s=>String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'})[c]);
@@ -4683,7 +4696,7 @@ $('bmap').onwheel=e=>{BIGM.zoom=clamp(BIGM.zoom*Math.exp(-e.deltaY*.001),.3,4);d
 addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;if((e.key==='m'||e.key==='M')&&mode!=='home')bigMapToggle();else if(e.key==='Escape'&&BIGM.on)bigMapToggle(false)});
 addEventListener('resize',()=>{if(BIGM.on)bigMapToggle(true)});
 // ---- démarrage ----
-{ftpLog(FTP);$('ftp').value=FTP;R.add(TR);progTick(true);applyKit();hudApply();todApply();wxApply();nav('home');rs();initNPCs();if(!NET.ready)initNetwork();if(!NOVEG&&!TREEG.b)initTreeGeos();
+{landVeil();ftpLog(FTP);$('ftp').value=FTP;R.add(TR);progTick(true);applyKit();hudApply();todApply();wxApply();nav('home');rs();initNPCs();if(!NET.ready)initNetwork();if(!NOVEG&&!TREEG.b)initTreeGeos();
  // dernier parcours choisi (ou ancien GPX) ; sinon le monde attend qu'un parcours soit choisi
  let okC=false;try{if(localStorage.v3gpxe)okC=setCourse(JSON.parse(localStorage.v3gpxe),localStorage.v3gpxn||'Parcours');else if(localStorage.v3gpx)okC=setCourse(gpxToEdges(JSON.parse(localStorage.v3gpx),localStorage.v3gpxn||'Itinéraire'),localStorage.v3gpxn||'Itinéraire')}catch(e){console.warn('parcours',e)}
  if(!okC)ldSet('crs','Aucun parcours : Rouler → Choisir un parcours',0);
