@@ -1,4 +1,4 @@
-# CLAUDE.md — Vélo 3D Pontcharra (simulateur vélo type Zwift / MyWhoosh)
+# CLAUDE.md — Virtual Cycling Training (simulateur vélo d'intérieur type Zwift / MyWhoosh)
 
 Ce fichier donne à Claude Code tout le contexte pour reprendre le projet.
 Le propriétaire du projet est **Cyril**, cycliste à Pontcharra (Isère). Lis aussi la section « Préférences de travail » avant de répondre.
@@ -7,9 +7,9 @@ Le propriétaire du projet est **Cyril**, cycliste à Pontcharra (Isère). Lis a
 
 ## 1. Objectif du logiciel
 
-Un simulateur de vélo d'intérieur en 3D, dans le navigateur, qui se branche sur un home trainer connecté et une ceinture cardio.
-Cyril y roule sur **ses vraies routes autour de Pontcharra** : le monde 3D est construit à partir de toutes ses sorties Strava (mai 2018 → octobre 2026).
-On y trouve le vrai relief, les vraies photos aériennes, les vrais bâtiments, les villages avec leurs panneaux, des cyclistes et des promeneurs.
+**Virtual Cycling Training** (« VCT ») est un simulateur de vélo d'intérieur en 3D, dans le navigateur, qui se branche sur un home trainer connecté et une ceinture cardio.
+**L'appli est vierge** (27 octobre 2026, demande de Cyril) : aucune route ni trace intégrée. Chacun **importe ses propres GPX** (n'importe où dans le monde) et l'appli les reproduit en 3D : relief, photos aériennes, bâtiments, eau, villages, PNJ, animaux. Le **vélodrome** reste disponible pour les séances.
+Ancienne version : un réseau de 949 km construit à partir des sorties Strava de Cyril autour de Pontcharra (`NETD`, tracé `TRK`), **supprimés** de l'appli (ils restent dans l'historique git ; une copie de travail est hors dépôt).
 
 Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouvre dans **Chrome** (ordinateur ou Android) : Web Bluetooth est obligatoire pour le home trainer.
 
@@ -18,10 +18,12 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 ## 2. Fonctionnalités déjà faites
 
 ### Monde et rendu
-- **Réseau routier réel** : 908 routes, 613 nœuds dont 550 carrefours (3 routes ou plus) et 63 culs-de-sac, soit environ 949 km.
-  - Il a été construit en fusionnant 498 sorties vélo Strava (14 820 km roulés).
-  - 110 sorties à trace GPS complète servent de géométrie de référence.
-  - Il reste environ 23 km de routes au tracé « approximatif », issues de traces simplifiées.
+- **Parcours personnels (GPX importés)** (27 octobre 2026) — section `parcours personnels` en tête du script :
+  - Rouler → **📂 Importer un GPX** (`trkpt` ou `rtept`, altitude facultative) : `crsImport` simplifie la trace (points à ≥ 0,5 m, Douglas-Peucker 1 m, au moins un point tous les 60 m) et la garde dans `v3crs` (nom, points « lat,lon,alt; », km, D+) ; elle devient le parcours actif (`v3cur`) et l'appli **se recharge** ;
+  - au lancement, `crsOrigin()` place l'**origine du repère au centre du parcours actif** (`LA`, `LO0`, `KX` ; sans parcours : centre de la France) ; `netSrc()` fabrique le « réseau » à partir de la trace : une route, ou deux pour une boucle (départ et arrivée à moins de 120 m, refermée exactement) ; altitude tous les 20 m prise dans le GPX, sinon 300 m puis recalée sur le relief SRTM (`finishTrack`) ;
+  - sans parcours, une petite route fictive (jamais construite en 3D) fait tourner le moteur ; l'accueil, le vélodrome et les séances au vélodrome restent utilisables ;
+  - **📚 Mes parcours** (`crsMenu`) : choisir (`crsUse`, recharge), rouler, supprimer (`crsDelete`) ;
+  - plus de communes intégrées (`COMMUNES = []`) : noms des villages par IGN (France) ou OpenStreetMap ; hors de France, photos ArcGIS et données OSM (repli déjà existant).
 - **Relief** : tuiles d'altitude AWS Terrarium (SRTM) en trois niveaux (z12 proche, z10 lointain, z8 horizon). Couches de terrain : couloir le long des routes, tuiles proches, moyennes, lointain, anneau d'horizon.
   - Courbure terrestre au-delà de 3 km.
   - Relief de secours procédural quand on est hors ligne.
@@ -81,15 +83,16 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - **Physique** : piste plate (pente 0 envoyée au home trainer en sortie libre, ERG en séance), aspiration derrière les coureurs (même formule que sur route), on monte doubler par le haut puis on redescend à la corde.
 - **Tours** : chrono au passage de la ligne d'arrivée (le premier passage lance le chrono), dernier tour, record de la session et record absolu (`GS.vel = {best, laps}`), annonce vocale tous les 5 tours, célébration au record.
 - **Lumière de rythme** (ruban LED sur la côte d'azur) : point vert qui roule à la vitesse correspondant à la puissance cible (sortie : Z2 65 % FTP, Z3 83 %, seuil, éteinte — touche le bandeau du haut ; séance : consigne du bloc). Point doré = rythme de ton record du tour.
-- **Arène** : piste en bois (lames), rambarde vitrée, mur LED défilant, tribunes (14 rangs, 8 en Tablette/Basse), sièges et public instanciés (corps, tête, bras, jambes ; animés dans le shader : le public saute quand ça accélère, **lève les bras au passage du cycliste** (`VEL.cr.uRu`, `uNear`), **ola** qui fait deux tours de l'arène toutes les 45 à 105 s et tout de suite au record (`VEL.ola`), **drapeaux** France / Savoie / Pontcharra / damier qui flottent, **pancartes** « ALLEZ CYRIL ! », « PONTCHARRA », « PLUS VITE ! » levées au passage ; flashs de téléphones), toit en dôme avec arches et lampes, écran circulaire suspendu (tour, chrono, record, vitesse, puissance), sol central lumineux.
+- Banderoles, drapeaux, pancartes et sol du vélodrome sans référence locale (27 octobre 2026) : « VIRTUAL CYCLING TRAINING », « VCT », drapeaux France / Italie / VCT / damier, pancartes « ALLEZ ! », « PLUS VITE ! », « RECORD ! », « GO GO GO ! ».
+- **Arène** : piste en bois (lames), rambarde vitrée, mur LED défilant, tribunes (14 rangs, 8 en Tablette/Basse), sièges et public instanciés (corps, tête, bras, jambes ; animés dans le shader : le public saute quand ça accélère, **lève les bras au passage du cycliste** (`VEL.cr.uRu`, `uNear`), **ola** qui fait deux tours de l'arène toutes les 45 à 105 s et tout de suite au record (`VEL.ola`), **drapeaux** France / Italie / VCT / damier qui flottent, **pancartes** « ALLEZ ! », « PLUS VITE ! », « RECORD ! », « GO GO GO ! » levées au passage ; flashs de téléphones), toit en dôme avec arches et lampes, écran circulaire suspendu (tour, chrono, record, vitesse, puissance), sol central lumineux.
 - **Jeux de lumière** (`velShow`) : couleurs selon ta zone de puissance, faisceaux mobiles (8, ou 4 en Tablette/Basse) qui suivent le cycliste ou balaient la piste, stroboscope et lasers en sprint (> 140 % FTP), mode doré + confettis + ovation au record du tour, vague lumineuse à chaque passage de ligne.
 - **Plein écran automatique** à l'entrée du vélodrome (`fsEnter` dans `velStart`) et bouton **⛶** à côté du ☰ pendant toutes les sorties (`#fsb`).
 - **Caméras** (`velCam`, bouton caméra, noms `VCAMN`) : poursuite, « télé » depuis le centre, vue haute, vue du cycliste (penchée avec la piste), **gros plan visage**. Mini-carte : l'ovale, toi, les coureurs, la lumière de rythme et le fantôme du record.
 - **Sons** (`velAudio`) : rumeur du public (plus forte au passage de l'ola), applaudissements ; quand ça chauffe (sprint, record, ola) **banda** (grosse caisse « boum, boum, boum-boum-boum » `kick` + claps en rythme), **cornes** (`horn`), cloches, sifflets ; **roues sur la piste en bois** (`AU.wood` : grondement grave de la piste creuse + chuintement des pneus, modulés au rythme de rotation des roues, plus fort quand des coureurs roulent près de toi) ; **souffle** quand on double ou qu'on est doublé (`whoosh`) ; sons de nature coupés en salle. Trois cyclistes PNJ (pris dans `NPCS`) roulent sur la piste.
-- Enregistrement Strava : la trace GPS est un petit ovale au centre de Pontcharra (le vélodrome est placé à l'origine du repère) ; nom « Vélodrome de Pontcharra · N tours ».
+- Enregistrement Strava : la trace GPS est un petit ovale à l'origine du repère (centre du parcours actif, ou centre de la France) ; nom « Vélodrome · N tours ».
 
 ### Navigation sur le réseau
-- **Parcours imposé (depuis octobre 2026, à la demande de Cyril après essai sur smartphone)** : plus de sortie libre sur tout le réseau.
+- **Parcours imposé** : on roule sur le parcours actif (GPX importé, voir plus haut) ; `setCourse` reçoit toutes ses routes au lancement. Le calculateur de parcours (`planOpen`, Dijkstra) et le recalage GPX sur réseau (`gpxToEdges`) sont **conservés dans le code mais plus proposés** (inutiles sans réseau). Les paragraphes ci-dessous décrivent le fonctionnement hérité du réseau Pontcharra (carrefours, choix, etc.), toujours actif mais sans effet avec une trace unique.
   - On choisit un parcours avant chaque sortie, séance ou exploration (`courseThen`) : parcours calculé, favori, parcours Pontcharra ou GPX.
   - `setCourse(routes, nom)` marque les routes du parcours (`ACT`), reconstruit la table spatiale (`RHM` = routes du parcours, `RHM_ALL` = tout le réseau), la grille grossière et l'emprise `BB`, puis relance `startWorld()` : **le monde 3D n'est construit qu'autour du parcours** (terrain fin, chaussées, carrefours, bâtiments, données). Mesuré : ~6 fois moins de triangles qu'avec tout le réseau.
   - `inW(e)` (route utilisable : tout le réseau tant qu'aucun parcours) et `inWorld(e)` (route construite en 3D : rien tant qu'aucun parcours n'est choisi). `withFullNet(f)` fait un calcul sur tout le réseau (choix du parcours, recalage GPX).
@@ -220,7 +223,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
   - En séance : consigne de chaque bloc, annonce du bloc suivant, bips 3-2-1.
   - **Combiner deux travaux** (« Combiner avec ») : deux parties égales séparées de 3 min de récupération ; avec le régime Dukan, le second travail occupe ~34 % du temps au milieu de la base brûle-graisses, à intensité réduite de 8 % en phase d'attaque et de 4 % en croisière.
   - **Raccourcir une séance en cours** (bouton ⏱) : on réduit d'abord l'endurance, puis on retire des répétitions entières par la fin ; les récupérations entre efforts et l'intensité ne changent pas ; retour au calme ramené à 2 min au moins.
-- **Accueil simplifié** : 4 grands boutons — **Rouler** (rouler sur le dernier parcours, choisir un parcours, parcours Pontcharra, GPX, exploration ; plus de sortie libre), **S'entraîner**, **Mon suivi**, **Réglages** (matériel, **Strava** avec état de connexion et sorties envoyées `GS.strv`, vestiaire, garage, graphismes).
+- **Accueil simplifié** : 4 grands boutons — **Rouler** (rouler le parcours actif, 🏟️ vélodrome, 📂 importer un GPX, 📚 mes parcours, exploration), **S'entraîner**, **Mon suivi**, **Réglages** (matériel, **Strava** avec état de connexion et sorties envoyées `GS.strv`, vestiaire, garage, graphismes).
 - **Diagnostic des blocages** (Réglages → 🩺, `diagStart`, `diagReport`, `diagShow`, clé `v3diag` = actif, reste actif après redémarrage) : pendant une sortie, mesure image par image le temps de chaque tâche (fonctions de la boucle enveloppées, tâches `job` par préfixe de clé, `ren.render`, envois de textures `texImage2D`/`texSubImage2D`, nouveaux shaders, lecture des données entre les images, `JSON.parse`) et, si Chrome le permet, le temps réel de la carte graphique (`EXT_disjoint_timer_query_webgl2`). Une image > 50 ms est attribuée à sa plus grosse cause ; le reste du temps hors appli est classé « Navigateur / carte graphique ». Bandeau 🩺 en haut (images/s, blocages > 100 ms, pire), rapport texte à copier ou enregistrer (☰ → Rapport diagnostic, ou bouton dans la fenêtre de fin de sortie).
 - **Encadré d'état des chargements masqué** (`#ld`, demande de Cyril) ; les messages importants passent par des fenêtres.
 - **Séances : la pente ne joue pas** (`gP` dans `loop`) : sur un parcours, résistance en ERG (comme avant), et désormais vitesse, danseuse et posture calculées comme sur le plat.
@@ -252,7 +255,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 
 ### Fichier unique
 - Livrable : **un seul fichier HTML** d'environ 1,3 Mo et 3 430 lignes, sans dépendance réseau pour le code.
-- Le fichier `Index.html` du dépôt (avec un I majuscule) est ce fichier (livré à l'origine sous le nom `velo-3d-pontcharra.html`).
+- Le fichier `Index.html` du dépôt (avec un I majuscule) est ce fichier (≈ 1,2 Mo depuis la suppression du réseau intégré).
 - **three.js r150** est **inclus en entier dans le fichier** (version minifiée) : pas de CDN, pas de modules ES, pas d'outil de build.
 - JavaScript « classique » en mode strict, sans framework. Tout le code applicatif est dans un seul `<script>`.
 
@@ -264,8 +267,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 | 1–155 | `<head>` : CSS de l'interface, puis le HTML (HUD, menu ☰, accueil, écrans, fenêtre `#res`, grande carte `#bmap`, bandeau `#rw`) |
 | ≈156 | `<script>` **three.js r150 minifié**. **NE PAS LIRE NI MODIFIER** : lignes énormes. |
 | ≈157–3820 | `<script>` de l'application, sections ci-dessous |
-| ≈161 | `const TRK="lat,lon,alt;…"` : parcours Pontcharra par défaut (une seule ligne très longue) |
-| ≈162 | `const NETD={"E":[…]}` : **réseau routier** (une ligne d'environ 285 Ko, ne pas l'afficher en entier) |
+| ≈188 | **Parcours personnels** : `CRS`, `crsPts`, `crsOrigin` ; `NETD` est rempli au lancement par `netSrc()` (plus de réseau ni de `TRK` intégrés) |
 | ≈163 | Base : utilitaires, détection du GPU (`GPU`, `WEAK_GPU`), préréglages de qualité `QPRE`, file de tâches `job()`/`runJobs()`, cache réseau, classe `GB` |
 | ≈277 | Rendu, ciel, lumière, astronomie (`skyUpdate`, `FORCE_SUN` pour les tests) |
 | ≈396 | Textures procédurales |
@@ -291,11 +293,11 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 | ≈3179 | Monde et boucle principale : `startWorld`, caméras, `loop()`, mini-carte, menu ☰, démarrage |
 
 ### Repère et unités
-- L'origine est le **centre de Pontcharra** : `LA = 45.4225`, `LO0 = 6.0228`.
+- L'origine est le **centre du parcours actif** (`crsOrigin`) : `LA`, `LO0` ; sans parcours, centre de la France (46,6° N, 2,45° E). Changer de parcours recharge l'appli (toutes les constantes du repère en dépendent).
 - Conversion : `x = (lon − LO0) × KX` (vers l'est), `z = −(lat − LA) × 110574` (vers le **sud**), avec `KX = 111320 × cos(LA)`. +Y est vers le haut. Fonctions `ll2xz` et `xz2ll`.
 - Repère du cycliste : +Z vers l'avant, +X à sa gauche. Un décalage latéral positif sur la route va **à droite**, selon la direction `(−tz, tx)`.
 
-### Format du réseau `NETD`
+### Format du réseau `NETD` (hérité ; aujourd'hui produit par `netSrc` : `{a, b, P:[[x,z]…] en m, zs:[altitudes tous les 20 m], u}`)
 - `NETD.E[i]` est la route numéro i. **C'est le même numéro que « Route i » / « #i » dans la carte de validation 2D.**
   - `a`, `b` : identifiants des nœuds aux extrémités.
   - `g` : points (x, z) en **décimètres**, codés en deltas d'entiers selon le principe des polylignes Google. Décodage : `decInts(s, 2)`.
@@ -341,7 +343,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 - `v3q2` : qualité graphique (`tab`, `low`, `med`, `high`, `ultra`). L'ancienne clé `v3q` n'est plus lue, pour que la tablette reparte en « Tablette ».
 - `v3kit` : choix du vestiaire (maillot, couleurs, jantes, pneus…, et visage : `fsk` teint, `fhr` cheveux, `fbd` barbe, `fey` yeux, `gls` lunettes).
 - `ftp`, `kg` : FTP et poids.
-- `v3gpxe`, `v3gpxn` : **parcours imposé** (liste des routes `[e, sens]` et nom). `v3gpx` (ancien GPX en points) n'est plus écrit : il est seulement relu une fois et recalé.
+- `v3crs` : **mes parcours** (GPX importés et simplifiés : `id`, `name`, `pts` « lat,lon,alt; », `km`, `dp`, `date`) ; `v3cur` : identifiant du parcours actif. Les anciennes clés `v3gpxe`, `v3gpxn`, `v3gpx` sont effacées au lancement.
 - `v3rec` : sortie en cours, sauvegardée toutes les 30 s (effacée à la fin normale de la sortie).
 - `vg3` : jeu : points, records, équipement, et désormais `xp`, `kcal`, `asc` (D+), `spr` (sprints gagnés), `hist` (historique, 400 max), `bdg` (badges), `goal`/`wgoal` (objectifs de la semaine), `wlog` (poids), `myw` (séances gardées), `favr` (parcours favoris, en liste de routes `[e, sens]`), `strv` (sorties envoyées sur Strava), `sprh` (10 meilleurs sprints par pancarte), `komh` (10 meilleurs temps par côte), `pc` (records de puissance), `stk` (série de jours), `tplan` (plan en cours).
 - `v3set` : préférences (sprint, voix, coach, musique, moment de la journée, FC max, HUD).
@@ -401,7 +403,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
     - **24 octobre 2026** : virages adoucis et pente ≤ 15 % vérifiés par calcul ; végétation légère, clôtures, animaux et leurs sons, casque GameChanger : vus en rendu logiciel seulement ; sons des animaux, des enfants et des cloches jamais écoutés ; la couche IGN des écoles (`zone_d_activite_ou_d_interet`, valeurs « enseignement ») n'a pas pu être vérifiée (IGN injoignable depuis l'environnement de test) ;
     - **plein écran automatique** au vélodrome : Chrome l'accepte seulement après un toucher (c'est le cas : bouton du menu) ; sur certains Android, la barre de navigation peut réapparaître.
 15. **Ouverture sur Android** : dans l'aperçu de l'appli Claude, Internet et le Bluetooth sont bloqués (constaté par Cyril : relief et photos simulés). Ouverture directe dans Chrome (Fichiers → Ouvrir avec → Chrome) non vérifiée par nos soins : si Chrome bloque encore, il faudra héberger le fichier en HTTPS (attention à la confidentialité).
-16. **Confidentialité** : le réseau couvre les rues autour du domicile de Cyril. **Le dépôt doit rester privé.**
+16. **Confidentialité** : le réseau de Pontcharra (rues autour du domicile de Cyril) est retiré de l'appli mais **reste dans l'historique git** : le dépôt doit rester privé (ou l'historique être réécrit avant toute publication).
 
 ---
 
@@ -410,7 +412,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 1. **Tester sur le matériel de Cyril** : Chrome sur PC et sur mobile, avec le home trainer et la ceinture cardio.
    - Mesurer la fluidité.
    - Ajuster le nombre de PNJ et de piétons, et les distances d'affichage.
-2. **Corriger le réseau avec les remarques de la carte 2D.**
+2. ~~Corriger le réseau avec les remarques de la carte 2D~~ (sans objet : plus de réseau intégré).
    - Cyril colle des lignes du type `#123 À retirer — …` ou `#45 Tracé faux — …`, plus une liste de routes manquantes.
    - `#n` correspond à `NETD.E[n]`.
    - Retirer une route : supprimer l'entrée et vérifier les carrefours (nœuds `a`/`b`).
