@@ -1096,7 +1096,7 @@ function bKind(nat,use,lev,area,light){nat=(nat||'').toLowerCase();use=(use||'')
  if(area<26)return'garage';if(area>650&&!lev)return'ind';
  return'house'}
 function addBuilding(id,ring,P){if(DATA.bld.has(id))return;let p=simplify(ring,.12);if(p.length<3)return;let A=polyArea(p);if(Math.abs(A)<6)return;if(A>0){p=p.reverse();A=-A}
- const area=-A,[cx,cz]=polyCentroid(p);if(trackDist(cx,cz)>Math.max(QP.bld,900)+150)return;
+ const area=-A,[cx,cz]=polyCentroid(p);if(trackDist(cx,cz)>Math.max(QP.bld,QK==='tab'||QK==='low'?600:900)+150)return;
  // le tracé GPX peut être décalé de quelques mètres : on écarte les bâtiments qui empiéteraient sur la chaussée
  if(trackDist(cx,cz)<260){for(let i=0;i<p.length;i++){const a=p[i],c=p[(i+1)%p.length];for(const t of[0,.5]){const q=roadQ(a[0]+(c[0]-a[0])*t,a[1]+(c[1]-a[1])*t,_RQ2);if(q&&q.d<5.2&&!q.end)return}}
   const q=roadQ(cx,cz,_RQ2);if(q&&q.d<5.2)return}
@@ -1840,10 +1840,16 @@ function buildChurch(b,r,yMin,yMax,det,wg,rg){const o=obb(b.p),big=b.kind==='chu
  const top=th+prof[prof.length-1][1];wg.box(c[0],top,c[2],.07,1.3,.07,ry,CA(0x3a3a3a),6);wg.box(c[0],top+.85,c[2],.6,.07,.07,ry,CA(0x3a3a3a),6)}
 // ---- tuiles de 512 m : maillage détaillé / simple ----
 // bâtiments d'une tuile : paquets d'environ 120 bâtiments (pas de tableau géant à agrandir), et on rend la main à l'affichage toutes les 4 ms
+// villes denses (Paris…) : au plus BCAP bâtiments par tuile de 512 m, les plus proches du parcours d'abord (la première rangée cache les suivantes) ;
+// détails (fenêtres, balcons) seulement près du parcours quand la tuile est dense
+const BCAP={tab:[220,110],low:[360,180],med:[600,320],high:[900,480],ultra:[1300,700]}[QK]||[600,320],BDET=QK==='tab'?40:QK==='low'?55:80;
+function bldPick(t,lod){const cap=BCAP[lod?1:0];for(const b of t.L)if(b.td===undefined)b.td=trackDist(b.cx,b.cz);
+ if(t.L.length<=cap)return{L:t.L,dense:false};return{L:t.L.slice().sort((a,c)=>a.td-c.td).slice(0,cap),dense:true}}
 function* buildTile(t,lod){const det=lod===0,G=new T.Group();G.matrixAutoUpdate=false;let wg=new GB(true),rg=new GB(true),n=0,t0=performance.now();
+ const PK=bldPick(t,lod);
  const flush=()=>{if(wg.count){const m=new T.Mesh(wg.geo(),WALLM);m.castShadow=m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}
   if(rg.count){const m=new T.Mesh(rg.geo(),ROOFM);m.castShadow=m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}wg=new GB(true);rg=new GB(true)};
- for(const b of t.L){try{buildOne(b,det,wg,rg)}catch(e){console.warn('bât',b.id,e)}
+ for(const b of PK.L){try{buildOne(b,det&&(!PK.dense||b.td<BDET),wg,rg)}catch(e){console.warn('bât',b.id,e)}
   if(++n%(det?120:400)===0)flush();if(performance.now()-t0>4){yield;t0=performance.now()}}
  flush();return G}
 const BLD={lp:V(1e9,0,1e9),ver:1};

@@ -34,6 +34,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
   - z16 pour la photo proche, qui suit la caméra.
 - **Bâtiments réels** IGN BD TOPO (WFS), avec repli sur OpenStreetMap (Overpass), puis sur des bâtiments procéduraux.
   - Toits variés, fenêtres percées, volets, balcons, églises.
+  - **Villes denses** (28 octobre 2026, après un diagnostic sur les Champs-Élysées : 8 210 bâtiments, 3,2 millions de triangles, 19 images/s sur un Mali-G615) : au plus `BCAP` bâtiments par tuile de 512 m (Tablette 220 proches / 110 loin, Basse 360/180, Moyenne 600/320, Élevée 900/480, Ultra 1 300/700), **les plus proches du parcours d'abord** (`bldPick`, distance `b.td`) ; dans une tuile dense, fenêtres et balcons seulement à moins de `BDET` m du parcours (40 m en Tablette) ; en Tablette/Basse, bâtiments gardés jusqu'à 750 m du parcours (au lieu de 1 050). Mesuré sur une ville simulée (14 600 immeubles) en Tablette : 4,8 millions → 210 000 triangles, construction 17 s → 3 s.
 - **Végétation** : forêts IGN/OSM et arbres déduits de la photo aérienne, avec niveaux de détail.
   - Haies, vergers, vignes.
   - Herbe animée par le vent.
