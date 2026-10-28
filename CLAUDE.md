@@ -66,6 +66,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - ~~Aucun arbre ni herbe en 3D~~ remplacé (24 octobre 2026, demande de Cyril) par une **végétation légère** (`NOVEG = false`, `VLIGHT = true`) :
   - **quelques arbres**, version simplifiée (84/96 triangles) : 5 % des massifs IGN/OSM (`FOREST_K = 0,05`), haies, vergers et peupliers à moitié, arbres isolés en bosquets dans les prés (bruit `vn`) ; **plus d'arbres déduits de la photo** (lecture des photos `getImageData` trop coûteuse sur tablette ; toiles photo toujours sans `willReadFrequently`) ;
   - **herbe courte** (8 à 16 cm) autour du cycliste ;
+  - **rien dans la mer** (28 octobre 2026, `seaAt`) : pas d'arbre, de vache, de mouton ni de clôture là où le vrai relief SRTM est sous 0,6 m (la mer vaut ~0 m, négatif au large) ; sans relief réel chargé, pas de test. Les polders sous le niveau de la mer (Pays-Bas) sont aussi traités comme de la mer ;
   - **clôtures des prés** (`buildFurniture`) : bois à deux lisses ou piquets et fils, par tronçons de 140 m, à 6,6–8,2 m de l'axe, hors village, forêt, eau, bâtiments, autres routes et talus.
 - **Route allégée** : texture 128 × 512 (au lieu de 256 × 1024), bruit simple, marquages en aplats, filtrage anisotrope ≤ 4.
 - **Animaux et sons de campagne** (24 octobre 2026, section `animaux et sons de campagne`, `FAU`, `fauTick`, `fauCell`, `fauSounds`) :

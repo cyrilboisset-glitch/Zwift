@@ -765,6 +765,8 @@ function groundDem(x,z){let h=NaN;
    if(k===0&&DEMS.length>1){demRaw(L,x,z);const e=Math.min(_du,_dv,L.w-_du,L.h-_dv);if(e<40){const h2=demBil(DEMS[1],x,z);if(h2===h2)h=lerp(h2,h,e/40)}}
    break}}
  if(h!==h)h=demFallback(x,z);return h}
+// mer : le relief SRTM vaut ~0 m sur la mer (et devient négatif au large) ; rien à décider tant que le vrai relief n'est pas chargé
+function seaAt(x,z){for(let k=0;k<DEMS.length;k++){const h=demBil(DEMS[k],x,z);if(h===h)return h<.6}return false}
 // couches éloignées (moyen, lointain, horizon) : relief seul, sans creusement de l'eau ni micro-relief (invisibles de si loin ; le calcul de l'eau était très coûteux)
 const groundFar=(x,z)=>groundDem(x,z);
 function ground(x,z){let h=groundDem(x,z);
@@ -1376,7 +1378,7 @@ function buildFurniture(c){const ch=CHUNKS[c],Ed=NET.E[ch.e],e0=Ed.i0,e1=Ed.i1,i
      if(i%1===0&&Math.round(sd)%4<SEG){const q=P(i,o+s2*.12,null);gb.box(q[0],q[1]-.3,q[2],.1,1.05,.08,ry(i),CA(0x8f9499),6)}}}
    // clôtures des prés (bois à deux lisses ou piquets et fils), par tronçons de 140 m d'un côté ou de l'autre
    for(const s2 of[-1,1]){const blk=Math.floor(sd/140),hh=ih(Ed.id*13+blk,s2>0?3:9);if(hh>.3)continue;const o=s2*(6.6+ih(Ed.id,blk)*1.6),wood=hh<.18;
-    const a=P(i,o,null),b=P(i+1,o,null);if(Math.abs(a[1]-H[i])>2.2||nearOther(a[0],a[2])||nearOther(b[0],b[2]))continue;const mk=maskAt(a[0],a[2]);if(mk>=253||(mk>=1&&mk<=3))continue;
+    const a=P(i,o,null),b=P(i+1,o,null);if(Math.abs(a[1]-H[i])>2.2||nearOther(a[0],a[2])||nearOther(b[0],b[2]))continue;const mk=maskAt(a[0],a[2]);if(mk>=253||(mk>=1&&mk<=3)||seaAt(a[0],a[2]))continue;
     const r2=Math.atan2(b[0]-a[0],b[2]-a[2]),L=Math.hypot(b[0]-a[0],b[2]-a[2]),mx2=(a[0]+b[0])/2,mz2=(a[2]+b[2])/2,my2=(a[1]+b[1])/2;
     if(wood){gb.box(a[0],a[1]-.3,a[2],.11,1.42,.11,r2,FW,6);for(const y of[.45,.9])gb.box(mx2,my2+y,mz2,.045,.11,L+.06,r2,FW2,6)}
     else{gb.box(a[0],a[1]-.3,a[2],.07,1.38,.07,r2,FW,6);for(const y of[.35,.68,1])gb.box(mx2,my2+y,mz2,.012,.012,L,r2,FWr,6,false)}}}
@@ -1543,7 +1545,7 @@ function genCell(a,b){const r=rng(a*73856093^b*19349663^0x5bd1e995),M=cellMask(a
   // forêts allégées de 90 % (massifs IGN/OSM et arbres déduits de la photo) ; haies, vergers et peupliers inchangés
   if(!kind||rr>p*(code===VT.hedge||code===VT.orch||code===VT.pop?(VLIGHT?.5:1):code?FOREST_K:1))continue;
   const q=roadQ(x,z,_RQ2);if(q&&q.d<(kind===4?5.6:7.5))continue;
-  const y=hT(x,z);if(y>2050)continue;
+  const y=hT(x,z);if(y>2050||seaAt(x,z))continue;
   let Ht=kind===2?17+rs*15:kind===3?20+rs*10:kind===4?3+rs*4.5:11+rs*12;Ht*=sc*(1-sm(1300,2000,y)*.45);
   let col;if(kind===2){col=COL(CONI[(rc*CONI.length)|0]).multiplyScalar(.85+rs*.3)}else{const rr2=rng((i*31+j*17)^a^b);col=leafColor(rr2,y)}
   out.push({x,y,z,Ht,w:kind===3?Ht*.32:kind===2?Ht*.9:Ht*(.85+rc*.3),kind,rot:rk*6.283,rk,v:(rs*3)|0,col})}
@@ -4271,7 +4273,7 @@ const COWC=[0xb5653a,0xb5653a,0xc9a074,0x2a2522,0xf2ece2],SHEEPC=[0xece6d8,0xe2d
 // pré libre : pas de route, de bâtiment, d'eau, de forêt ni de vigne, pente douce
 function fauNearBld(x,z,R){const L=BIDX.get(vck(Math.floor(x/VC),Math.floor(z/VC)));if(L)for(const o of L)if(Math.hypot(o.cx-x,o.cz-z)<R+Math.sqrt(o.area)*.6)return o;return null}
 function fauMeadow(x,z,R){for(const[dx,dz]of[[0,0],[R,0],[-R,0],[0,R],[0,-R]]){const m=maskAt(x+dx,z+dz);if(m&&m!==VT.open&&m!==VT.heath)return false}
- const q=roadQ(x,z,_RQ2);if(q&&q.d<14)return false;if(fauNearBld(x,z,22))return false;return Math.abs(hT(x+6,z)-hT(x-6,z))<4&&Math.abs(hT(x,z+6)-hT(x,z-6))<4}
+ const q=roadQ(x,z,_RQ2);if(q&&q.d<14)return false;if(fauNearBld(x,z,22)||seaAt(x,z))return false;return Math.abs(hT(x+6,z)-hT(x-6,z))<4&&Math.abs(hT(x,z+6)-hT(x,z-6))<4}
 function* fauCell(a,b,c){const r=rng((a*92821)^(b*68917)^0x2f6b),x0=a*VC,z0=b*VC,out=[],pets=[];
  const roll=r(),kind=roll<.26?'cow':roll<.4?'sheep':null;
  if(kind)for(let t=0;t<10;t++){const x=x0+25+r()*(VC-50),z=z0+25+r()*(VC-50);if(trackDist(x,z)>320||!fauMeadow(x,z,22))continue;
