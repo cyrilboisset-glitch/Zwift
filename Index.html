@@ -1897,6 +1897,24 @@ function opening(gb,a,t,n,u,y,w,h,o){// a: origine du mur, t: direction du mur, 
   gb.quad(P(u0-w/2,y-.02,d),P(u0,y-.02,d),P(u0,y1+.02,d),P(u0-w/2,y1+.02,d),sc,[0,0,1,1],7);gb.quad(P(u1,y-.02,d),P(u1+w/2,y-.02,d),P(u1+w/2,y1+.02,d),P(u1,y1+.02,d),sc,[0,0,1,1],7)}
  if(o.roll){gb.quad(P(u0,y1-.02,-.02),P(u1,y1-.02,-.02),P(u1,y1+.18,-.02),P(u0,y1+.18,-.02),CA(0xdedad2),[0,0,1,1],6)}}
 // ---- générateur d'un bâtiment ----
+// ---- styles régionaux (ordres de grandeur) : façades, toits, volets et pentes de toit selon la région ----
+function bRegion(x,z){const[la,lo]=xz2ll(x,z);const fr=la>41.3&&la<51.2&&lo>-5.2&&lo<9.6;
+ if(fr){if(lo<-1&&la>47.2)return'bzh';if(lo<-.6&&la<43.6)return'basque';if(lo>6.8&&la>47.4&&la<49.2)return'alsace';if(la>49.8&&lo<4.3)return'nord';
+  if(la>48.5&&la<49.1&&lo>1.9&&lo<2.8)return'paris';if(la<44.6&&lo>2.8||la<43.7)return'med';return''}
+ if(Math.abs(la)<44)return'med';if(Math.abs(la)>52)return'nord';return''}
+const BREG={med:{w:[0xecc590,0xe3a877,0xf2d7a0,0xd98e63,0xefe2c4,0xe8b98e],r:[0xc4683c,0xcf7a45,0xb85d36,0xd88a52],s:[0x7fa8b8,0x8fb59a,0xa89ac9,0x5f8fa8,0xb9c48c],p:[.32,.5]},
+ bzh:{w:[0xb8b6b0,0xa9a6a0,0xf2f0ea,0xe9e6de],r:[0x4a4e55,0x55595f,0x3f4349],s:[0xffffff,0x3d6e9c,0xf2f0ea],p:[1,1.25],stone:.45,slate:1},
+ alsace:{w:[0xe9b3a2,0xa9c9e2,0xf1d98f,0xc9e1b0,0xf0e6d2,0xe7c1d9],r:[0x9a4a32,0x8c4430,0xa65538],s:[0x6b4a2e,0x3f6b4a,0x7d3a2c],p:[1.1,1.35]},
+ basque:{w:[0xf6f4ee,0xf2efe8],r:[0xb55a35,0xa64a2a],s:[0x9b1c1c,0x1f6b3a,0x8a1a1a],p:[.5,.65]},
+ nord:{w:[0xa8553c,0x9c4e36,0xb4644a,0xe8e2d6],r:[0x4e5258,0x6a3a2c,0x5b5f66],s:[0xffffff,0x2f4f6e],p:[.85,1.1],brick:.6},
+ paris:{w:[0xefe4c9,0xe8dcbc,0xf2ead6],r:[0x8a9096,0x7d848b,0x939aa1],s:[0xe8e6e0,0x5a6e7c],p:[.9,1.1],zinc:1}};
+// couleur réelle du toit lue sur la photo aérienne proche (tuile en mémoire, lue une seule fois)
+const ROOFC=new Map();
+function roofPhoto(x,z){if(!CLIP.on||!CLIP.imgs.size)return null;const[la,lo]=xz2ll(x,z),t=tlf(CLIP.z,la,lo),tx=Math.floor(t[0]),ty=Math.floor(t[1]),k=CLIP.z+'/'+tx+'/'+ty,im=CLIP.imgs.get(k);if(!im)return null;
+ let d=ROOFC.get(k);if(!d){try{const c=mkCanvas(256,256),g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,256,256);d=g.getImageData(0,0,256,256).data}catch(e){return null}ROOFC.set(k,d);if(ROOFC.size>40)ROOFC.delete(ROOFC.keys().next().value)}
+ const px=Math.floor((t[0]-tx)*256),py=Math.floor((t[1]-ty)*256);let R=0,G=0,B=0,n=0;for(let v=-1;v<=1;v++)for(let u=-1;u<=1;u++){const i=(clamp(py+v,0,255)*256+clamp(px+u,0,255))*4;R+=d[i];G+=d[i+1];B+=d[i+2];n++}
+ R/=n;G/=n;B/=n;const lum=(R+G+B)/3;if(lum<30||lum>235||G>R*1.08&&G>B*1.04)return null;// végétation (arbre au-dessus du toit) ou pixel douteux
+ return[R/255*.95,G/255*.95,B/255*.95]}
 function chooseStyle(b,r,yg){const k=b.kind,alt=sm(650,1100,yg);let st={wt:0,wc:CA(pick(r,ENDUITS)),rt:0,rc:CA(pick(r,TUILES)),pitch:.62+r()*.25,o:.55+r()*.35,g:.35+r()*.3,shut:r()<.82,sc:CA(pick(r,VOLETS)),chalet:false,roof:'gable',t0:1,plinth:r()<.7};
  // matériaux réels (BD TOPO)
  if(b.wall===1||b.wall===2){st.wt=1;st.wc=b.wall===2?CA(0xd8b890):CA(0xffffff,.95+r()*.1)}else if(b.wall===4){st.wt=2;st.wc=CA(0xffffff)}else if(b.wall===6){st.wt=3;st.wc=CA(0xb08a64,1.05)}else if(b.wall===3){st.wt=r()<.3?4:0;st.wc=CA(pick(r,[0xd6d2c8,0xcfcac0,0xe0dccf]))}
@@ -1904,6 +1922,13 @@ function chooseStyle(b,r,yg){const k=b.kind,alt=sm(650,1100,yg);let st={wt:0,wc:
  if(b.roof===2){st.rt=2;st.rc=CA(pick(r,[0x6d7076,0x5f6268,0x7a7c80]))}else if(b.roof===3){if(r()<.5){st.rt=3;st.rc=CA(pick(r,[0x6a5546,0x5d6266,0x7b4636,0x8a8d90]))}else{st.rt=7;st.rc=CA(0xa9adb0)}}
  else if(b.roof===4){st.rt=4;st.rc=CA(0xa8a49c)}else if(b.roof===1){if(r()<.35){st.rt=1;st.rc=CA(0xffffff)}else{st.rt=0;st.rc=CA(pick(r,TUILES))}}
  else{const q=r();if(q<.5){st.rt=0;st.rc=CA(pick(r,TUILES))}else if(q<.68){st.rt=1;st.rc=CA(0xffffff)}else if(q<.84){st.rt=2;st.rc=CA(0x6a6d73)}else{st.rt=3;st.rc=CA(pick(r,[0x6a5546,0x5d6266,0x7b4636]))}}
+ // région : palette de façades, toits, volets et pente propre (si l'IGN ne donne pas le matériau)
+ const rg=BREG[b.reg===undefined?(b.reg=bRegion(b.cx,b.cz)):b.reg];
+ if(rg&&k!=='ind'&&k!=='green'){if(!b.wall){if(rg.stone&&r()<rg.stone){st.wt=1;st.wc=CA(pick(r,[0xc9c6bf,0xb9b6ae]))}else if(rg.brick&&r()<rg.brick){st.wt=2;st.wc=CA(0xffffff)}else{st.wt=0;st.wc=CA(pick(r,rg.w))}}
+  if(!b.roof){if(rg.slate){st.rt=2;st.rc=CA(pick(r,rg.r))}else if(rg.zinc){st.rt=3;st.rc=CA(pick(r,rg.r))}else{st.rt=0;st.rc=CA(pick(r,rg.r))}}
+  st.sc=CA(pick(r,rg.s));st.pitch=rg.p[0]+r()*(rg.p[1]-rg.p[0]);if(b.reg==='med'){st.o=.3+r()*.15;st.shut=true}if(b.reg==='paris'&&k==='apt'){st.roof='hip';st.pitch=1.1}}
+ // toit : couleur relevée sur la photo aérienne (bâtiments de plus de 40 m²)
+ if(!b.rcol&&b.area>40){const pc=roofPhoto(b.cx,b.cz);if(pc){st.rc=pc;b.rph=1}}
  if(b.rcol){try{const c=new T.Color(b.rcol);st.rc=[c.r,c.g,c.b]}catch(e){}}if(b.col){try{const c=new T.Color(b.col);st.wc=[c.r,c.g,c.b]}catch(e){}}
  // style savoyard : chalet (bois à l'étage, grand débord, balcon)
  if((k==='house'&&(alt>.4&&r()<.7||r()<.14))){st.chalet=true;st.pitch=.45+r()*.15;st.o=1.0+r()*.4;st.g=.9+r()*.4;if(!b.roof){st.rt=r()<.5?3:2;st.rc=CA(st.rt===3?pick(r,[0x5a4a3e,0x6e5a48,0x4e5256]):0x66696e)}}
