@@ -744,12 +744,23 @@ function slopeLimit(i0,i1,pin){const n=i1-i0+1;if(n<3)return;const Ha=H[i0],Hb=H
   if(pin){const d0=SD[i0+q]-SD[i0],d1=L-d0,a=Math.max(Ha-GMAX*d0,Hb-GMAX*d1),b=Math.min(Ha+GMAX*d0,Hb+GMAX*d1);h=a<=b?clamp(h,a,b):Ha+(Hb-Ha)*(d0/(L||1))}
   H[i0+q]=h}}
 // hauteurs de route : altitude Strava (ou interpolée), recalée en douceur sur le relief réel quand il est disponible
+// lissage par moyennes glissantes répétées (≈ gaussienne), bords compris
+// bords prolongés par symétrie autour du dernier point (garde la pente au bout : pas de marche aux jonctions)
+function boxSmooth(E,r,pass){const n=E.length;if(n<3)return E;const P=Math.min(n-1,r*pass),m=n+2*P,A=new Float64Array(m),pre=new Float64Array(m+1);
+ for(let q=0;q<m;q++){const k=q-P;A[q]=k<0?2*E[0]-E[-k]:k>=n?2*E[n-1]-E[2*(n-1)-k]:E[k]}
+ for(let p=0;p<pass;p++){pre[0]=0;for(let q=0;q<m;q++)pre[q+1]=pre[q]+A[q];const B=new Float64Array(m);
+  for(let q=0;q<m;q++){const a=Math.max(0,q-r),b=Math.min(m,q+r+1);B[q]=(pre[b]-pre[a])/(b-a)}A.set(B)}
+ for(let q=0;q<n;q++)E[q]=A[q+P];return E}
+// altitude du GPS : pics retirés (médiane sur 45 m), bruit mesuré pour choisir la force du lissage (25 à 80 m)
+function altClean(E){const n=E.length,M=new Float32Array(n),w=[];for(let q=0;q<n;q++){w.length=0;for(let m=-4;m<=4;m++)w.push(E[clamp(q+m,0,n-1)]);w.sort((a,b)=>a-b);M[q]=w[4]}
+ const S=boxSmooth(Float32Array.from(M),20,2);let r=0;for(let q=0;q<n;q++)r+=(M[q]-S[q])**2;r=Math.sqrt(r/Math.max(1,n));
+ E.set(M);return clamp(Math.round(5+r*6),5,16)}
 function finishTrack(demFn){
- for(const Ed of NET.E){const i0=Ed.i0,i1=Ed.i1,n=i1-i0+1,E=E0.slice(i0,i1+1);
+ for(const Ed of NET.E){const i0=Ed.i0,i1=Ed.i1,n=i1-i0+1,E=E0.slice(i0,i1+1),sig=altClean(E);
   if(demFn){const off=new Float32Array(n);for(let q=0;q<n;q++){const d=demFn(X[i0+q],Z[i0+q]);off[q]=isFinite(d)?d-E[q]:0}
    const W=Ed.c?10:60,pre=new Float64Array(n+1);for(let q=0;q<n;q++)pre[q+1]=pre[q]+off[q];
    for(let q=0;q<n;q++){const a=Math.max(0,q-W),b=Math.min(n,q+W+1);E[q]+=(pre[b]-pre[a])/(b-a)}}
-  for(let q=0;q<n;q++){let a=0,c=0;for(let m=-6;m<=6;m++){const r=q+m;if(r>=0&&r<n){a+=E[r];c++}}H[i0+q]=a/c}
+  boxSmooth(E,Math.max(2,Math.round(sig*.9)),3);for(let q=0;q<n;q++)H[i0+q]=E[q];Ed.altSig=sig;
   slopeLimit(i0,i1)}
  // carrefours : même altitude pour toutes les routes qui s'y rejoignent
  for(const nd of NET.ND){if(!nd)continue;let s2=0;for(const o of nd.ed){const E=NET.E[o.e];s2+=H[o.d>0?E.i0:E.i1]}const hn=s2/nd.ed.length;nd.y=hn;
