@@ -27,13 +27,15 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - **Relief** : tuiles d'altitude AWS Terrarium (SRTM) en trois niveaux (z12 proche, z10 lointain, z8 horizon). Couches de terrain : couloir le long des routes, tuiles proches, moyennes, lointain, anneau d'horizon.
   - Courbure terrestre au-delà de 3 km.
   - Relief de secours procédural quand on est hors ligne.
-- **Photos aériennes IGN** (Géoplateforme WMTS), avec ArcGIS World Imagery en secours, en 4 couches :
+- **Photos aériennes IGN** (Géoplateforme WMTS), avec ArcGIS World Imagery en secours, en 4 couches. L'IGN renvoie une image toute blanche (≈ 1,6 Ko) hors de France et sur la mer : une tuile IGN de moins de 2 600 octets est ignorée et prise chez ArcGIS (`loadBitmap(url, ms, minSz)`, `PHOTO.blank`) ; après plus de 40 tuiles blanches pour moins de 10 % de vraies, ArcGIS passe en premier (parcours hors de France) :
   - z8 pour l'horizon ;
   - z11 pour le lointain ;
   - z13 pour la zone moyenne ;
   - z16 pour la photo proche, qui suit la caméra.
 - **Bâtiments réels** IGN BD TOPO (WFS), avec repli sur OpenStreetMap (Overpass), puis sur des bâtiments procéduraux.
   - Toits variés, fenêtres percées, volets, balcons, églises.
+  - **Hors de France et parties de monuments** (29 octobre 2026) : l'IGN répond « rien » sans erreur hors de France ; une zone où il ne renvoie ni bâtiment, ni route, ni eau, ni végétation passe à OpenStreetMap (`loadTileWFS` lève « hors IGN »). OSM : parties de bâtiments (`building:part`, `min_height`, `building:min_level` → `b.minH`, parties surélevées sans fenêtres percées) et contour englobant caché (`partOutlines`, `b.skip`) ; formes de toit `pyramidal`, `dome`, `onion`, `cone` → toit en croupe, `skillion` → plat ; hauteur plafonnée à 330 m (45 m avant) ; au-delà de 40 m, fenêtres peintes (pas percées).
+  - **Tests avec les vraies données** (29 octobre 2026, banc avec accès à l'IGN, à ArcGIS et au relief, OpenStreetMap bloqué, qualité Tablette) : Nice (37 tuiles blanches IGN remplacées par ArcGIS, 42 palmiers, 50 pins parasols, 27 oliviers), Champs-Élysées (5 341 bâtiments IGN, 973 000 triangles affichés contre 3,2 millions dans le diagnostic de Cyril), Turin (IGN abandonné, photos ArcGIS ; bâtiments procéduraux faute d'OpenStreetMap sur le banc). Moment de la journée vérifié en captures (midi, coucher, aube, nuit).
   - **Villes denses** (28 octobre 2026, après un diagnostic sur les Champs-Élysées : 8 210 bâtiments, 3,2 millions de triangles, 19 images/s sur un Mali-G615) : au plus `BCAP` bâtiments par tuile de 512 m (Tablette 220 proches / 110 loin, Basse 360/180, Moyenne 600/320, Élevée 900/480, Ultra 1 300/700), **les plus proches du parcours d'abord** (`bldPick`, distance `b.td`) ; dans une tuile dense, fenêtres et balcons seulement à moins de `BDET` m du parcours (40 m en Tablette) ; en Tablette/Basse, bâtiments gardés jusqu'à 750 m du parcours (au lieu de 1 050). Mesuré sur une ville simulée (14 600 immeubles) en Tablette : 4,8 millions → 210 000 triangles, construction 17 s → 3 s.
 - **Végétation** : forêts IGN/OSM et arbres déduits de la photo aérienne, avec niveaux de détail.
   - Haies, vergers, vignes.
@@ -160,7 +162,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - **Musique d'ambiance** générée (`MUS`, `musTick`), cloches de vaches et cloches d'église (`countrySounds`, `churchBell` à l'entrée des villages).
 - **Météo retirée** (fin octobre 2026, à la demande de Cyril : la pluie faisait ramer l'appli) : plus de pluie, neige, brouillard ni météo réelle (Open-Meteo n'est plus appelé). Ciel normal.
   - **Vent retiré** aussi (fin octobre 2026) : air calme (`WX` à zéro, `wxHead` renvoie 0), plus d'option ni de champ « Vent » dans le HUD ; le home trainer ne reçoit que la vraie pente et l'aspiration.
-- **Moment de la journée** (`todApply`) : heure réelle, jour, coucher de soleil, nuit. La nuit : phare renforcé (portée 120 m), feu arrière clignotant.
+- **Moment de la journée** (`SET.tod`, `TODS`, `TODE`, `todHA` dans `skyUpdate` ; Réglages → Préférences ou **menu ☰ pendant la sortie**, liste « Moment ») : heure réelle, aube (soleil à −4,5°), lever (+1,5°), matin (+22°), midi solaire, après-midi (+28°), coucher (+1,5°), crépuscule (−4,5°), minuit solaire. Le soleil est placé à cette hauteur pour la date du jour et la latitude du parcours (angle horaire calculé), la lune suit. La nuit : phare renforcé (portée 120 m), feu arrière clignotant.
 - **HUD personnalisable** (`HUDF`, `hudApply`) : champs au choix (vitesse, puissance, puissance 3 s, W/kg, NP, cadence, pente, cardio coloré par zone, distance, reste, altitude, D+, temps, kcal) et grand format.
 
 ### Piétons et promeneurs

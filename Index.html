@@ -255,7 +255,7 @@ async function cachedBlob(url,ms){await cacheReady;
  if(CACHE){try{const r=await CACHE.match(url);if(r)return await r.blob()}catch(e){}}
  const r=await fetchT(url,{mode:'cors'},ms||20000);const b=await r.blob();
  if(CACHE&&b.size>0){try{await CACHE.put(url,new Response(b))}catch(e){}}return b}
-async function loadBitmap(url,ms){const b=await cachedBlob(url,ms);
+async function loadBitmap(url,ms,minSz){const b=await cachedBlob(url,ms);if(minSz&&b.size<minSz)throw new Error('vide');
  if(self.createImageBitmap){try{return await createImageBitmap(b)}catch(e){}}
  return await new Promise((ok,ko)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=ko;im.src=URL.createObjectURL(b)})}
 // limiteur de requêtes simultanées
@@ -398,8 +398,13 @@ function updateEnv(){try{if(!pmrem)pmrem=new T.PMREMGenerator(ren);if(envRT)envR
 
 // ---- astronomie (soleil/lune à l'heure réelle) ----
 const CNT=[COL(0x060a1c),COL(0x2a3266),COL(0x2f74cf)],CHZ=[COL(0x141c30),COL(0xf2a06a),COL(0xc9dcee)],GLW=COL(0xff9a50);
+// moment choisi : [hauteur du soleil en degrés, côté (-1 matin, +1 soir)] ; 'day' = midi solaire, 'night' = minuit solaire
+const TODS=[['real','🕒 Heure réelle'],['dawn','🌄 Aube'],['sunrise','🌅 Lever du soleil'],['morning','☀️ Matin'],['day','🌞 Midi'],['afternoon','🌤️ Après-midi'],['sunset','🌇 Coucher du soleil'],['dusk','🌆 Crépuscule'],['night','🌙 Nuit']];
+const TODE={dawn:[-4.5,-1],sunrise:[1.5,-1],morning:[22,-1],afternoon:[28,1],sunset:[1.5,1],dusk:[-4.5,1]};
+function todHA(la,dec){let k='real';try{k=SET.tod}catch(e){}if(k==='day')return 0;if(k==='night')return Math.PI;const t=TODE[k];if(!t)return null;
+ const c=(Math.sin(t[0]*Math.PI/180)-Math.sin(la)*Math.sin(dec))/(Math.cos(la)*Math.cos(dec));return t[1]*Math.acos(clamp(c,-1,1))}
 function skyUpdate(lat,lon){const d=new Date(),D=Math.PI/180,doy=(d-new Date(d.getFullYear(),0,0))/864e5,dec=23.44*D*Math.sin(6.283*(doy-81)/365),B=6.283*(doy-81)/364,
- eq=9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B),la=(lat||45.43)*D,lo=lon||6.02,ut=d.getUTCHours()+d.getUTCMinutes()/60+d.getUTCSeconds()/3600,ha=(ut+lo/15+eq/60-12)*15*D,
+ eq=9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B),la=(lat||45.43)*D,lo=lon||6.02,ut=d.getUTCHours()+d.getUTCMinutes()/60+d.getUTCSeconds()/3600,haT=todHA(la,dec),ha=haT!==null?haT:(ut+lo/15+eq/60-12)*15*D,
  pos=(h,dc,o)=>{const e=Math.asin(Math.sin(la)*Math.sin(dc)+Math.cos(la)*Math.cos(dc)*Math.cos(h)),az=Math.atan2(Math.sin(h),Math.cos(h)*Math.sin(la)-Math.tan(dc)*Math.cos(la))+Math.PI;o.set(Math.cos(e)*Math.sin(az),Math.sin(e),-Math.cos(e)*Math.cos(az));return e};
  if(FORCE_SUN){SUN.copy(FORCE_SUN).normalize();}else pos(ha,dec,SUN);
  const age=(((d.getTime()-947182440000)/2551442877)%1+1)%1;pos(ha-6.283*age,dec*Math.cos(6.283*age),MD);
@@ -878,13 +883,16 @@ function addCurv(m,key){const ob=m.onBeforeCompile;m.onBeforeCompile=(sh,r)=>{if
  m.customProgramCacheKey=()=>'curv'+(key||'');return m}
 
 // ---------- imagerie aérienne ----------
-const PHOTO={fail:0,ok:0,dead:false};
+const PHOTO={fail:0,ok:0,dead:false,ign:0,blank:0};
 const PHOTO_SRCS=[
  (z,x,y)=>`https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&FORMAT=image/jpeg`,
  (z,x,y)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`];
 let photoSrcI=0;
+// l'IGN renvoie une image toute blanche (≈ 1,6 Ko) hors de France et sur la mer : on prend alors ArcGIS pour cette tuile
 async function photoTile(z,x,y){if(PHOTO.dead)throw new Error('off');
- for(let k=0;k<PHOTO_SRCS.length;k++){const si=(photoSrcI+k)%PHOTO_SRCS.length;try{const b=await LIM_TILE(()=>loadBitmap(PHOTO_SRCS[si](z,x,y),20000));if(!b||!b.width)throw 0;photoSrcI=si;PHOTO.ok++;return b}catch(e){}}
+ let blank=false;for(let k=0;k<PHOTO_SRCS.length;k++){const si=(photoSrcI+k)%PHOTO_SRCS.length;try{const b=await LIM_TILE(()=>loadBitmap(PHOTO_SRCS[si](z,x,y),20000,si===0?2600:0));if(!b||!b.width)throw 0;
+   if(si===0)PHOTO.ign++;if(!blank)photoSrcI=si;PHOTO.ok++;return b}
+  catch(e){if(si===0&&e&&e.message==='vide'){blank=true;PHOTO.blank++;if(PHOTO.blank>40&&PHOTO.ign<PHOTO.blank*.1)photoSrcI=1}}}// presque tout blanc : parcours hors de France
  PHOTO.fail++;if(PHOTO.fail>30&&PHOTO.ok<PHOTO.fail*.15)PHOTO.dead=true;throw new Error('photo')}
 // uv d'une mosaïque mercator : u linéaire en x, v quadratique en z
 function mosaicUV(z,px0,py0,W,Hh,U,Vv){const n=2**z*256;
@@ -1103,8 +1111,8 @@ function addBuilding(id,ring,P){if(DATA.bld.has(id))return;let p=simplify(ring,.
  if(trackDist(cx,cz)<260){for(let i=0;i<p.length;i++){const a=p[i],c=p[(i+1)%p.length];for(const t of[0,.5]){const q=roadQ(a[0]+(c[0]-a[0])*t,a[1]+(c[1]-a[1])*t,_RQ2);if(q&&q.d<5.2&&!q.end)return}}
   const q=roadQ(cx,cz,_RQ2);if(q&&q.d<5.2)return}
  const kind=bKind(P.nat,P.use,P.lev,area,P.light);
- const b={id,p,cx,cz,area,kind,lev:P.lev||0,h:P.h||0,ridge:P.ridge||0,wall:P.wall||0,roof:P.roof||0,roofShape:P.roofShape||'',col:P.col||'',rcol:P.rcol||'',name:P.name||'',bb:bboxOf([p])};
- DATA.bld.set(id,b);idxAdd(BIDX,b);DATA.n.b++;if(typeof onBuilding==='function')onBuilding(b)}
+ const b={id,p,cx,cz,area,kind,lev:P.lev||0,h:P.h||0,ridge:P.ridge||0,wall:P.wall||0,roof:P.roof||0,roofShape:P.roofShape||'',col:P.col||'',rcol:P.rcol||'',name:P.name||'',minH:P.minH||0,part:!!P.part,bb:bboxOf([p])};
+ DATA.bld.set(id,b);idxAdd(BIDX,b);DATA.n.b++;if(b.part)PARTNEW.push(b);if(typeof onBuilding==='function')onBuilding(b)}
 const firstDigit=s=>{s=String(s||'');for(const c of s)if(c>'0'&&c<='9')return+c;return 0};
 function parseBDTopoBld(f){const p=f.properties||{},R=geoRings(f.geometry);
  const P={nat:p.nature,use:p.usage_1,lev:+p.nombre_d_etages||0,h:+p.hauteur||0,light:!!p.construction_legere,wall:firstDigit(p.materiaux_des_murs),roof:firstDigit(p.materiaux_de_la_toiture),
@@ -1137,6 +1145,8 @@ async function loadTileWFS(a,b){const[s,w,n,e]=tileLL(a,b),wid=WID;
   wfs('BDTOPO_V3:troncon_de_route',s,w,n,e,3).catch(()=>null)]);
  wfs('BDTOPO_V3:zone_d_activite_ou_d_interet',s,w,n,e,1).then(Z=>{if(wid===WID&&Z)for(const f of Z)parseZoneAct(f)}).catch(()=>{});// écoles
  if(wid!==WID)throw STALE;
+ // hors de France, l'IGN répond « rien » sans erreur : on passe alors à OpenStreetMap
+ if(!B.length&&!(Rt&&Rt.length)&&!(W&&W.length)&&!(Vg&&Vg.length))throw new Error('hors IGN');
  await sliced(B,parseBDTopoBld,wid);
  // autres routes : tronçons IGN, sinon OpenStreetMap
  if(Rt&&Rt.length)await sliced(Rt,parseBDTopoRoute,wid);else loadOSMRoads(a,b).catch(e=>{if(e!==STALE)console.warn('routes OSM',e&&e.message)});
@@ -1153,16 +1163,16 @@ function osmRings(el){const g=p=>[p.lon,p.lat];
  if(el.type==='way'&&el.geometry)return[[el.geometry.map(g).map(cxz)]];
  if(el.type==='relation'&&el.members){const out=stitch(el.members.filter(m=>m.role!=='inner'&&m.geometry).map(m=>m.geometry.map(g))),inn=stitch(el.members.filter(m=>m.role==='inner'&&m.geometry).map(m=>m.geometry.map(g)));
   return out.map(o=>[o.map(cxz),...inn.map(i=>i.map(cxz))])}return[]}
-function osmBld(el){const t=el.tags||{},lv=+t['building:levels']||0,h=parseFloat(t.height)||0,mat=(t['building:material']||'').toLowerCase(),rm=(t['roof:material']||'').toLowerCase();
- const P={nat:t.building==='yes'?(t.amenity==='place_of_worship'?'church':''):t.building,use:t.amenity||t.shop||'',lev:lv,h:h?Math.max(2.5,h-(parseFloat(t['roof:height'])||0)):0,ridge:parseFloat(t['roof:height'])||0,
+function osmBld(el){const t=el.tags||{},part=!t.building&&!!t['building:part'],lv=+t['building:levels']||0,h=parseFloat(t.height)||0,mat=(t['building:material']||'').toLowerCase(),rm=(t['roof:material']||'').toLowerCase();
+ const P={part,minH:parseFloat(t.min_height)||(+t['building:min_level']||0)*2.85,nat:part?(t['building:part']==='yes'?'':t['building:part']):t.building==='yes'?(t.amenity==='place_of_worship'?'church':''):t.building,use:t.amenity||t.shop||'',lev:lv,h:h?Math.max(2.5,h-(parseFloat(t['roof:height'])||0)):0,ridge:parseFloat(t['roof:height'])||0,
   wall:/stone|pierre/.test(mat)?1:/brick/.test(mat)?4:/concrete|beton/.test(mat)?3:/wood|timber/.test(mat)?6:0,roof:/tile/.test(rm)?1:/slate/.test(rm)?2:/metal|zinc|tin/.test(rm)?3:/concrete/.test(rm)?4:0,
   roofShape:t['roof:shape']||'',col:t['building:colour']||'',rcol:t['roof:colour']||'',name:t.name||''};
  osmRings(el).forEach((poly,k)=>addBuilding('o'+el.id+'/'+k,poly[0],P))}
 async function loadTileOSM(a,b){const[s,w,n,e]=tileLL(a,b),bb=`(${s.toFixed(5)},${w.toFixed(5)},${n.toFixed(5)},${e.toFixed(5)})`;
- const q=`[out:json][timeout:90];(way["building"]${bb};relation["building"]${bb};way["landuse"~"^(forest|vineyard|orchard)$"]${bb};relation["landuse"="forest"]${bb};way["natural"~"^(wood|water|scrub)$"]${bb};relation["natural"~"^(wood|water)$"]${bb};way["waterway"="riverbank"]${bb};way["barrier"="hedge"]${bb};way["natural"="tree_row"]${bb};way["highway"]${bb};);out geom;`;
+ const q=`[out:json][timeout:90];(way["building"]${bb};relation["building"]${bb};way["building:part"]${bb};relation["building:part"]${bb};way["landuse"~"^(forest|vineyard|orchard)$"]${bb};relation["landuse"="forest"]${bb};way["natural"~"^(wood|water|scrub)$"]${bb};relation["natural"~"^(wood|water)$"]${bb};way["waterway"="riverbank"]${bb};way["barrier"="hedge"]${bb};way["natural"="tree_row"]${bb};way["highway"]${bb};);out geom;`;
  const wid=WID,j=await overpass(q,45000);let nb=0;if(wid!==WID)throw STALE;
  await sliced(j.elements||[],el=>{const t=el.tags||{};
-  if(t.building){osmBld(el);nb++;if(t.building==='school'||t.amenity==='school'){const R=osmRings(el);if(R[0]&&R[0][0]){const[cx,cz]=polyCentroid(R[0][0]);addSchool(cx,cz,t.name)}}return}
+  if(t.building||t['building:part']){osmBld(el);nb++;if(t.building==='school'||t.amenity==='school'){const R=osmRings(el);if(R[0]&&R[0][0]){const[cx,cz]=polyCentroid(R[0][0]);addSchool(cx,cz,t.name)}}return}
   if(t.highway){osmRoad(el);return}
   if(t.natural==='water'||t.waterway==='riverbank'){osmRings(el).forEach((r,k)=>addWater('ow'+el.id+'/'+k,r,t.water||'water'));return}
   if(NOVEG&&!(t.natural==='water'||t.waterway==='riverbank'))return;
@@ -1170,7 +1180,11 @@ async function loadTileOSM(a,b){const[s,w,n,e]=tileLL(a,b),bb=`(${s.toFixed(5)},
      for(let i=0;i<L.length;i++){const A=L[Math.max(0,i-1)],B=L[Math.min(L.length-1,i+1)],dx=B[0]-A[0],dz=B[1]-A[1],ll=Math.hypot(dx,dz)||1;l.push([L[i][0]-dz/ll*W,L[i][1]+dx/ll*W]);r.push([L[i][0]+dz/ll*W,L[i][1]-dx/ll*W])}
      addVeg('oh'+el.id,[l.concat(r.reverse())],VT.hedge)}}return}
   const ty=vegType(t.landuse||t.natural,t.leaf_type||'');osmRings(el).forEach((r,k)=>addVeg('ov'+el.id+'/'+k,r,ty))},wid);
- return nb}
+ partOutlines();return nb}
+// monuments décrits par parties (OSM building:part : tours, dômes, étages en retrait) : on dessine les parties et on cache le contour qui les englobe
+const PARTNEW=[];
+function partOutlines(){while(PARTNEW.length){const b=PARTNEW.pop(),L=BIDX.get(vck(Math.floor(b.cx/VC),Math.floor(b.cz/VC)));if(!L)continue;
+  for(const o of L)if(!o.part&&!o.skip&&o.area>=b.area*.9&&inPoly(o.p,b.cx,b.cz)){o.skip=true;const t=BT.get(bkey(Math.floor(o.cx/BTS),Math.floor(o.cz/BTS)));if(t)t.dirty++}}}
 // ---- autres routes et rues (jamais roulées) : seulement affichées, on ne peut pas y rouler ----
 // cellules de 512 m -> tronçons ; leurs emprises entrent aussi dans les masques (pas d'arbre ni d'herbe dessus)
 const ORC=512,ORL=new Map(),ORIDS=new Set(),ORIDX=new Map();let MAPV=0;// MAPV : change quand le fond de la mini-carte doit être redessiné
@@ -1777,9 +1791,9 @@ function chooseStyle(b,r,yg){const k=b.kind,alt=sm(650,1100,yg);let st={wt:0,wc:
  if(k==='shed'||k==='garage'){st.roof=r()<.55?'shed':'gable';st.pitch=.25+r()*.3;st.o=.3;st.shut=false;if(k==='shed'&&!b.wall){st.wt=3;st.wc=CA(0xa07850)}if(!b.roof&&r()<.5){st.rt=3;st.rc=CA(pick(r,[0x6a5546,0x5d6266]))}}
  if(k==='ind'||k==='com'){st.roof=b.area>420||r()<.5?'flat':'gable';st.pitch=.18;st.o=.25;st.shut=false;if(!b.wall){st.wt=k==='ind'?5:0;st.wc=k==='ind'?CA(pick(r,[0xb9bec2,0xcfd2d4,0x9aa7b0,0xc8b89a])):CA(pick(r,[0xe8e4dc,0xd6d2c8]))}if(st.roof==='flat'){st.rt=4;st.rc=CA(0xa8a49c)}else{st.rt=3;st.rc=CA(pick(r,[0x8a8d90,0x6a5546]))}}
  if(k==='green'){st.wt=6;st.wc=CA(0xdfe9ee);st.rt=5;st.rc=CA(0xe8eef0);st.pitch=.4;st.o=.05;st.shut=false}
- if(b.roofShape==='flat')st.roof='flat';else if(b.roofShape==='hipped')st.roof='hip';else if(b.roofShape==='gabled')st.roof='gable';else if(b.roofShape==='half-hipped')st.t0=.68;
+ if(b.roofShape==='flat')st.roof='flat';else if(b.roofShape==='hipped')st.roof='hip';else if(b.roofShape==='gabled')st.roof='gable';else if(b.roofShape==='half-hipped')st.t0=.68;else if(/^(pyramidal|dome|onion|cone|round|mansard)$/.test(b.roofShape))st.roof='hip';else if(b.roofShape==='skillion')st.roof='flat';
  return st}
-function bHeight(b,r){if(b.h>2)return Math.min(b.h,45);const k=b.kind,l=b.lev;
+function bHeight(b,r){if(b.h>2)return Math.min(b.h,330);const k=b.kind,l=b.lev;
  if(l)return l*2.85+.35+(k==='house'?.2:0);
  return k==='house'?5.4+r()*1.6:k==='apt'?9+r()*6:k==='barn'?6+r()*2.5:k==='shed'?2.4+r()*.8:k==='garage'?2.5+r()*.4:k==='ind'?6.5+r()*4:k==='com'?4.5+r()*2:k==='church'?11:k==='chapel'?6:k==='pub'?8+r()*3:k==='castle'?11:k==='green'?3:6}
 // mur percé : bandes horizontales entre les ouvertures (les vitres en retrait restent visibles)
@@ -1792,7 +1806,7 @@ function wallHoles(wg,a,c,L,y0,y1,ops,col,wt,emi){const s=WSC[wt],tx=(c[0]-a[0])
 function buildOne(b,det,wg,rg){const r=rng(parseInt(strHash(b.id),36)),p=b.p;
  let yMin=1e9,yMax=-1e9;for(const q of p){const y=hT(q[0],q[1]);if(y<yMin)yMin=y;if(y>yMax)yMax=y}{const y=hT(b.cx,b.cz);if(y<yMin)yMin=y;if(y>yMax)yMax=y}
  if(b.kind==='church'||b.kind==='chapel')return buildChurch(b,r,yMin,yMax,det,wg,rg);
- const st=chooseStyle(b,r,yMin);let h=bHeight(b,r);const ye=Math.max(yMin+h,yMax+2.3),y0=yMin-.7;
+ const st=chooseStyle(b,r,yMin);let h=bHeight(b,r);const lift=b.minH>1.5&&b.minH<h-1?b.minH:0,ye=Math.max(yMin+h,yMax+2.3),y0=lift?yMin+lift:yMin-.7;if(lift||h>40)det=false;// partie surélevée ou tour : fenêtres peintes (pas percées)
  const o=obb(p),fill=b.area/(4*o.A*o.B),flat=st.roof==='flat'||b.area>2500||(fill<.72&&!rectilinear(p,o)),par=flat?(b.kind==='ind'||b.kind==='com'||b.kind==='apt'?.7:.35):0;
  const tall=b.kind==='apt'||b.kind==='pub'||b.kind==='com'||b.kind==='castle',isHouse=b.kind==='house'||b.kind==='apt'||b.kind==='pub'||b.kind==='castle'||b.kind==='com';
  // ---- ouvertures (calculées avant les murs pour pouvoir les percer) ----
@@ -1878,8 +1892,8 @@ function buildChurch(b,r,yMin,yMax,det,wg,rg){const o=obb(b.p),big=b.kind==='chu
 // villes denses (Paris…) : au plus BCAP bâtiments par tuile de 512 m, les plus proches du parcours d'abord (la première rangée cache les suivantes) ;
 // détails (fenêtres, balcons) seulement près du parcours quand la tuile est dense
 const BCAP={tab:[220,110],low:[360,180],med:[600,320],high:[900,480],ultra:[1300,700]}[QK]||[600,320],BDET=QK==='tab'?40:QK==='low'?55:80;
-function bldPick(t,lod){const cap=BCAP[lod?1:0];for(const b of t.L)if(b.td===undefined)b.td=trackDist(b.cx,b.cz);
- if(t.L.length<=cap)return{L:t.L,dense:false};return{L:t.L.slice().sort((a,c)=>a.td-c.td).slice(0,cap),dense:true}}
+function bldPick(t,lod){const cap=BCAP[lod?1:0],A=t.L.some(b=>b.skip)?t.L.filter(b=>!b.skip):t.L;for(const b of A)if(b.td===undefined)b.td=trackDist(b.cx,b.cz);
+ if(A.length<=cap)return{L:A,dense:false};return{L:A.slice().sort((a,c)=>a.td-c.td).slice(0,cap),dense:true}}
 function* buildTile(t,lod){const det=lod===0,G=new T.Group();G.matrixAutoUpdate=false;let wg=new GB(true),rg=new GB(true),n=0,t0=performance.now();
  const PK=bldPick(t,lod);
  const flush=()=>{if(wg.count){const m=new T.Mesh(wg.geo(),WALLM);m.castShadow=m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}
@@ -3305,7 +3319,7 @@ const WX={wind:0,wfrom:0,head:0,rain:0,snow:0,fogK:1};
 function wxApply(){WX.wind=0;WX.head=0;WX.fogK=1;WX.rain=WX.snow=0;GU.uWind.value=1}
 function wxHead(){return 0}
 // ---- moment de la journée : heure réelle, jour, coucher de soleil, nuit ----
-function todApply(){FORCE_SUN=SET.tod==='day'?V(.4,.6,.5):SET.tod==='sunset'?V(-.95,.05,.3):SET.tod==='night'?V(.3,-.4,.5):null;skT=-1e9}
+function todApply(){skT=-1e9;const el=$('todsel');if(el)el.value=SET.tod||'real'}
 // ====================== sprints aux pancartes (arches lumineuses de départ et d'arrivée) et côtes (arches de grimpeur) ======================
 // texture de LED qui défilent (partagée par toutes les arches, animée dans la boucle)
 const LEDTX=(()=>{const k=mkCanvas(128,16),g=k.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,128,16);for(let i=0;i<8;i++){const gr=g.createRadialGradient(i*16+8,8,0,i*16+8,8,8);gr.addColorStop(0,'#fff');gr.addColorStop(.4,i%2?'#ffd23f':'#ffffff');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(i*16,0,16,16)}
@@ -3536,7 +3550,7 @@ function prefRender(){const ch=(key,L)=>'<div class="chips" data-p="'+key+'">'+L
   '<div class="gq">Commentateur vocal</div>'+ch('voice',[[1,'🔊 Activé'],[0,'Coupé']])+'<div class="gq">Coach pendant les séances</div>'+ch('coach',[[1,'Activé'],[0,'Coupé']])+'<button id="pvt">▶ Tester la voix</button>'+
   '<div class="gq">Musique d\'ambiance</div>'+ch('mus',[[0,'Aucune'],[1,'Calme'],[2,'Motivation']])+'<label>Volume musique <input id="pmv" type="range" min="0" max="1" step=".05" value="'+SET.musV+'"></label>'+
   '<label>Sons de la nature <input id="pnv" type="range" min="0" max="1.5" step=".05" value="'+SET.natV+'"></label>'+
-  '<div class="gq">Moment de la journée</div>'+ch('tod',[['real','Heure réelle'],['day','Jour'],['sunset','Coucher de soleil'],['night','Nuit']])+
+  '<div class="gq">Moment de la journée</div>'+ch('tod',TODS)+
   '<div class="gq">Profil</div><div class="row" style="flex-wrap:wrap;align-items:center"><label>FC max <input id="pfc" type="number" min="120" max="220" value="'+SET.fcmax+'"> bpm</label><label>Poids cycliste <input id="pkg" type="number" min="35" max="200" step=".5" value="'+(SET.rkg||'')+'" placeholder="'+nf(riderKg(),1)+'"> kg</label></div>'+
   '<div class="gq">Affichage pendant la sortie</div><div class="chips" id="phd">'+HUDF.map(([k,t])=>'<button data-v="'+k+'"'+(SET.hud.includes(k)?' class="on"':'')+'>'+t+'</button>').join('')+'</div>'+ch('hudBig',[[0,'Taille normale'],[1,'Grands chiffres']]);
  $('pfb').querySelectorAll('.chips[data-p] button').forEach(b=>b.onclick=()=>{const k=b.parentNode.dataset.p,v2=b.dataset.v;SET[k]=/^-?\d+(\.\d+)?$/.test(v2)?+v2:v2;ssave();
@@ -4753,6 +4767,8 @@ function drawMap(){const c=$('map');if(!c||!N)return;const W=c.width,g=c.getCont
  for(const k of['ultra','high','med','low','tab']){const o=document.createElement('option');o.value=k;o.textContent=QPRE[k].n+(k==='tab'?' (Redmi Pad)':'')+(k===QK?' (actuelle)':'');if(k===QK)o.selected=true;sel.appendChild(o)}
  const lab=document.createElement('label');lab.textContent='Qualité ';lab.appendChild(sel);t.appendChild(lab);sel.onchange=()=>{try{localStorage.v3q2=sel.value}catch(e){}say('Qualité « '+QPRE[sel.value].n+' » : rechargement…');setTimeout(()=>location.reload(),600)};
  const vb2=document.createElement('button');vb2.textContent='🎥 Changer de vue';vb2.onclick=nextView;t.appendChild(vb2);
+ const ts=document.createElement('select');ts.id='todsel';for(const[k,n]of TODS){const o=document.createElement('option');o.value=k;o.textContent=n;ts.appendChild(o)}ts.value=SET.tod||'real';
+ const tl=document.createElement('label');tl.textContent='Moment ';tl.appendChild(ts);t.appendChild(tl);ts.onchange=()=>{SET.tod=ts.value;ssave();todApply()};
  const h2=document.createElement('h4');h2.textContent='Itinéraire';t.appendChild(h2);
  const ut=document.createElement('button');ut.textContent='↶ Demi-tour';ut.onclick=()=>{uTurn();$('top').style.display='none'};t.appendChild(ut);
 
