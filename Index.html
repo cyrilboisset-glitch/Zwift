@@ -38,13 +38,9 @@ h1{margin:0;font:800 clamp(28px,7vw,52px)/1 var(--num);letter-spacing:.06em;back
 .scr.out{display:block;position:absolute;pointer-events:none;animation:scrOut .22s ease-in both;z-index:1}.scr.out.bk{animation-name:scrOutB}
 @keyframes scrIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}@keyframes scrInB{from{opacity:0;transform:scale(1.07)}to{opacity:1;transform:none}}
 @keyframes scrOut{to{opacity:0;transform:scale(1.08)}}@keyframes scrOutB{to{opacity:0;transform:scale(.9)}}
-.scr.anim .cards>*,.scr.anim .scrl>*,.scr.anim>.hw,.scr.anim #wl>*{animation:itIn .42s cubic-bezier(.2,.8,.2,1) both}
-.scr.anim .cards>*:nth-child(2),.scr.anim .scrl>*:nth-child(2),.scr.anim #wl>*:nth-child(2){animation-delay:.04s}.scr.anim .cards>*:nth-child(3),.scr.anim .scrl>*:nth-child(3),.scr.anim #wl>*:nth-child(3){animation-delay:.08s}
-.scr.anim .cards>*:nth-child(4),.scr.anim .scrl>*:nth-child(4),.scr.anim #wl>*:nth-child(4){animation-delay:.12s}.scr.anim .cards>*:nth-child(5),.scr.anim .scrl>*:nth-child(5),.scr.anim #wl>*:nth-child(5){animation-delay:.16s}
-.scr.anim .cards>*:nth-child(n+6),.scr.anim .scrl>*:nth-child(n+6),.scr.anim #wl>*:nth-child(n+6){animation-delay:.2s}
 @keyframes itIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
 button{transition:transform .12s,filter .12s}button:active{transform:scale(.96);filter:brightness(1.15)}
-@media (prefers-reduced-motion:reduce){.scr.on,.scr.out,.scr.anim *{animation:none!important}.scr.out{display:none}}
+@media (prefers-reduced-motion:reduce){.scr.on,.scr.out,.card{animation:none!important}.scr.out{display:none}#top{transition:none!important}}
 @keyframes up{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}
 .card,.wc{display:flex;flex-direction:column;gap:4px;text-align:left;padding:12px;border-radius:14px;background:rgba(14,19,26,.72);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);animation:up .6s both;animation-delay:calc(var(--i,0)*.09s);transition:transform .4s,opacity .4s,box-shadow .4s}
@@ -140,6 +136,65 @@ body.hm #map{display:none}
 #lv{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(8,12,18,.97);color:#fff;text-align:center;padding:24px;font:600 18px system-ui}
 #lv i{font-style:normal;font-size:84px;line-height:1;animation:lvr 2.2s ease-in-out infinite}#lv b{font-size:24px}#lv small{color:#b8c4d0;font-size:15px}
 @keyframes lvr{0%,25%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}
+
+/* ====== thème moderne (inspiré des applis du commerce) ====== */
+:root{--cta1:#ff6a13;--cta2:#ffb21a;--glass:rgba(16,22,31,.78);--line:rgba(255,255,255,.12)}
+button{font:600 14px system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.01em;color:#eef3f8;background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.04));border:1px solid var(--line);border-radius:12px;padding:9px 14px;box-shadow:0 2px 10px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.08);transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s,border-color .2s,box-shadow .2s,filter .14s}
+button:hover{border-color:rgba(255,255,255,.28);background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.06))}
+button:active{transform:scale(.96)}
+button.on,button.cta{background:linear-gradient(135deg,var(--cta1),var(--cta2));border-color:transparent;color:#1d1204;font-weight:800;box-shadow:0 6px 22px rgba(255,106,19,.38),inset 0 1px 0 rgba(255,255,255,.35)}
+button.ghost{background:rgba(255,255,255,.06);box-shadow:none}
+button.back{width:40px;height:40px;padding:0;border-radius:50%;font-size:18px;display:inline-flex;align-items:center;justify-content:center}
+.bar b{font:800 24px/1.1 var(--num);letter-spacing:.02em}
+.chips button{border-radius:999px;padding:7px 13px;font-size:13px}
+.card{position:relative;overflow:hidden;padding:16px 16px 14px;border-radius:18px;background:linear-gradient(155deg,rgba(34,43,57,.9),rgba(14,19,27,.9));border:1px solid var(--line);box-shadow:0 12px 32px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.07);backdrop-filter:none;gap:6px}
+.card::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 100% 0%,color-mix(in srgb,var(--cc,#ff6a13) 38%,transparent),transparent 60%);opacity:.75;pointer-events:none;transition:opacity .25s}
+.card:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--cc,#ff6a13) 60%,transparent)}.card:hover::before{opacity:1}
+.card>*{position:relative}
+.card .ic{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(135deg,var(--cc,#ff6a13),var(--cc2,#ffb21a));box-shadow:0 6px 18px color-mix(in srgb,var(--cc,#ff6a13) 45%,transparent);margin-bottom:4px}
+.card b{font:800 18px/1.15 var(--num);letter-spacing:.01em;color:#fff}.card span{font-size:12.5px;line-height:1.35;color:#aeb9c6}
+.hw{background:linear-gradient(155deg,rgba(34,43,57,.9),rgba(14,19,27,.9));border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.wc{border-radius:18px;background:linear-gradient(155deg,rgba(34,43,57,.92),rgba(14,19,27,.92));border:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.35)}
+/* en-tête de l'accueil */
+#hh{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+#hh .brand{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0}
+#hh .logo{width:46px;height:46px;flex:0 0 46px;border-radius:14px;background:linear-gradient(135deg,var(--cta1),var(--cta2));display:flex;align-items:center;justify-content:center;font:900 15px var(--num);color:#1d1204;letter-spacing:.04em;box-shadow:0 8px 24px rgba(255,106,19,.45)}
+#hh h1{font-size:clamp(20px,3.6vw,34px);letter-spacing:.08em}#hh .sub{margin:2px 0 0}
+#pchip{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border-radius:999px;background:var(--glass);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+#pchip .lv{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 16px var(--num);background:radial-gradient(closest-side,#141b25 78%,transparent 80% 100%),conic-gradient(var(--cta2) calc(var(--p)*1%),rgba(255,255,255,.12) 0)}
+#pchip b{display:block;font:700 13px system-ui}#pchip small{font-size:11.5px;color:var(--mut)}
+#hh .ftp{padding:6px 10px;border-radius:999px;background:var(--glass);border:1px solid var(--line);gap:6px}#hh .ftp input{width:58px;border-radius:8px;padding:4px 6px}
+/* accueil : carte « prochaine sortie » + tuiles */
+.hm{display:grid;grid-template-columns:minmax(260px,1.05fr) 2fr;gap:12px;align-items:stretch}
+@media(max-width:760px){.hm{grid-template-columns:1fr}}
+.hero{position:relative;overflow:hidden;border-radius:22px;padding:16px 18px;background:linear-gradient(150deg,rgba(255,106,19,.22),rgba(14,19,27,.92) 46%),linear-gradient(155deg,rgba(34,43,57,.94),rgba(12,17,24,.94));border:1px solid rgba(255,140,60,.35);box-shadow:0 16px 44px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:8px;animation:up .55s both}
+.hero .k{font:800 11px system-ui;letter-spacing:.16em;color:var(--cta2)}
+.hero .t{font:800 clamp(20px,2.6vw,28px)/1.1 var(--num);color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hero .s{display:flex;gap:6px;flex-wrap:wrap}.hero .s span{font:700 12.5px system-ui;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--line)}
+.hero canvas{width:100%;height:56px;display:block;border-radius:10px;background:rgba(0,0,0,.25)}
+.hero .b{display:flex;gap:8px;margin-top:auto}.hero .b .cta{flex:1;padding:13px 16px;font-size:17px;letter-spacing:.06em;border-radius:14px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:520px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tiles .card{min-height:96px;justify-content:flex-end}
+.tiles .card .prog{margin:4px 0 0;height:6px}.tiles .card .prog i{background:linear-gradient(90deg,var(--cc),var(--cc2))}
+@media(max-height:520px){.hero{padding:12px 14px;gap:6px}.hero canvas{height:40px}.hero .b .cta{padding:10px 12px;font-size:15px}.tiles .card{min-height:78px;padding:11px 12px}.card .ic{width:34px;height:34px;font-size:18px;border-radius:11px}.card b{font-size:16px}.tiles .card span{display:none}#hh .logo{width:38px;height:38px;flex-basis:38px}}
+/* tablette en paysage (écran peu haut) : en-tête sur une ligne, accueil compact */
+.hero .t{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+@media(max-height:520px){#home{padding:calc(8px + var(--sa)) calc(10px + var(--sr)) calc(8px + var(--sb)) calc(10px + var(--sl))}
+ #hh{flex-wrap:nowrap;gap:8px}#hh h1{font-size:19px;letter-spacing:.06em}#hh .sub{font-size:11px}#hh .logo{width:34px;height:34px;flex-basis:34px;font-size:12px;border-radius:11px}
+ #pchip{padding:3px 10px 3px 3px;gap:7px}#pchip .lv{width:30px;height:30px;font-size:13px}#pchip small{display:none}#hh .ftp{padding:3px 8px;font-size:12px}#hh .ftp input{width:50px;padding:2px 4px}
+ #home:not(.sub) #zn{display:none}
+ .hm{gap:8px}.hero{border-radius:16px}.hero>span{display:none}.hero .k{font-size:10px}.hero .t{font-size:18px}.hero .s span{font-size:11px;padding:2px 7px}
+ .tiles{gap:8px}.tiles .card{min-height:0;padding:9px 11px;border-radius:14px;flex-direction:row;align-items:center;justify-content:flex-start;gap:9px}.tiles .card .ic{margin:0;flex:0 0 32px;width:32px;height:32px;font-size:17px}
+ .tiles .card .prog{display:none}}
+/* menu ☰ pendant la sortie : ouverture animée */
+#top{opacity:0;transform:translateY(-12px) scale(.96);transform-origin:top right;transition:opacity .22s ease,transform .32s cubic-bezier(.2,.8,.2,1);border-radius:18px;background:rgba(14,19,27,.9);box-shadow:0 18px 50px rgba(0,0,0,.5);padding:12px}
+#top.open{opacity:1;transform:none}
+#top.open>*{animation:itIn .32s cubic-bezier(.2,.8,.2,1) both}
+#top button{text-align:left;width:100%;background:rgba(255,255,255,.05);box-shadow:none;border-color:transparent;padding:11px 14px}
+#top button:hover{background:rgba(255,255,255,.1);border-color:var(--line)}
+#top h4{margin:8px 2px 0;font-size:11px;letter-spacing:.14em;color:#8d99a8}
+#mn{transition:transform .3s cubic-bezier(.2,.8,.2,1),background .2s}#mn.x{transform:rotate(90deg)}
 </style></head><body><div id="lv"><i>📱</i><b>Touche l'écran</b><small>pour passer en plein écran, en paysage</small></div>
 <canvas id="c"></canvas>
 <div id="hud" class="p"><div class="m"><span data-f="spd"><b id="vs">0</b><i>km/h</i></span><span data-f="pw"><b id="vp">0</b><i>W</i></span><span data-f="p3"><b id="vp3">0</b><i>W 3 s</i></span><span data-f="wkg"><b id="vwk">0</b><i>W/kg</i></span><span data-f="cad"><b id="vc">0</b><i>tr/min</i></span><span data-f="grd"><b id="vg">0.0</b><i>%</i></span><span data-f="hr"><b id="vh">–</b><i>bpm</i></span><span data-f="np"><b id="vnp">0</b><i>NP</i></span></div><div class="n"><span data-f="dist"><span id="vd">0.0</span> km · </span><span data-f="rest"><span id="vrl">reste</span> <span id="vr">0.0</span> <span id="vru">km</span> · </span><span data-f="alt"><span id="va">0</span> m · </span><span data-f="dp">D+ <span id="vdp">0</span> m · </span><span data-f="time"><span id="vt">0:00</span> · </span><span data-f="kcal"><span id="vk">0</span> kcal</span><span data-f="wind" id="vwd"></span><span id="vdrf" style="color:var(--ac);font-weight:700"></span></div></div>
@@ -2685,10 +2740,10 @@ const SCRH=['s-main'];
 const showScr=id=>{const cur=document.querySelector('.scr.on'),nx=$(id);if(cur===nx){requestAnimationFrame(fitScr);return}
  let back=false;const k=SCRH.lastIndexOf(id);if(id==='s-main'||k>=0){back=true;SCRH.length=k>=0?k+1:1;if(id==='s-main')SCRH.length=1,SCRH[0]='s-main'}else SCRH.push(id);
  document.querySelectorAll('.scr.out').forEach(e=>{e.classList.remove('out','bk');e.style.cssText=''});
- if(cur){const r={l:cur.offsetLeft,t:cur.offsetTop,w:cur.offsetWidth};cur.classList.remove('on','anim');cur.classList.add('out');cur.classList.toggle('bk',back);
+ if(cur){const r={l:cur.offsetLeft,t:cur.offsetTop,w:cur.offsetWidth};cur.classList.remove('on');cur.classList.add('out');cur.classList.toggle('bk',back);
   Object.assign(cur.style,{left:r.l+'px',top:r.t+'px',width:r.w+'px'});setTimeout(()=>{cur.classList.remove('out','bk');cur.style.cssText=''},240)}
- document.querySelectorAll('.scr.on').forEach(e=>e.classList.remove('on','anim'));
- if(nx){nx.classList.add('on','anim');nx.classList.toggle('bk',back);clearTimeout(nx._at);nx._at=setTimeout(()=>nx.classList.remove('anim'),700)}
+ document.querySelectorAll('.scr.on').forEach(e=>e.classList.remove('on'));
+ if(nx){nx.classList.add('on');nx.classList.toggle('bk',back)}
  $('home').classList.toggle('sub',id!=='s-main');requestAnimationFrame(fitScr)};
 // la zone qui défile s'arrête au bas de la partie réellement visible (barre d'adresse de Chrome sur mobile, tablette en paysage)
 function fitScr(){const el=document.querySelector('.scr.on .scrl');if(!el)return;const vh=window.visualViewport?visualViewport.height:innerHeight,top=el.getBoundingClientRect().top;
@@ -2720,8 +2775,8 @@ function nav(m){const pm=mode,wkn=wk&&wk.n,wkp=wk&&wk.plan!=null&&WT&&wt>=.8*WT?
  document.querySelectorAll('.e').forEach(e=>e.style.display=m==='explore'?'flex':'none');
  $('pad').style.display=m==='explore'?'flex':'none';$('wkb').style.display=m==='wk'?'flex':'none';$('home').style.display=m==='home'?'flex':'none';
  for(const i of['hud','bot','mn','vb','fsb'])$(i).style.display=m==='home'?'none':'';
- $('top').style.display='none';v=0;lastG=9;lastBi=-1;done=false;yaw=0;pit=m==='home'?.27:.28;dist=m==='home'?4.6:7;$('vw').style.display='none';
- if(m!=='home'){s=0;tt=0;CAM.snap=true}else{if(VEL.on)velStop();showScr('s-main');$('zn').innerHTML=zonesHTML();if(conn)sim(0)}
+ topShow(false);v=0;lastG=9;lastBi=-1;done=false;yaw=0;pit=m==='home'?.27:.28;dist=m==='home'?4.6:7;$('vw').style.display='none';
+ if(m!=='home'){s=0;tt=0;CAM.snap=true}else{if(VEL.on)velStop();showScr('s-main');homeRender();$('zn').innerHTML=zonesHTML();if(conn)sim(0)}
  if(m==='explore'&&conn)sim(0);rs();if(typeof onNav==='function')onNav(m);
  if(m==='ride'||m==='wk'){recStart(m);sesStart(m);}
  KOM=null;$('spz').style.display=$('kmz').style.display='none';
@@ -2757,7 +2812,11 @@ $('wsh').onclick=()=>{if(!wk||wk.ramp||wk.over)return say('Impossible de raccour
  if(!o.length)return say('Séance presque finie : rien à raccourcir');
  mod('⏱ Raccourcir la séance<br><small>Il reste '+fmt(rem)+'. Finir dans :</small>',o.map(m=>[m+' min',()=>{shortenWk(m*60);say('Séance raccourcie : fin dans '+m+' min')}]).concat([['Annuler',()=>{}]]))};
 $('qt').onclick=()=>{if(wk&&wk.ramp&&wt>360&&!wk.over)endRamp();else{if(conn)sim(0);nav('home')}};
-$('mn').onclick=()=>{const t=$('top');t.style.display=t.style.display==='flex'?'none':'flex'};
+// menu ☰ : ouverture et fermeture animées (glisse et fondu, éléments en cascade)
+function topShow(on){const t=$('top'),mb=$('mn');clearTimeout(t._h);
+ if(on){t.style.display='flex';[...t.children].forEach((c,i)=>c.style.animationDelay=Math.min(i,14)*18+'ms');requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('open')));mb.classList.add('x');mb.textContent='✕'}
+ else{mb.classList.remove('x');mb.textContent='☰';if(t.style.display!=='flex')return;t.classList.remove('open');t._h=setTimeout(()=>{t.style.display='none'},280)}}
+$('mn').onclick=()=>topShow(!$('top').classList.contains('open'));
 $('bl').onclick=()=>uTurn();{const b=$('br');b.onpointerdown=()=>keys.ArrowUp=1;b.onpointerup=b.onpointerleave=b.onpointercancel=()=>delete keys.ArrowUp}
 const cv=$('c');let dr=null;const ptr=new Map();let pd=0;
 cv.onpointerdown=e=>{ptr.set(e.pointerId,[e.clientX,e.clientY]);dr=1;cv.setPointerCapture(e.pointerId);pd=0};
@@ -3283,7 +3342,9 @@ function planOpen(){showScr('s-plan');planRender();$('prd').textContent=PLAN.aft
  $('prd').onclick=()=>{if(PLAN.cur)planRide(PLAN.cur)};
  $('pfv').onclick=()=>{const o=PLAN.cur;if(!o)return;GS.favr.push({p:o.path.map(s=>[s.e,s.d]),km:+o.km.toFixed(2),dp:o.dp,gm:o.gm,t:o.type,v:o.vias,n:o.n});if(GS.favr.length>30)GS.favr.shift();gsave();say('⭐ Parcours gardé dans tes favoris');$('pfv').style.display='none'}}
 // ---- accueil simplifié : 4 grands boutons (Rouler, S'entraîner, Mon suivi, Réglages) ----
-const hcard=(box,t,d,f)=>{const b=document.createElement('button');b.className='card';b.style.setProperty('--i',box.children.length);b.innerHTML='<b>'+t+'</b><span>'+d+'</span>';b.onclick=f;box.appendChild(b);return b};
+const CCOL=[['#ff6a13','#ffb21a'],['#7c4dff','#b388ff'],['#00a896','#5eead4'],['#1e88e5','#64b5f6'],['#e53935','#ff8a65'],['#546e7a','#b0bec5'],['#d81b60','#f48fb1'],['#43a047','#a5d6a7']];
+function cardIcon(b,t,k){const m=/^(\p{Extended_Pictographic}\uFE0F?|▶)\s*(.*)$/u.exec(t),c=CCOL[k%CCOL.length];b.style.setProperty('--cc',c[0]);b.style.setProperty('--cc2',c[1]);return m?'<i class="ic">'+m[1]+'</i><b>'+m[2]+'</b>':'<b>'+t+'</b>'}
+const hcard=(box,t,d,f)=>{const b=document.createElement('button');b.className='card';const k=box.children.length;b.style.setProperty('--i',k);b.innerHTML=cardIcon(b,t,k)+'<span>'+d+'</span>';b.onclick=f;box.appendChild(b);return b};
 function roulRender(){const box=document.querySelector('#s-roul .cards');box.innerHTML='';PLAN.after=null;
  if(COURSE)hcard(box,'▶ Rouler sur « '+esc(COURSE.name)+' »',(ROUTE?nf(ROUTE.len/1000,1)+' km · ':'')+(COURSE.loop?'boucle':'aller simple')+' · le dernier parcours choisi',()=>nav('ride'));
  hcard(box,'🏟️ Vélodrome','Piste UCI 250 m · endurance zone 2 avec lumière de rythme · jeux de lumière',()=>velStart());
@@ -3299,12 +3360,30 @@ function regRender(){const box=document.querySelector('#s-reg .cards');box.inner
  hcard(box,'🎛️ Préférences','Sprints, voix, musique, météo, nuit, affichage, FC max',()=>{prefRender();showScr('s-pref')});
  hcard(box,'🖥️ Graphismes','Qualité actuelle : '+QPRE[QK].n,()=>mod('Qualité graphique<br><small>Actuelle : '+QPRE[QK].n+'. L\'appli se recharge après le choix.</small>',
   ['tab','low','med','high','ultra'].map(k=>[QPRE[k].n,()=>{try{localStorage.v3q2=k}catch(e){}location.reload()}]).concat([['Annuler',()=>{}]])))}
-{const sm=$('s-main');
- sm.innerHTML='<div class="cards big">'+[['roul','🚴','Rouler','Importer un GPX, mes parcours, vélodrome, exploration'],['wk','🏋️','S\'entraîner','Créateur de séance (dont Dukan), séances guidées, test FTP'],
-  ['sui','📈','Mon suivi','Km, kcal, badges, niveaux, poids, historique'],['reg','⚙️','Réglages','Matériel, Strava, vestiaire, garage, graphismes']].map((c,i)=>'<button class="card" data-h="'+c[0]+'" style="--i:'+i+'"><b>'+c[1]+' '+c[2]+'</b><span>'+c[3]+'</span></button>').join('')+'</div>';
- const mk=(id,title)=>{const s=document.createElement('div');s.id=id;s.className='scr';s.innerHTML='<div class="bar"><button class="back">←</button><b>'+title+'</b></div><div class="scrl"><div class="cards"></div></div>';$('hs').appendChild(s);s.querySelector('.back').onclick=()=>showScr('s-main')};
+// ---- accueil façon applis du commerce : carte « prochaine sortie » (profil coloré, gros bouton) + tuiles colorées + niveau ----
+const HTILES=[['wk','🏋️','S\'entraîner','Séances ERG guidées, créateur, test FTP',1],['vel','🏟️','Vélodrome','Piste UCI 250 m, lumière de rythme',4],['crs','📚','Mes parcours','',2],
+ ['roul','🚴','Rouler','Importer, exploration, options',0],['sui','📈','Mon suivi','',3],['reg','⚙️','Réglages','Matériel, Strava, vestiaire, graphismes',5]];
+function homeHeader(){let c=$('pchip');if(!c){const hh=$('hh'),h1=hh.querySelector('h1'),sub=hh.querySelector('.sub'),br=document.createElement('div');br.className='brand';
+  br.innerHTML='<div class="logo">VCT</div><div style="min-width:0"></div>';br.lastChild.append(h1,sub);hh.prepend(br);c=document.createElement('div');c.id='pchip';hh.insertBefore(c,hh.querySelector('.ftp'))}
+ const L=LVL,a=lvlXP(L),b=lvlXP(L+1),p=Math.max(0,Math.min(100,(GS.xp-a)/(b-a)*100));
+ c.innerHTML='<div class="lv" style="--p:'+p.toFixed(0)+'">'+L+'</div><div><b>Niveau '+L+'</b><small>'+nf(Math.max(0,b-GS.xp))+' XP avant le niveau '+(L+1)+' · '+(FTP/riderKg()).toFixed(1).replace('.',',')+' W/kg</small></div>'}
+function heroDraw(cv){const g=cv.getContext('2d'),f=devicePixelRatio||1,W=cv.width=cv.clientWidth*f,H=cv.height=cv.clientHeight*f;if(!W||!H||!COURSE||!NET.ready)return;
+ CPF.t=-1e9;cpfBuild(performance.now());if(CPF.n<3)return;let lo=1e9,hi=-1e9;for(let q=0;q<CPF.n;q++){lo=Math.min(lo,CPF.y[q]);hi=Math.max(hi,CPF.y[q])}if(hi-lo<30){const m=(hi+lo)/2;lo=m-15;hi=m+15}
+ const cols=Math.floor(W/(2*f)),cw=W/cols;for(let c=0;c<cols;c++){const q=Math.min(CPF.n-1,Math.round(c/cols*(CPF.n-1))),y=H-3*f-(CPF.y[q]-lo)/(hi-lo)*(H-8*f);g.fillStyle=GCOL(CPF.g[q]);g.fillRect(c*cw,y,cw+.5,H-y)}
+ let dp=0;for(let q=1;q<CPF.n;q++)dp+=Math.max(0,CPF.y[q]-CPF.y[q-1]);return dp}
+function homeRender(){homeHeader();const sm=$('s-main'),c=CRS.cur,w=weekStats(),wp=Math.min(100,w.km/(GS.goal.km||1)*100);
+ const hero=c?'<div class="hero"><div class="k">PROCHAINE SORTIE</div><div class="t">'+esc(c.name)+'</div><div class="s"><span>📏 '+nf(c.km,1)+' km</span><span id="hdp">⛰️ '+nf(c.dp||0)+' m D+</span><span>'+(COURSE&&COURSE.loop?'🔁 Boucle':'➡️ Aller simple')+'</span></div><canvas id="hpf"></canvas><div class="b"><button class="cta" id="hgo">▶ ROULER</button><button class="ghost" id="hch" title="Changer de parcours">⇄</button></div></div>'
+  :'<div class="hero"><div class="k">BIENVENUE</div><div class="t">Roule sur tes propres routes</div><span style="color:#c9d3de;font-size:13px;line-height:1.4">Importe un fichier GPX de n\'importe quel endroit du monde : l\'appli le reproduit en 3D, avec le relief, les photos aériennes et les bâtiments.</span><div class="b"><button class="cta" id="himp">📂 IMPORTER UN GPX</button><button class="ghost" id="hvel" title="Vélodrome">🏟️</button></div></div>';
+ const sub={crs:CRS.list.length?CRS.list.length+' parcours importé'+(CRS.list.length>1?'s':''):'Aucun parcours pour l\'instant',sui:'Cette semaine : '+nf(w.km,1)+' / '+nf(GS.goal.km)+' km'};
+ sm.innerHTML='<div class="hm">'+hero+'<div class="tiles">'+HTILES.map((t,i)=>{const cc=CCOL[t[4]];return '<button class="card" data-h="'+t[0]+'" style="--i:'+i+';--cc:'+cc[0]+';--cc2:'+cc[1]+'"><i class="ic">'+t[1]+'</i><b>'+t[2]+'</b><span>'+(t[3]||sub[t[0]])+'</span>'+(t[0]==='sui'?'<div class="prog"><i style="width:'+wp.toFixed(0)+'%"></i></div>':'')+'</button>'}).join('')+'</div></div>';
+ const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};
+ on('hgo',()=>nav('ride'));on('hch',crsMenu);on('himp',()=>$('gf').click());on('hvel',()=>velStart());
+ sm.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{const h=b.dataset.h;if(h==='roul'){roulRender();showScr('s-roul')}else if(h==='wk'){listWk();showScr('s-wk')}else if(h==='sui'){suiviRender();showScr('s-sui')}
+  else if(h==='vel')velStart();else if(h==='crs')crsMenu();else{regRender();showScr('s-reg')}});
+ requestAnimationFrame(()=>{const cv=$('hpf');if(cv){const dp=heroDraw(cv);if(dp&&!c.dp){const e=$('hdp');if(e)e.textContent='⛰️ '+nf(dp)+' m D+'}}})}
+{ const mk=(id,title)=>{const s=document.createElement('div');s.id=id;s.className='scr';s.innerHTML='<div class="bar"><button class="back">←</button><b>'+title+'</b></div><div class="scrl"><div class="cards"></div></div>';$('hs').appendChild(s);s.querySelector('.back').onclick=()=>showScr('s-main')};
  mk('s-roul','🚴 Rouler');mk('s-reg','⚙️ Réglages');
- sm.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{const h=b.dataset.h;if(h==='roul'){roulRender();showScr('s-roul')}else if(h==='wk'){listWk();showScr('s-wk')}else if(h==='sui'){suiviRender();showScr('s-sui')}else{regRender();showScr('s-reg')}});
+ setTimeout(homeRender,0);// après la création de SET et riderKg
  // les écrans Matériel, Garage et Vestiaire reviennent maintenant aux Réglages
  document.querySelector('#s-hw .back').dataset.b='s-reg';for(const id of['s-gar','s-kit'])document.querySelector('#'+id+' .back').onclick=()=>{regRender();showScr('s-reg')}}
 // ====================== préférences, commentateur vocal, écrans de résultat, célébrations, musique, météo, moment de la journée ======================
@@ -4837,15 +4916,15 @@ function drawMap(){const c=$('map');if(!c||!N)return;const W=c.width,g=c.getCont
  const ts=document.createElement('select');ts.id='todsel';for(const[k,n]of TODS){const o=document.createElement('option');o.value=k;o.textContent=n;ts.appendChild(o)}ts.value=SET.tod||'real';
  const tl=document.createElement('label');tl.textContent='Moment ';tl.appendChild(ts);t.appendChild(tl);ts.onchange=()=>{SET.tod=ts.value;ssave();todApply()};
  const h2=document.createElement('h4');h2.textContent='Itinéraire';t.appendChild(h2);
- const ut=document.createElement('button');ut.textContent='↶ Demi-tour';ut.onclick=()=>{uTurn();$('top').style.display='none'};t.appendChild(ut);
+ const ut=document.createElement('button');ut.textContent='↶ Demi-tour';ut.onclick=()=>{uTurn();topShow(false)};t.appendChild(ut);
 
  const h3=document.createElement('h4');h3.textContent='Strava';t.appendChild(h3);
- const sb=document.createElement('button');sb.textContent='Connexion Strava…';sb.onclick=()=>{$('top').style.display='none';stravaPanel()};t.appendChild(sb);
+ const sb=document.createElement('button');sb.textContent='Connexion Strava…';sb.onclick=()=>{topShow(false);stravaPanel()};t.appendChild(sb);
  const mb=document.createElement('button');mb.textContent='🔊 Sons nature';mb.onclick=()=>{MUTE=!MUTE;mb.textContent=MUTE?'🔇 Sons coupés':'🔊 Sons nature';audio()};t.appendChild(mb);
  const h5=document.createElement('h4');h5.textContent='Tablette';t.appendChild(h5);
- const fs=document.createElement('button');fs.textContent='⛶ Plein écran';fs.onclick=()=>{fullScreen();$('top').style.display='none'};t.appendChild(fs);
- const bmb=document.createElement('button');bmb.textContent='🗺️ Grande carte (touche M)';bmb.onclick=()=>{$('top').style.display='none';bigMapToggle(true)};t.appendChild(bmb);
- const dgb=document.createElement('button');dgb.textContent='🩺 Rapport diagnostic';dgb.onclick=()=>{$('top').style.display='none';diagShow()};t.appendChild(dgb)}
+ const fs=document.createElement('button');fs.textContent='⛶ Plein écran';fs.onclick=()=>{fullScreen();topShow(false)};t.appendChild(fs);
+ const bmb=document.createElement('button');bmb.textContent='🗺️ Grande carte (touche M)';bmb.onclick=()=>{topShow(false);bigMapToggle(true)};t.appendChild(bmb);
+ const dgb=document.createElement('button');dgb.textContent='🩺 Rapport diagnostic';dgb.onclick=()=>{topShow(false);diagShow()};t.appendChild(dgb)}
 addEventListener('keydown',e=>{if((e.key==='u'||e.key==='U')&&mode!=='home'&&!(e.target&&e.target.tagName==='INPUT'))uTurn()});
 // grande carte : clic sur la mini-carte (ou touche M) pour l'ouvrir, clic sur la carte (ou Échap) pour la fermer
 $('map').onclick=()=>bigMapToggle();$('bmap').onpointerdown=e=>{e.preventDefault();e.stopPropagation();bigMapToggle(false)};
