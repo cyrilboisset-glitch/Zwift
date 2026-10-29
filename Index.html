@@ -688,6 +688,36 @@ function crsImport(name,ll){const n0=ll.length;const P=ll.filter((p,i)=>i===0||M
  for(let i=1;i<P.length;i++){km+=Math.hypot(xy[i][0]-xy[i-1][0],xy[i][1]-xy[i-1][1])/1000;const dz=P[i][2]-P[i-1][2];if(dz>0)dp+=dz}
  const c={id:Date.now().toString(36),name:name||'Parcours',pts:Q.map(p=>p[0].toFixed(6)+','+p[1].toFixed(6)+','+(+p[2]||0).toFixed(1)).join(';'),km:+km.toFixed(1),dp:Math.round(dp),date:Date.now(),n0};
  CRS.list.push(c);try{localStorage.v3crs=JSON.stringify(CRS.list);localStorage.v3cur=c.id}catch(e){CRS.list.pop();return null}return c}
+// ---- recalage du GPX sur les vraies routes (IGN en France, sinon OpenStreetMap) ----
+// chaque point est rapproché de la route la plus proche (≤ 18 m, même direction à 35° près) ; les décalages sont lissés sur ±30 m (pas de zigzag)
+async function snapRoads(ll,prog){if(ll.length<3)return{ll,st:null};const la0=ll[0][0],lo0=ll[0][1],kx=111320*Math.cos(la0*Math.PI/180),ky=110574;
+ const XY=ll.map(p=>[(p[1]-lo0)*kx,(p[0]-la0)*ky]),CS=.018,cells=new Map();
+ for(const p of ll)for(const[da,db]of[[0,0],[.0003,0],[-.0003,0],[0,.0004],[0,-.0004]]){const a=Math.floor((p[0]+da)/CS),b=Math.floor((p[1]+db)/(CS*1.4));cells.set(a+','+b,[a,b])}
+ const segs=[],H=new Map(),HC=30,addLine=L=>{for(let i=1;i<L.length;i++){const A=[(L[i-1][0]-lo0)*kx,(L[i-1][1]-la0)*ky],B=[(L[i][0]-lo0)*kx,(L[i][1]-la0)*ky],k=segs.length;segs.push([A,B]);
+   const x0=Math.floor(Math.min(A[0],B[0])/HC),x1=Math.floor(Math.max(A[0],B[0])/HC),y0=Math.floor(Math.min(A[1],B[1])/HC),y1=Math.floor(Math.max(A[1],B[1])/HC);
+   if((x1-x0+1)*(y1-y0+1)>400)continue;for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){const kk=x*100003+y;let l=H.get(kk);if(!l)H.set(kk,l=[]);l.push(k)}}};
+ let src='IGN',done=0,ignEmpty=0;const C=[...cells.values()];
+ for(const[a,b]of C){const s=a*CS,n=s+CS,w=b*CS*1.4,e=w+CS*1.4;let got=false;
+  if(src==='IGN'){try{const F=await wfs('BDTOPO_V3:troncon_de_route',s,w,n,e,3);for(const f of F){const g=f.geometry,pr=f.properties||{};if(!g||/escalier/i.test(pr.nature||''))continue;
+     const Ls=g.type==='LineString'?[g.coordinates]:g.type==='MultiLineString'?g.coordinates:[];for(const L of Ls)addLine(L.map(c=>Math.abs(c[0]-lo0)<Math.abs(c[1]-lo0)?[c[0],c[1]]:[c[1],c[0]]))}
+    got=F.length>0;if(!got&&++ignEmpty>=3&&done<6)src='OSM'}catch(err){src='OSM'}}
+  if(!got&&src==='OSM'){try{const j=await overpass('[out:json][timeout:60];way["highway"]('+s.toFixed(5)+','+w.toFixed(5)+','+n.toFixed(5)+','+e.toFixed(5)+');out geom;',45000);
+     for(const el of j.elements||[])if(el.geometry&&!/steps|elevator/.test((el.tags||{}).highway||''))addLine(el.geometry.map(q=>[q.lon,q.lat]))}catch(err){}}
+  done++;if(prog)prog(done/C.length,src)}
+ if(!segs.length)return{ll,st:{ok:0,src:'aucune route'}};
+ const n=XY.length,cd=new Float64Array(n);for(let i=1;i<n;i++)cd[i]=cd[i-1]+Math.hypot(XY[i][0]-XY[i-1][0],XY[i][1]-XY[i-1][1]);
+ const OX=new Float32Array(n),OY=new Float32Array(n),M=new Uint8Array(n);let j0=0,j1=0,nm=0;
+ for(let i=0;i<n;i++){while(cd[i]-cd[j0]>10&&j0<i)j0++;if(j1<i)j1=i;while(j1<n-1&&cd[j1]-cd[i]<10)j1++;
+  const hx=XY[j1][0]-XY[j0][0],hy=XY[j1][1]-XY[j0][1],hl=Math.hypot(hx,hy)||1,[px,py]=XY[i],cx=Math.floor(px/HC),cy=Math.floor(py/HC);let best=1e9,bx=0,by=0;
+  for(let x=cx-1;x<=cx+1;x++)for(let y=cy-1;y<=cy+1;y++){const l=H.get(x*100003+y);if(!l)continue;for(const k of l){const[A,B]=segs[k],dx=B[0]-A[0],dy=B[1]-A[1],L2=dx*dx+dy*dy;if(L2<.01)continue;
+    const t=clamp(((px-A[0])*dx+(py-A[1])*dy)/L2,0,1),qx=A[0]+dx*t,qy=A[1]+dy*t,d=Math.hypot(qx-px,qy-py);if(d>18)continue;
+    const cs=Math.abs((dx*hx+dy*hy)/(Math.sqrt(L2)*hl));if(cs<.82)continue;const sc=d+(1-cs)*40;if(sc<best){best=sc;bx=qx-px;by=qy-py}}}
+  if(best<1e9){OX[i]=bx;OY[i]=by;M[i]=1;nm++}}
+ // lissage des décalages sur ±30 m (points sans route proche : décalage voisin s'il y en a, sinon aucun)
+ const out=[];let a=0,b=0,sx=0,sy=0,sw=0,dsum=0;
+ for(let i=0;i<n;i++){while(b<n&&cd[b]-cd[i]<=30){if(M[b]){sx+=OX[b];sy+=OY[b];sw++}b++}while(cd[i]-cd[a]>30){if(M[a]){sx-=OX[a];sy-=OY[a];sw--}a++}
+  const ox=sw?sx/sw:0,oy=sw?sy/sw:0;dsum+=Math.hypot(ox,oy);out.push([la0+(XY[i][1]+oy)/ky,lo0+(XY[i][0]+ox)/kx,ll[i][2]])}
+ return{ll:out,st:{ok:nm/n,dm:dsum/n,src,segs:segs.length}}}
 function crsUse(id){try{localStorage.v3cur=id}catch(e){}say('Préparation du parcours…');setTimeout(()=>location.reload(),400)}
 function crsDelete(id){CRS.list=CRS.list.filter(c=>c.id!==id);try{localStorage.v3crs=JSON.stringify(CRS.list);if(localStorage.v3cur===id){delete localStorage.v3cur;setTimeout(()=>location.reload(),400)}}catch(e){}}
 // mes parcours : choisir, rouler, supprimer
@@ -2801,7 +2831,12 @@ $('gf').onchange=async e=>{const f=e.target.files[0];if(!f)return;const d=new DO
  const p=[...d.querySelectorAll('trkpt,rtept')].map(n=>[+n.getAttribute('lat'),+n.getAttribute('lon'),+((n.querySelector('ele')||{}).textContent||0)]).filter(p=>isFinite(p[0])&&isFinite(p[1]));
  if(p.length>1){const nm=(d.querySelector('trk>name,rte>name,metadata>name')||{}).textContent||f.name.replace(/\.gpx$/i,'');
   // le tracé devient ton parcours en 3D : il est gardé dans « Mes parcours », puis l'appli se recharge autour de lui
-  const c=crsImport(nm,p);if(c){say('Parcours « '+nm+' » importé ('+nf(c.km,1)+' km) : préparation…');setTimeout(()=>location.reload(),900)}else say('Stockage plein : supprime un ancien parcours (Rouler → Mes parcours).')}else say('GPX illisible.');e.target.value=''};
+  let q=p.filter((x,i)=>i===0||Math.hypot((x[0]-p[i-1][0])*111000,(x[1]-p[i-1][1])*78000)>.5),info='';
+  if(SET.snap!==0){mod('<b>Recalage du tracé sur les routes…</b><br><small id="snp">Téléchargement des routes : 0 %</small><div class="prog"><i id="snb" style="width:0%"></i></div>',[]);
+   try{const r=await snapRoads(q,(f,src)=>{const a=$('snp'),b=$('snb');if(a)a.textContent='Téléchargement des routes ('+src+') : '+Math.round(f*100)+' %';if(b)b.style.width=(f*100).toFixed(0)+'%'});
+    if(r.st&&r.st.ok>.3){q=r.ll;info=' · recalé sur les routes '+r.st.src+' ('+Math.round(r.st.ok*100)+' % des points, écart moyen '+nf(r.st.dm,1)+' m)'}else info=' · pas de recalage (routes non trouvées)'}catch(err){info=' · pas de recalage'}
+   $('res').style.display='none'}
+  const c=crsImport(nm,q);if(c){say('Parcours « '+nm+' » importé ('+nf(c.km,1)+' km'+info+') : préparation…');setTimeout(()=>location.reload(),info?2600:900)}else say('Stockage plein : supprime un ancien parcours (Rouler → Mes parcours).')}else say('GPX illisible.');e.target.value=''};
 $('ftp').onchange=()=>{FTP=Math.max(80,Math.min(500,+$('ftp').value||200));$('ftp').value=FTP;save();ftpLog(FTP);$('zn').innerHTML=zonesHTML()};$('kg').onchange=save;
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;if(g==='wk'){listWk();showScr('s-wk')}else if(g==='hw')showScr('s-hw');else nav(g)});
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>{if(b.dataset.b==='s-wk')listWk();showScr(b.dataset.b)});
@@ -3398,7 +3433,7 @@ function homeRender(){homeHeader();const sm=$('s-main'),c=CRS.cur,w=weekStats(),
  // les écrans Matériel, Garage et Vestiaire reviennent maintenant aux Réglages
  document.querySelector('#s-hw .back').dataset.b='s-reg';for(const id of['s-gar','s-kit'])document.querySelector('#'+id+' .back').onclick=()=>{regRender();showScr('s-reg')}}
 // ====================== préférences, commentateur vocal, écrans de résultat, célébrations, musique, météo, moment de la journée ======================
-const SET=Object.assign({sprLen:150,sprGap:5,profAll:0,voice:1,coach:1,mus:0,musV:.5,natV:1,tod:'real',fcmax:185,rkg:0,
+const SET=Object.assign({sprLen:150,sprGap:5,snap:1,profAll:0,voice:1,coach:1,mus:0,musV:.5,natV:1,tod:'real',fcmax:185,rkg:0,
  hud:['spd','pw','cad','grd','hr','dist','rest','alt','time','kcal'],hudBig:0},(()=>{try{return JSON.parse(localStorage.v3set||'{}')}catch(e){return{}}})());
 const ssave=()=>{try{localStorage.v3set=JSON.stringify(SET)}catch(e){}};
 const sprL=()=>SET.sprLen||150;// longueur du sprint (m), réglable
@@ -3703,6 +3738,7 @@ const lockTxt=L=>L[0]==='lvl'?'niveau '+L[1]:L[0]==='stk'?L[1]+' jours d\'affil�
 // ---- préférences ----
 function prefRender(){const ch=(key,L)=>'<div class="chips" data-p="'+key+'">'+L.map(([v2,t])=>'<button data-v="'+v2+'"'+(String(SET[key])===String(v2)?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
  $('pfb').innerHTML='<div class="gq">Sprints aux pancartes : longueur</div>'+ch('sprLen',[100,150,200,250,300,400,500].map(x=>[x,x+' m']))+
+  '<div class="gq">Import des GPX : recaler le tracé sur les vraies routes</div>'+ch('snap',[[1,'Oui'],[0,'Non']])+
   '<div class="gq">Sprints : écart minimal entre deux sprints</div>'+ch('sprGap',[[-1,'Aucun sprint'],[0,'Tous les villages'],[2,'2 km'],[5,'5 km'],[10,'10 km'],[20,'20 km'],[40,'40 km']])+
   '<div class="gq">Commentateur vocal</div>'+ch('voice',[[1,'🔊 Activé'],[0,'Coupé']])+'<div class="gq">Coach pendant les séances</div>'+ch('coach',[[1,'Activé'],[0,'Coupé']])+'<button id="pvt">▶ Tester la voix</button>'+
   '<div class="gq">Musique d\'ambiance</div>'+ch('mus',[[0,'Aucune'],[1,'Calme'],[2,'Motivation']])+'<label>Volume musique <input id="pmv" type="range" min="0" max="1" step=".05" value="'+SET.musV+'"></label>'+
