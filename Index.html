@@ -529,7 +529,7 @@ TXR.det=texOf(TXR.detK,false,true);
 CLU.tN.value=TXR.det;
 
 // route : 8.2 m de large (u), 26 m de long (v). Allégée (fin octobre 2026) : 128 × 512 px, bruit simple, marquages en aplats, filtrage anisotrope ≤ 4
-TXR.roadK=(()=>{const W=128,H=512,k=mkCanvas(W,H),g=k.getContext('2d'),mx=W/8.2,my=H/26;
+function roadTexK(mode){const W=128,H=512,k=mkCanvas(W,H),g=k.getContext('2d'),mx=W/8.2,my=H/26;
  const im=g.createImageData(W,H),d=im.data;
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const um=x/mx,i=(y*W+x)*4,n=pvn(x/W*16,y/H*64,16,11)-.5,f=ih(x,y)-.5;let c;
   if(um<.55||um>7.65){c=[128+n*40+f*20,121+n*36+f*18,105+n*30+f*14]}
@@ -539,10 +539,13 @@ TXR.roadK=(()=>{const W=128,H=512,k=mkCanvas(W,H),g=k.getContext('2d'),mx=W/8.2,
  const r=rng(77);for(let k2=0;k2<5;k2++){g.fillStyle=`rgba(36,37,40,${.08+r()*.1})`;const x=(.9+r()*5.6)*mx,y=r()*H,w=(.8+r()*2)*mx,h=(1+r()*2.5)*my;g.fillRect(Math.min(x,W-1.2*mx-w),y,w,h)}
  // marquages (ligne médiane T1 3/10 m, rives T'2 3/3.5 m)
  g.fillStyle='rgba(236,234,224,.9)';const paint=(u0,wm,v0,lm)=>g.fillRect(u0*mx,v0*my,Math.max(1.2,wm*mx),lm*my);
- for(const v0 of[0,13])paint(4.1-.075,.15,v0,3);
- for(const v0 of[0,6.5,13,19.5]){paint(.8,.15,v0,3);paint(7.25,.15,v0,3)}
- return k})();
+ if(mode<2)for(const v0 of[0,13])paint(4.1-.075,.15,v0,3);
+ if(mode===0)for(const v0 of[0,6.5,13,19.5]){paint(.8,.15,v0,3);paint(7.25,.15,v0,3)}
+ return k}
+TXR.roadK=roadTexK(0);
 TXR.road=texOf(TXR.roadK,true,true);TXR.road.anisotropy=Math.min(4,MAXANI);
+// largeur et marquage réels de la route du parcours (lus sur les tronçons IGN / OSM qu'elle suit)
+TXR.roadM=[TXR.road,...[1,2].map(m=>{const t=texOf(roadTexK(m),true,true);t.anisotropy=Math.min(4,MAXANI);return t})];
 
 // atlas des murs 4x2 (256 px) : 0 enduit 1 pierre 2 brique 3 bois 4 parpaing 5 bardage métal 6 uni 7 volets
 TXR.wallK=(()=>{const k=mkCanvas(1024,512),g=k.getContext('2d');
@@ -1296,11 +1299,14 @@ function partOutlines(){while(PARTNEW.length){const b=PARTNEW.pop(),L=BIDX.get(v
 // cellules de 512 m -> tronçons ; leurs emprises entrent aussi dans les masques (pas d'arbre ni d'herbe dessus)
 const ORC=512,ORL=new Map(),ORIDS=new Set(),ORIDX=new Map();let MAPV=0;// MAPV : change quand le fond de la mini-carte doit être redessiné
 const ORK={r:[.3,[1,1,1],.26],c:[.03,[1,.96,.88],.24],s:[.03,[.82,.72,.58],.22]};// type : [u dans la texture de route, teinte, surélévation]
-function addORoad(id,line,kind,w){if(ORIDS.has(id)||line.length<2)return;ORIDS.add(id);
+function addORoad(id,line,kind,w,meta){if(ORIDS.has(id)||line.length<2)return;ORIDS.add(id);
  const P=[];for(let i=0;i<line.length-1;i++){const a=line[i],b=line[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(L/4));for(let k=0;k<n;k++)P.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}P.push(line[line.length-1]);
  let near=false;for(let i=0;i<P.length;i+=8)if(trackDist(P[i][0],P[i][1])<2200){near=true;break}if(!near)return;
  // on retire ce qui double une route du réseau (déjà dessinée et roulable) ; chaque morceau gardé touche le bord de la route
- const cov=P.map(p=>{const q=roadQ(p[0],p[1],_RQ2);return!!q&&q.d<4.2+w/2});let run=[];
+ const mk=roadMarkOf(w,meta?meta.lanes:0,meta?meta.main:false,kind);
+ const cov=P.map(p=>{const q=roadQ(p[0],p[1],_RQ2),on=!!q&&q.d<4.2+w/2;
+  // ce tronçon suit la route du parcours (à 3 m près, même direction) : on garde sa largeur et son marquage
+  if(on&&q.d<3&&inWorld(EOF[q.i])){roadAttr(q.i,w,mk)}return on});let run=[];
  const flush=()=>{if(run.length>=4){const o={p:run,w,kind,id};const m=run[run.length>>1],k=Math.floor(m[0]/ORC)+','+Math.floor(m[1]/ORC);let c=ORL.get(k);
    if(!c)ORL.set(k,c={a:Math.floor(m[0]/ORC),b:Math.floor(m[1]/ORC),list:[],n:0,ver:-1,tv:-1,mesh:null});c.list.push(o);c.n++;MAPV++;
    const hw=w/2+.6,Lf=[],Rg=[];for(let i=0;i<run.length;i++){const A=run[Math.max(0,i-1)],B=run[Math.min(run.length-1,i+1)],dx=B[0]-A[0],dz=B[1]-A[1],l=Math.hypot(dx,dz)||1;Lf.push([run[i][0]-dz/l*hw,run[i][1]+dx/l*hw]);Rg.push([run[i][0]+dz/l*hw,run[i][1]-dx/l*hw])}
@@ -1310,12 +1316,13 @@ function parseBDTopoRoute(f){const p=f.properties||{},g=f.geometry;if(!g||+p.pos
  if(/escalier|bac|liaison|transbordeur/.test(n))return;let kind='r',w=+p.largeur_de_chaussee||0;
  if(/sentier/.test(n)){kind='s';w=1.4}else if(/chemin|empierr/.test(n)){kind='c';w=w||3}else if(/autorout/.test(n))w=w||10.5;else if(/2 chauss/.test(n))w=w||11;
  else if(/bretelle|rond/.test(n))w=w||4.5;else if(/cyclable/.test(n))w=w||2.5;else w=w||(+p.nombre_de_voies>=2?6:4.5);
- const L=g.type==='LineString'?[g.coordinates]:g.type==='MultiLineString'?g.coordinates:[];L.forEach((l,k)=>addORoad('t'+(p.cleabs||f.id)+'/'+k,l.map(cxz),kind,clamp(w,1.2,14)))}
+ const meta={lanes:+p.nombre_de_voies||0,main:+p.importance>0&&+p.importance<=2||/autorout|2 chauss/.test(n)};
+ const L=g.type==='LineString'?[g.coordinates]:g.type==='MultiLineString'?g.coordinates:[];L.forEach((l,k)=>addORoad('t'+(p.cleabs||f.id)+'/'+k,l.map(cxz),kind,clamp(w,1.2,14),meta))}
 function osmRoad(el){const t=el.tags||{},h=t.highway||'';if(!el.geometry||(t.tunnel&&t.tunnel!=='no')||/steps|proposed|construction|platform|corridor|elevator|raceway|bus_stop|abandoned/.test(h))return;
  let kind='r',w=4.5;if(/motorway|trunk/.test(h))w=/link/.test(h)?4.5:10.5;else if(/primary|secondary/.test(h))w=6.5;else if(/tertiary/.test(h))w=5.5;else if(/service/.test(h))w=3.5;
  else if(/track/.test(h)){kind='c';w=3}else if(/path|footway|bridleway|pedestrian/.test(h)){kind='s';w=1.4}else if(/cycleway/.test(h))w=2.5;
  if(kind==='r'&&/gravel|dirt|ground|unpaved|grass|compacted|earth/.test(t.surface||''))kind='c';
- addORoad('o'+el.id,el.geometry.map(q=>cxz([q.lon,q.lat])),kind,w)}
+ if(+t.width>1)w=+t.width;addORoad('o'+el.id,el.geometry.map(q=>cxz([q.lon,q.lat])),kind,w,{lanes:+t.lanes||0,main:/motorway|trunk|primary/.test(h)})}
 async function loadOSMRoads(a,b){const[s,w,n,e]=tileLL(a,b),bb=`(${s.toFixed(5)},${w.toFixed(5)},${n.toFixed(5)},${e.toFixed(5)})`;
  const wid=WID,j=await overpass(`[out:json][timeout:60];way["highway"]${bb};out geom;`,45000);if(wid!==WID)throw STALE;await sliced(j.elements||[],osmRoad,wid);dataDirty=1;for(const k of[...MASKC.keys()])MASKC.delete(k)}
 // hauteur du terrain telle que la dessine le maillage (grille de 16 m près du réseau, 64 m plus loin ; couloir le long des routes)
@@ -1415,6 +1422,15 @@ function waterAt(x,z){if(!DATA.n.w)return 0;const u=x/MS4-.5,v=z/MS4-.5,i=Math.f
 // ====================== route : chaussée, ponts, équipements (balises, bornes, glissières, trottoirs, lampadaires, panneaux) ======================
 const ROAD={ch:[],fur:[],ver:1,fver:1,vil:null};
 const roadMat=new T.MeshLambertMaterial({map:TXR.road,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+const ROADMATS=[roadMat,...[1,2].map(m=>new T.MeshLambertMaterial({map:TXR.roadM[m],polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}))];
+// RDW : largeur de chaussée (m) par échantillon, RMK : marquage (0 complet, 1 médiane, 2 aucun), 0 / 255 = inconnu (route standard 7 m)
+let RDW=null,RMK=null,CHK_OF=null;const RDIRTY=new Set();
+function roadAttr(i,w,mk){if(!RDW){RDW=new Float32Array(N);RMK=new Uint8Array(N).fill(255);CHK_OF=new Int32Array(N).fill(-1);CHUNKS.forEach((c,k)=>{for(let j=c.i0;j<=c.i1;j++)CHK_OF[j]=k})}
+ if(Math.abs(RDW[i]-w)<.3&&RMK[i]===mk)return;RDW[i]=w;RMK[i]=mk;if(CHK_OF[i]>=0)RDIRTY.add(CHK_OF[i])}
+// marquage d'après la largeur réelle (les petites routes de 4 m comptées « 2 voies » n'ont pas de ligne médiane)
+function roadMarkOf(w,lanes,main,kind){if(kind==='c'||kind==='s')return 2;if(main||w>=6.5||lanes>=3)return 0;if(w>=5.2)return 1;return 2}
+function roadScale(i,Ed){if(!RDW)return 1;let s=0,c=0;for(let k=-8;k<=8;k++){const j=clamp(i+k,Ed.i0,Ed.i1);if(RDW[j]){s+=RDW[j];c++}}return c?clamp((s/c+1.1)/8.2,.55,1.15):1}
+function chunkMark(c){if(!RMK)return 0;const ch=CHUNKS[c],n=[0,0,0];for(let i=ch.i0;i<=ch.i1;i++)if(RMK[i]<3)n[RMK[i]]++;return n[0]+n[1]+n[2]?n.indexOf(Math.max(...n)):0}
 const OFFR=[-4.3,-4.1,-3.5,0,3.5,4.1,4.3],YR=[-.32,0,.035,.07,.035,0,-.32];
 function buildRoadChunk(c){const ch=CHUNKS[c],Ed=NET.E[ch.e],i0=ch.i0,i1=ch.i1,C=OFFR.length,bias0=Ed.cls*.012;
  const P=[],U=[],idx=[];
@@ -1423,7 +1439,7 @@ function buildRoadChunk(c){const ch=CHUNKS[c],Ed=NET.E[ch.e],i0=ch.i0,i1=ch.i1,C
  if(hi>lo+.05){st.push(lo);for(let i=i0;i<=i1;i++)if(SD[i]>lo+.3&&SD[i]<hi-.3)st.push(SD[i]);st.push(hi)}
  const po={};
  for(const u of st){posAt(Ed.id,u,1,po);const i=po.i,da=po.da,lim=Math.abs(da)>1e-5?.92/Math.abs(da):1e9,dj=Math.min(ra?u-ra:1e3,rz?Ed.len-rz-u:1e3),bias=bias0*sm(0,15,dj);
-  for(let k=0;k<C;k++){let o=OFFR[k];if(o*da<0&&Math.abs(o)>lim)o=Math.sign(o)*lim;P.push(po.x-po.tz*o,po.y+YR[k]+bias+(BRG&&BRG[i]?.02:0),po.z+po.tx*o);
+  const sc=roadScale(i,Ed);for(let k=0;k<C;k++){let o=k===0||k===C-1?Math.sign(OFFR[k])*(4.1*sc+.2):OFFR[k]*sc;if(o*da<0&&Math.abs(o)>lim)o=Math.sign(o)*lim;P.push(po.x-po.tz*o,po.y+YR[k]+bias+(BRG&&BRG[i]?.02:0),po.z+po.tx*o);
    U.push(clamp((OFFR[k]+4.1)/8.2,0,1),u/26)}}
  for(let r=0;r<st.length-1;r++)for(let k=0;k<C-1;k++){const A=r*C+k,B=A+1,Cc=A+C,D=Cc+1;idx.push(A,B,Cc,B,D,Cc)}
  // plateau d'enrobé aux simples jonctions de deux routes (les carrefours ont leur propre chaussée arrondie)
@@ -1522,8 +1538,9 @@ function buildFurniture(c){const ch=CHUNKS[c],Ed=NET.E[ch.e],e0=Ed.i0,e1=Ed.i1,i
 const RDV=QP.road||5000;// distance d'affichage des chaussées
 function roadUpdate(cp){
  for(let c=0;c<CHUNKS.length;c++){const ch=CHUNKS[c];if(!inWorld(ch.e))continue;const d=Math.hypot(ch.cx-cp.x,ch.cz-cp.z)-ch.r;
-  let r=ROAD.ch[c];if(d<RDV){if(!r)r=ROAD.ch[c]={mesh:null,ver:0};if(r.ver!==ROAD.ver)job(()=>{if(r.ver===ROAD.ver)return true;const g=buildRoadChunk(c);
-     if(r.mesh){r.mesh.geometry.dispose();r.mesh.geometry=g}else{r.mesh=new T.Mesh(g,roadMat);r.mesh.receiveShadow=true;r.mesh.matrixAutoUpdate=false;WORLD.add(r.mesh)}r.ver=ROAD.ver;return true},()=>Math.max(0,d)-4000,'r'+c)}
+  let r=ROAD.ch[c];if(r&&RDIRTY.has(c)){RDIRTY.delete(c);r.ver=-1}
+  if(d<RDV){if(!r)r=ROAD.ch[c]={mesh:null,ver:0};if(r.ver!==ROAD.ver)job(()=>{if(r.ver===ROAD.ver)return true;const g=buildRoadChunk(c),mt=ROADMATS[chunkMark(c)];
+     if(r.mesh){r.mesh.geometry.dispose();r.mesh.geometry=g;r.mesh.material=mt}else{r.mesh=new T.Mesh(g,mt);r.mesh.receiveShadow=true;r.mesh.matrixAutoUpdate=false;WORLD.add(r.mesh)}r.ver=ROAD.ver;return true},()=>Math.max(0,d)-4000,'r'+c)}
   else if(r&&r.mesh&&d>RDV+1500){WORLD.remove(r.mesh);r.mesh.geometry.dispose();r.mesh=null;r.ver=0}
   if(r&&r.mesh)r.mesh.visible=d<RDV+200;
   let f=ROAD.fur[c];if(d<QP.bldD+500){if(!f)f=ROAD.fur[c]={g:null,ver:0};if(f.ver!==ROAD.fver)job(()=>{if(f.ver===ROAD.fver)return true;const g=buildFurniture(c);
