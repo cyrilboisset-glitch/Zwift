@@ -3635,7 +3635,8 @@ const mfreq=m=>440*Math.pow(2,(m-69)/12);
 function musTick(){if(!AC||AC.state!=='running')return;if(!MUS.g){MUS.g=AC.createGain();MUS.g.gain.value=0;MUS.g.connect(AC.destination);MUS.next=AC.currentTime+.2;
   const nb=AC.createBuffer(1,AC.sampleRate*.2,AC.sampleRate),d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;MUS.nb=nb}
  const want=SET.mus&&mode!=='home'&&!MUTE?SET.musV*.5:0;MUS.g.gain.setTargetAtTime(want,AC.currentTime,.6);if(!want){MUS.next=AC.currentTime+.2;return}
- const st=SET.mus,bpm=st===2?124:92,sp=60/bpm/2;
+ // « adaptée à l'effort » : calme en récupération, rythmée au tempo, plus rapide et plus riche au-dessus du seuil
+ let st=SET.mus,bpm=st===2?124:92;if(st===3){const z=zi(P3/FTP);st=z<2?1:2;bpm=z<2?90:z<3?112:z<4?124:136;MUS.hard=z>=4}else MUS.hard=false;const sp=60/bpm/2;
  while(MUS.next<AC.currentTime+.35){musNote(MUS.step,MUS.next,st,sp);MUS.next+=sp;MUS.step++}}
 function musNote(k,t,st,sp){const ch=CHORDS[Math.floor(k/8)%4],b=k%8,o=(type,f,g0,dur,dest)=>{const x=AC.createOscillator(),g=AC.createGain();x.type=type;x.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(g0,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+dur);x.connect(g);g.connect(dest||MUS.g);x.start(t);x.stop(t+dur+.05)};
  if(b===0)for(const m of ch)o('sine',mfreq(m),.035,sp*8*1.05);// nappe
@@ -3643,7 +3644,8 @@ function musNote(k,t,st,sp){const ch=CHORDS[Math.floor(k/8)%4],b=k%8,o=(type,f,g
  if(st===2){if(b%2===0){const x=AC.createOscillator(),g=AC.createGain();x.frequency.setValueAtTime(120,t);x.frequency.exponentialRampToValueAtTime(42,t+.12);g.gain.setValueAtTime(.35,t);g.gain.exponentialRampToValueAtTime(.0001,t+.18);x.connect(g);g.connect(MUS.g);x.start(t);x.stop(t+.2)}// grosse caisse
   if(b%2===1){const s2=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s2.buffer=MUS.nb;f.type='highpass';f.frequency.value=7000;g.gain.setValueAtTime(.08,t);g.gain.exponentialRampToValueAtTime(.0001,t+.05);s2.connect(f);f.connect(g);g.connect(MUS.g);s2.start(t);s2.stop(t+.06)}// charleston
   if(b%2===0){const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=600;f.connect(MUS.g);o('sawtooth',mfreq(ch[0]-24),.08,sp*1.8,f)}}// basse
- else if(b===4)o('sine',mfreq(ch[0]-12),.05,sp*4)}
+ else if(b===4)o('sine',mfreq(ch[0]-12),.05,sp*4);
+ if(MUS.hard&&st===2){o('square',mfreq(ch[(k+1)%3]+24),.018,sp*.45);if(b%2===1){const s2=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s2.buffer=MUS.nb;f.type='highpass';f.frequency.value=8000;g.gain.setValueAtTime(.05,t+sp/2);g.gain.exponentialRampToValueAtTime(.0001,t+sp/2+.04);s2.connect(f);f.connect(g);g.connect(MUS.g);s2.start(t+sp/2);s2.stop(t+sp/2+.05)}}}// effort intense : mélodie aiguë et charleston doublé
 // ---- sons de campagne : cloches de vaches, cloches d'église à l'entrée des villages ----
 function cowbell(t){for(let k=0;k<2+(Math.random()*3|0);k++){const u=t+k*(.18+Math.random()*.25);for(const f of[540,800]){const x=AC.createOscillator(),b=AC.createBiquadFilter(),g=AC.createGain();x.type='square';x.frequency.value=f*(.97+Math.random()*.06);b.type='bandpass';b.frequency.value=800;b.Q.value=3;
   g.gain.setValueAtTime(.0001,u);g.gain.exponentialRampToValueAtTime(.025*SET.natV,u+.005);g.gain.exponentialRampToValueAtTime(.0001,u+.5);x.connect(b);b.connect(g);g.connect(AC.destination);x.start(u);x.stop(u+.55)}}}
@@ -3933,7 +3935,7 @@ function prefRender(){const ch=(key,L)=>'<div class="chips" data-p="'+key+'">'+L
   '<div class="gq">Import des GPX : recaler le tracé sur les vraies routes</div>'+ch('snap',[[1,'Oui'],[0,'Non']])+
   '<div class="gq">Sprints : écart minimal entre deux sprints</div>'+ch('sprGap',[[-1,'Aucun sprint'],[0,'Tous les villages'],[2,'2 km'],[5,'5 km'],[10,'10 km'],[20,'20 km'],[40,'40 km']])+
   '<div class="gq">Commentateur vocal</div>'+ch('voice',[[1,'🔊 Activé'],[0,'Coupé']])+'<div class="gq">Coach pendant les séances</div>'+ch('coach',[[1,'Activé'],[0,'Coupé']])+'<button id="pvt">▶ Tester la voix</button>'+
-  '<div class="gq">Musique d\'ambiance</div>'+ch('mus',[[0,'Aucune'],[1,'Calme'],[2,'Motivation']])+'<label>Volume musique <input id="pmv" type="range" min="0" max="1" step=".05" value="'+SET.musV+'"></label>'+
+  '<div class="gq">Musique d\'ambiance</div>'+ch('mus',[[0,'Aucune'],[1,'Calme'],[2,'Motivation'],[3,'Adaptée à l\'effort']])+'<label>Volume musique <input id="pmv" type="range" min="0" max="1" step=".05" value="'+SET.musV+'"></label>'+
   '<label>Sons de la nature <input id="pnv" type="range" min="0" max="1.5" step=".05" value="'+SET.natV+'"></label>'+
   '<div class="gq">Moment de la journée</div>'+ch('tod',TODS)+
   '<div class="gq">Profil</div><div class="row" style="flex-wrap:wrap;align-items:center"><label>FC max <input id="pfc" type="number" min="120" max="220" value="'+SET.fcmax+'"> bpm</label><label>Poids cycliste <input id="pkg" type="number" min="35" max="200" step=".5" value="'+(SET.rkg||'')+'" placeholder="'+nf(riderKg(),1)+'"> kg</label></div>'+
@@ -4391,17 +4393,26 @@ function velMap(){const c=$('map');if(!c)return;const W=c.width,g=c.getContext('
 let AC=null,AU={},MUTE=false,aT=0;
 function audio(){if(AC){if(AC.state==='suspended')AC.resume();return}try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){return}
  const nb=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate),d=nb.getChannelData(0);let l=0;for(let i=0;i<d.length;i++){l=(l+.02*(Math.random()*2-1))/1.02;d[i]=l*3.5}
- const ns=(t,f,qv)=>{const so=AC.createBufferSource();so.buffer=nb;so.loop=true;const b=AC.createBiquadFilter();b.type=t;b.frequency.value=f;b.Q.value=qv;const g=AC.createGain();g.gain.value=0;so.connect(b);b.connect(g);g.connect(AU.nat||(AU.nat=(()=>{const m=AC.createGain();m.connect(AC.destination);return m})()));so.start();return g};
+ const ns=(t,f,qv)=>{const so=AC.createBufferSource();so.buffer=nb;so.loop=true;const b=AC.createBiquadFilter();b.type=t;b.frequency.value=f;b.Q.value=qv;const g=AC.createGain();g.gain.value=0;so.connect(b);b.connect(g);g.connect(AU.nat||(AU.nat=(()=>{const m=AC.createGain();m.connect(AC.destination);return m})()));so.start();g.f=b;return g};
  AU.wind=ns('bandpass',600,.5);AU.leaf=ns('highpass',3500,.4);AU.river=ns('lowpass',380,.7);AU.rain=ns('highpass',1800,.3);
+ AU.roll=ns('lowpass',260,.9);AU.rumb=ns('lowpass',120,.7);AU.crowd=ns('bandpass',950,.45);// roulement des pneus, grondement du vent fort, rumeur de foule
  const cr=AC.createOscillator(),lf=AC.createOscillator(),lg=AC.createGain(),cm=AC.createGain();cr.frequency.value=4300;lf.frequency.value=32;lg.gain.value=.5;cm.gain.value=.5;AU.cri=AC.createGain();AU.cri.gain.value=0;lf.connect(lg);lg.connect(cm.gain);cr.connect(cm);cm.connect(AU.cri);AU.cri.connect(AC.destination);cr.start();lf.start();
  const fw=AC.createOscillator(),fg=AC.createGain(),ff=AC.createBiquadFilter();fw.type='sawtooth';fg.gain.value=0;ff.type='lowpass';ff.frequency.value=2200;fw.connect(ff);ff.connect(fg);fg.connect(AC.destination);fw.start();AU.fw=fw;AU.fg=fg;
  setInterval(()=>{if(!AC||AC.state!=='running'||mode==='home'||VEL.on||MUTE||DAYF<.35||Math.random()>.55)return;const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime,f=2200+Math.random()*2200,n=2+(Math.random()*4|0);g.gain.value=.0001;o.connect(g);g.connect(AC.destination);
   for(let k=0;k<n;k++){const u=t+k*.09;o.frequency.setValueAtTime(f*(1+.15*(k%2)),u);o.frequency.exponentialRampToValueAtTime(f*1.4,u+.07);g.gain.setValueAtTime(.0001,u);g.gain.exponentialRampToValueAtTime(.05,u+.02);g.gain.exponentialRampToValueAtTime(.0001,u+.08)}o.start(t);o.stop(t+n*.09+.1)},1800)}
 let nearWater=0;
 function audioTick(P){if(!AC||AC.state!=='running'||performance.now()-aT<120)return;aT=performance.now();const t=AC.currentTime,on=!MUTE&&mode!=='home',ni=ELEV<-3,vv=Math.min(1,Math.max(0,v+WX.head)/14),co=on&&(mode==='ride'||mode==='wk')&&P<=5&&v>1.5;
- AU.wind.gain.setTargetAtTime(on?(.03+.22*vv*vv)*(1-1.4*(typeof RDRAFT==='number'?RDRAFT:0)):0,t,.2);const out=!VEL.on;AU.leaf.gain.setTargetAtTime(on&&out&&!ni?.008+.02*vv:0,t,.3);AU.river.gain.setTargetAtTime(on&&out?.012+.08*nearWater:0,t,.5);AU.cri.gain.setTargetAtTime(on&&out&&ni?.012:0,t,.5);
+ const out=!VEL.on;AU.leaf.gain.setTargetAtTime(on&&out&&!ni?.008+.02*vv:0,t,.3);AU.river.gain.setTargetAtTime(on&&out?.012+.08*nearWater:0,t,.5);AU.cri.gain.setTargetAtTime(on&&out&&ni?.012:0,t,.5);
  AU.fw.frequency.setTargetAtTime(40+v*14,t,.1);AU.fg.gain.setTargetAtTime(co?Math.min(.03,v*.004):0,t,.1);
- AU.nat.gain.setTargetAtTime(SET.natV,t,.3);AU.rain.gain.setTargetAtTime(on&&WX.rain?.06:0,t,.6)}
+ AU.nat.gain.setTargetAtTime(SET.natV,t,.3);AU.rain.gain.setTargetAtTime(on&&WX.rain?.06:0,t,.6);
+ // vent : plus aigu et plus fort avec la vitesse, rafales ; grondement grave au-delà de 40 km/h
+ const now=performance.now(),gust=.82+.12*Math.sin(now/1300)+.08*Math.sin(now/530+1.7);AU.wind.f.frequency.setTargetAtTime(320+vv*1300,t,.3);
+ AU.wind.gain.setTargetAtTime(on?(.03+.22*vv*vv)*gust*(1-1.4*(typeof RDRAFT==='number'?RDRAFT:0)):0,t,.25);AU.rumb.gain.setTargetAtTime(on&&out?Math.max(0,vv-.75)*.5*gust:0,t,.4);
+ // pneus sur la route : bruit grave qui monte avec la vitesse (plus granuleux sur les petites routes sans marquage)
+ const rough=typeof RMK!=='undefined'&&RMK&&RMK[sampleAt(RID.e,RID.u)[0]]===2;AU.roll.f.frequency.setTargetAtTime(180+vv*520+(rough?400:0),t,.2);AU.roll.gain.setTargetAtTime(on&&out&&v>.5?Math.min(.09,.012+v*.0045)*(rough?1.5:1):0,t,.2);
+ // foule : pendant les sprints et les 300 derniers mètres des montées
+ const crowd=on&&out&&(SP||(typeof KOM!=='undefined'&&KOM&&ROUTE&&ROUTE.cum&&KOM.c.s1-ROUTE.cum[Math.min(ROUTE.k,ROUTE.cum.length-1)]<300));
+ AU.crowd.gain.setTargetAtTime(crowd?.07*(.75+.25*Math.sin(now/240)):0,t,crowd?.4:1.2);AU.crowd.f.frequency.setTargetAtTime(850+200*Math.sin(now/900),t,.5)}
 addEventListener('pointerdown',audio);addEventListener('keydown',audio);
 // ===== salle d'accueil (thème vélo) =====
 const RM=new T.Group(),BGC=new T.Color(0x10141a);sc.add(RM);
