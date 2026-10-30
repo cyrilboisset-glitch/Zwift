@@ -1155,7 +1155,8 @@ function buildCorridor(c){const ch=CHUNKS[c],own=ch.e,i0=ch.i0,i1=ch.i1,rows=[];
  for(let i=i0;i<i1;i+=(Math.abs(DA[i])>.0125||Math.abs(DA[Math.min(i1,i+1)])>.0125)?1:2)rows.push(i);rows.push(i1);
  const R=rows.length,C=CO.length,cols=C+2,P=new Float32Array(R*cols*3),Nn=new Float32Array(R*cols*3),idx=[];
  for(let r=0;r<R;r++){const i=rows[r],lim=Math.abs(DA[i])>1e-5?.92/Math.abs(DA[i]):1e9;
-  const offs=CO.map(o=>(o*DA[i]<0&&Math.abs(o)>lim)?Math.sign(o)*lim:o);
+  // bord intérieur collé au bord réel de la chaussée (route plus étroite ou plus large selon les données)
+  const ri=4.1*roadScale(i,NET.E[own])+.1,offs=CO.map(o=>{if(Math.abs(o)<5)o=Math.sign(o)*ri;return(o*DA[i]<0&&Math.abs(o)>lim)?Math.sign(o)*lim:o});
   // rognage côté gauche (indices décroissants depuis le centre) et côté droit
   for(const[a,b,st]of[[C/2-1,-1,-1],[C/2,C,1]]){let prev=offs[a]*0;for(let k=a;k!==b;k+=st){const o=offs[k],x=X[i]-TZ[i]*o,z=Z[i]+TX[i]*o;
     if(foreignAt(x,z,own,Math.abs(o))){let lo=prev,hi=o;for(let it=0;it<5;it++){const m=(lo+hi)/2;if(foreignAt(X[i]-TZ[i]*m,Z[i]+TX[i]*m,own,Math.abs(m)))hi=m;else lo=m}
@@ -1572,7 +1573,7 @@ function buildFurniture(c){const ch=CHUNKS[c],Ed=NET.E[ch.e],e0=Ed.i0,e1=Ed.i1,i
 const RDV=QP.road||5000;// distance d'affichage des chaussées
 function roadUpdate(cp){
  for(let c=0;c<CHUNKS.length;c++){const ch=CHUNKS[c];if(!inWorld(ch.e))continue;const d=Math.hypot(ch.cx-cp.x,ch.cz-cp.z)-ch.r;
-  let r=ROAD.ch[c];if(r&&RDIRTY.has(c)){RDIRTY.delete(c);r.ver=-1}
+  let r=ROAD.ch[c];if(r&&RDIRTY.has(c)){RDIRTY.delete(c);r.ver=-1;const tc=TER.cor[c];if(tc)tc.ver=-1}
   if(d<RDV){if(!r)r=ROAD.ch[c]={mesh:null,ver:0};if(r.ver!==ROAD.ver)job(()=>{if(r.ver===ROAD.ver)return true;const g=buildRoadChunk(c),mt=ROADMATS[chunkMark(c)];
      if(r.mesh){r.mesh.geometry.dispose();r.mesh.geometry=g;r.mesh.material=mt}else{r.mesh=new T.Mesh(g,mt);r.mesh.receiveShadow=true;r.mesh.matrixAutoUpdate=false;WORLD.add(r.mesh)}r.ver=ROAD.ver;return true},()=>Math.max(0,d)-4000,'r'+c)}
   else if(r&&r.mesh&&d>RDV+1500){WORLD.remove(r.mesh);r.mesh.geometry.dispose();r.mesh=null;r.ver=0}
