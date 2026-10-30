@@ -3599,7 +3599,7 @@ function sprintEnd2(S){const g=S.g,pk=Math.round(S.pk),avg=Math.round(S.sum/Math
  speak('Sprint terminé : '+pk+' watts.'+(nr?(old?' Nouveau record !':' Premier record !'):' Ton record : '+old+' watts.'),null,0,true);if(nr)celebrate(true);else if(rank&&rank<=3)celebrate(false)}
 // ---- côtes du parcours : détection sur le profil, arches de pied et de sommet, chrono, W/kg, VAM ----
 let KOM=null,KOMV=0;// côte en cours
-function courseClimbs(){if(!COURSE||!ROUTE)return;if(COURSE.climbs)for(const c of COURSE.climbs)if(c.g&&c.g.parent){disposeGroup(c.g)}
+function courseClimbs(){if(!COURSE||!ROUTE)return;if(COURSE.climbs)for(const c of COURSE.climbs){if(c.g&&c.g.parent){disposeGroup(c.g)}if(c.sg){disposeGroup(c.sg);c.sg=null}}
  const P=ROUTE.P,n=P.length,h=new Float32Array(n),q={};for(let i=0;i<n;i++){const r=roadQ(P[i][0],P[i][1],q);h[i]=r?r.y:(i?h[i-1]:0)}
  const sH=new Float32Array(n);for(let i=0;i<n;i++){let a=0,c=0;for(let k=-5;k<=5;k++){const j=i+k;if(j>=0&&j<n){a+=h[j];c++}}sH[i]=a/c}
  const out=[];let i=0;
@@ -3608,13 +3608,56 @@ function courseClimbs(){if(!COURSE||!ROUTE)return;if(COURSE.climbs)for(const c o
   const len=ROUTE.cum[top]-ROUTE.cum[i],dp=sH[top]-sH[i];if(len>=500&&dp>=35&&dp/len>=.04)out.push({i0:i,i1:top,s0:ROUTE.cum[i],s1:ROUTE.cum[top],len,dp,avg:dp/len});i=top+1}
  for(const c of out){const[x,z]=P[c.i1];let best='',bd=5000;for(const cm of COMMUNES){const[cx,cz]=ll2xz(cm.lat,cm.lon),d=Math.hypot(cx-x,cz-z);if(d<bd){bd=d;best=cm.name}}c.name=best||'la côte';
   const a=roadQ(P[c.i0][0],P[c.i0][1],{}),b=roadQ(P[c.i1][0],P[c.i1][1],{});c.key='K'+(a?EOF[a.i]+':'+Math.round(SD[a.i]/100):c.i0)+'>'+(b?EOF[b.i]+':'+Math.round(SD[b.i]/100):c.i1)}
- COURSE.climbs=out.slice(0,15);KOM=null;KOMV++}
-const climbName=c=>'Côte de '+c.name;
+ COURSE.climbs=out.slice(0,15);KOM=null;KOMV++;if(COLS.list)colsApply()}
+// nom d'une montée : col (IGN / OSM), sinon village détecté le plus proche du sommet, sinon « Montée du km X »
+function climbName(c){if(c.col)return c.col;if(!c.vn&&typeof VIL!=='undefined'&&VIL.length&&ROUTE){const[x,z]=ROUTE.P[c.i1];let bd=3000;for(const v of VIL){if(!v.name)continue;const i=(v.i0+v.i1)>>1,d=Math.hypot(X[i]-x,Z[i]-z);if(d<bd){bd=d;c.vn=v.name}}}
+ return c.vn?'Côte de '+c.vn:'Montée du km '+nf(c.s0/1000,1)}
+// ---- cols du parcours (IGN « détail orographique », sinon OpenStreetMap) : nom des montées, panneau au sommet ----
+const COLS={list:null,busy:false};
+async function colsLoad(){if(COLS.busy||COLS.list||!ROUTE)return;COLS.busy=true;const P=ROUTE.P,CS=.018,cells=new Map(),out=[];
+ for(let i=0;i<P.length;i+=10){const[la,lo]=xz2ll(P[i][0],P[i][1]);cells.set(Math.floor(la/CS)+','+Math.floor(lo/(CS*1.4)),[Math.floor(la/CS),Math.floor(lo/(CS*1.4))])}
+ let ign=0,tried=0;
+ for(const[a,b]of cells.values()){const s0=a*CS,w=b*CS*1.4;tried++;
+  try{const F=await wfs('BDTOPO_V3:detail_orographique',s0,w,s0+CS,w+CS*1.4,1);for(const f of F){const pr=f.properties||{};if(!/^col/i.test(pr.nature||'')||!pr.toponyme||!f.geometry)continue;const c=f.geometry.coordinates,[x,z]=cxz(c);out.push({x,z,name:pr.toponyme});ign++}}catch(e){}
+  if(tried>=4&&!ign)break}
+ if(!ign){// hors de France : cols nommés d'OpenStreetMap
+  let la0=90,la1=-90,lo0=180,lo1=-180;for(let i=0;i<P.length;i+=10){const[la,lo]=xz2ll(P[i][0],P[i][1]);la0=Math.min(la0,la);la1=Math.max(la1,la);lo0=Math.min(lo0,lo);lo1=Math.max(lo1,lo)}
+  try{const j=await overpass('[out:json][timeout:40];(node["mountain_pass"="yes"]["name"]('+[la0-.01,lo0-.01,la1+.01,lo1+.01].map(v=>v.toFixed(4)).join(',')+');node["natural"="saddle"]["name"]('+[la0-.01,lo0-.01,la1+.01,lo1+.01].map(v=>v.toFixed(4)).join(',')+'););out;',40000);
+   for(const el of j.elements||[]){const[x,z]=ll2xz(el.lat,el.lon);out.push({x,z,name:el.tags.name})}}catch(e){}}
+ // on garde les cols à moins de 150 m du parcours, avec leur point du parcours
+ COLS.list=[];for(const c of out){let bi=-1,bd=150*150;for(let i=0;i<P.length;i+=2){const d=(P[i][0]-c.x)**2+(P[i][1]-c.z)**2;if(d<bd){bd=d;bi=i}}if(bi>=0&&!COLS.list.some(o=>Math.abs(o.i-bi)<40))COLS.list.push({i:bi,name:c.name})}
+ COLS.busy=false;colsApply()}
+function colsApply(){if(!COURSE||!COURSE.climbs)return;for(const c of COURSE.climbs){const k=COLS.list.find(o=>Math.abs(ROUTE.cum[o.i]-c.s1)<700);if(k){c.col=k.name.replace(/^col/,'Col');if(c.g){disposeGroup(c.g);c.g=null}}}KOMV++}
+// panneaux : texte sur toile (panneau de col blanc à bord noir ; borne cycliste blanche à bandeau coloré selon la pente)
+function signPlane(w,h,draw,x,y,z,yaw,G){const k=mkCanvas(256,Math.round(256*h/w)),g=k.getContext('2d');draw(g,k.width,k.height);
+ const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshLambertMaterial({map:texOf(k,true,false)}));m.position.set(x,y,z);m.rotation.y=yaw;G.add(m);
+ const bk=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshLambertMaterial({color:0x9aa0a6}));bk.position.set(x-Math.sin(yaw)*.02,y,z-Math.cos(yaw)*.02);bk.rotation.y=yaw+Math.PI;G.add(bk);return m}
+function colSignGroup(c){const G=new T.Group(),q={},P=ROUTE.P,cum=ROUTE.cum,n=P.length,post=new T.MeshLambertMaterial({color:0x8a8f94});
+ const at=d=>{let i=c.i0;while(i<n-1&&cum[i]<d)i++;return i},hAt=i=>{const r=roadQ(P[i][0],P[i][1],q);return r?r.y:0};
+ const place=(i,draw,w,h,y0)=>{const a=P[i],b=P[Math.min(n-1,i+2)],fx=b[0]-a[0],fz=b[1]-a[1],l=Math.hypot(fx,fz)||1,tx=fx/l,tz=fz/l,ox=-tz*6.3,oz=tx*6.3,yg=Math.max(hAt(i),hT(a[0]+ox,a[1]+oz));// posé sur le talus s'il est plus haut que la route
+ 
+  const yaw=Math.atan2(-tx,-tz);// face au cycliste qui arrive
+  const pp=new T.Mesh(new T.BoxGeometry(.08,y0+h/2,.08),post);pp.position.set(a[0]+ox,yg+(y0+h/2)/2,a[1]+oz);G.add(pp);signPlane(w,h,draw,a[0]+ox,yg+y0,a[1]+oz,yaw,G)};
+ // bornes kilométriques de montée (comme les bornes des cols : km restants, pente moyenne du km suivant)
+ const nm=up(c.col||climbName(c)),hTop=hAt(c.i1);
+ for(let d=c.s0+15;d<c.s1-300;d+=1000){const i=at(d),j=at(Math.min(c.s1,d+1000)),rem=(c.s1-d)/1000,gk=(hAt(j)-hAt(i))/Math.max(1,cum[j]-cum[i])*100;
+  place(i,(g,W,H)=>{g.fillStyle='#fff';g.fillRect(0,0,W,H);g.fillStyle=GCOL(gk);g.fillRect(0,0,W,H*.3);g.fillStyle='#fff';g.font='800 '+Math.round(W*.2)+'px system-ui';g.textAlign='center';g.textBaseline='middle';
+   g.fillText(gk.toFixed(1).replace('.',',')+' %',W/2,H*.15);g.fillStyle='#1b1f24';g.font='700 '+Math.round(W*.085)+'px system-ui';g.fillText(nm.length>22?nm.slice(0,21)+'…':nm,W/2,H*.4);
+   g.font='900 '+Math.round(W*.28)+'px system-ui';g.fillText(nf(rem,rem<10?1:0),W/2,H*.62);g.font='600 '+Math.round(W*.085)+'px system-ui';g.fillText('km du sommet',W/2,H*.8);
+   g.fillText('Altitude '+Math.round(hAt(i))+' m',W/2,H*.91);g.strokeStyle='#1b1f24';g.lineWidth=W*.03;g.strokeRect(W*.015,W*.015,W*.97,H-W*.03)},.75,1.15,.8)}
+ // panneau du sommet
+ place(c.i1,(g,W,H)=>{g.fillStyle='#fff';g.fillRect(0,0,W,H);g.strokeStyle='#111';g.lineWidth=W*.035;g.strokeRect(W*.03,W*.03,W*.94,H-W*.06);g.fillStyle='#111';g.textAlign='center';g.textBaseline='middle';
+  let fs=W*.13;g.font='800 '+fs+'px system-ui';while(g.measureText(nm).width>W*.86&&fs>W*.06){fs-=2;g.font='800 '+fs+'px system-ui'}g.fillText(nm,W/2,H*.38);
+  g.font='600 '+Math.round(W*.085)+'px system-ui';g.fillText('Altitude '+Math.round(hTop)+' m',W/2,H*.7)},2.6,1.3,1.6);
+ return G}
+let colT=0;function colTick(now){if(now-colT<1500||!COURSE||!ROUTE||!COURSE.climbs)return;colT=now;if(!COLS.list&&DEMOK)colsLoad();
+ for(const c of COURSE.climbs){const P0=ROUTE.P[c.i0],P1=ROUTE.P[c.i1],d=Math.min(Math.hypot(P0[0]-RW.x,P0[1]-RW.z),Math.hypot(P1[0]-RW.x,P1[1]-RW.z),Math.abs(ROUTE.cum[Math.min(ROUTE.k,ROUTE.cum.length-1)]-(c.s0+c.s1)/2)-c.len/2);
+  const want=d<2400,ver=KOMV+(c.col||'');if(want&&(!c.sg||c.sgv!==ver)){if(c.sg)disposeGroup(c.sg);c.sg=colSignGroup(c);c.sgv=ver;WORLD.add(c.sg)}else if(!want&&d>3400&&c.sg){disposeGroup(c.sg);c.sg=null}}}
 let komT=0;function komArchTick(now){if(now-komT<1000||!COURSE||!COURSE.climbs||!ROUTE)return;komT=now;
  for(const c of COURSE.climbs){const P0=ROUTE.P[c.i0],d=Math.hypot(P0[0]-RW.x,P0[1]-RW.z),d2=Math.hypot(ROUTE.P[c.i1][0]-RW.x,ROUTE.P[c.i1][1]-RW.z),near=Math.min(d,d2)<2600;
   if(near&&(!c.g||c.g.parent!==WORLD)){const G=new T.Group(),q={};
    for(const[i,kind]of[[c.i0,'kom'],[c.i1,'komEnd']]){const a=ROUTE.P[i],b=ROUTE.P[Math.min(ROUTE.P.length-1,i+2)],r=roadQ(a[0],a[1],q),yaw=Math.atan2(b[0]-a[0],b[1]-a[1]);
-    G.add(lightArch(a[0],r?r.y:0,a[1],yaw,kind,kind==='kom'?'⛰️ '+up(climbName(c)):'🏔️ SOMMET · '+up(c.name),kind==='kom'?nf(c.len/1000,1)+' km à '+nf(c.avg*100,1)+' % · +'+Math.round(c.dp)+' m':''))}
+    G.add(lightArch(a[0],r?r.y:0,a[1],yaw,kind,kind==='kom'?'⛰️ '+up(climbName(c)):'🏔️ SOMMET'+(c.col||c.vn?' · '+up(c.col||c.vn):''),kind==='kom'?nf(c.len/1000,1)+' km à '+nf(c.avg*100,1)+' % · +'+Math.round(c.dp)+' m':''))}
    c.g=G;WORLD.add(G)}
   else if(!near&&Math.min(d,d2)>3600&&c.g&&c.g.parent){disposeGroup(c.g);c.g=null}}}
 function komTick(dt,P){if(!COURSE||!COURSE.climbs||!ROUTE||!ROUTE.cum)return;const cd=ROUTE.cum[Math.min(ROUTE.k,ROUTE.cum.length-1)],el=$('kmz');
@@ -3625,7 +3668,7 @@ function komTick(dt,P){if(!COURSE||!COURSE.climbs||!ROUTE||!ROUTE.cum)return;con
   else{el.style.display='block';const left=c.s1-cd;el.innerHTML='⛰️ <b>'+esc(climbName(c))+'</b> · '+nf(left/1000,2)+' km · '+fmt(KOM.t)+' · '+Math.round(KOM.sum/Math.max(1,KOM.t))+' W'}}
  if(!KOM)el.style.display='none';komTick.pd=cd}
 function komEnd(K){const c=K.c,t=K.t,avg=Math.round(K.sum/Math.max(1,t)),wkg=avg/riderKg(),vam=c.dp/t*3600,L=GS.komh[c.key]=GS.komh[c.key]||[],old=L.length?Math.min(...L.map(x=>x.t)):0;
- const e={t:Date.now(),s:Math.round(t),w:avg,n:c.name};L.push(e);L.sort((a,b)=>a.s-b.s);if(L.length>10)L.length=10;const rank=L.indexOf(e)+1,nr=!old||e.s<old;
+ const e={t:Date.now(),s:Math.round(t),w:avg,n:climbName(c)};L.push(e);L.sort((a,b)=>a.s-b.s);if(L.length>10)L.length=10;const rank=L.indexOf(e)+1,nr=!old||e.s<old;
  const b=30+Math.round(c.dp/5)+(nr?(old?80:40):0);GS.pts+=b;gsave();
  resultShow({kind:'kom',title:'🏔️ '+up(climbName(c)),big:fmt(t),sub:nf(c.len/1000,1)+' km à '+nf(c.avg*100,1)+' % · +'+Math.round(c.dp)+' m',rec:nr,old,oldTxt:old?fmt(old):'',pts:b,rank,cur:e,
   rows:[['puissance moy.',avg+' W'],['W/kg',nf(wkg,2)],['VAM',Math.round(vam)+' m/h'],['vitesse moy.',nf(c.len/t*3.6,1)+' km/h']],
@@ -4919,7 +4962,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
   advance(RID,ds,riderChoose);histTick();s+=ds;v=ds/Math.max(dt,1e-3)}
  else{v=7.5;if(!dr)yaw+=(Math.sin(now/7000)*.7-yaw)*.01}
  gameTick(dt,P);audioTick(P);rewardTick(now);compTick(now,hm?0:v,P,hr);
- musTick();countrySounds(now);if(!hm)komArchTick(now);LEDTX.offset.x-=dt*1.6;P3+=(P-P3)*Math.min(1,dt/1.5);
+ musTick();countrySounds(now);if(!hm){komArchTick(now);colTick(now)}LEDTX.offset.x-=dt*1.6;P3+=(P-P3)*Math.min(1,dt/1.5);
  rearLight.visible=NIGHT<.3||Math.floor(now/300)%2===0;// feu arrière clignotant la nuit
  if(ROUTE&&riding&&!done&&ROUTE.k>ROUTE.P.length-6){
   if(COURSE&&COURSE.loop){ROUTE.k=0;ROUTE.ei=0;say('🔁 Tour bouclé ('+(s/1000).toFixed(1).replace('.',',')+' km) : on repart pour un tour.')}// boucle : on enchaîne les tours
