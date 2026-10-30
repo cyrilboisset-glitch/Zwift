@@ -434,14 +434,14 @@ T.ShaderChunk.fog_fragment=`#ifdef USE_FOG
 #endif`;
 sc.fog=new T.FogExp2(0xc9d9e8,1/42000);
 const WORLD=new T.Group();sc.add(WORLD);WORLD.matrixAutoUpdate=false;
-// monde choisi (Réaliste ou Space) : lu dès le lancement, changer de monde recharge l'appli
-const WORLDK=(()=>{try{return JSON.parse(localStorage.v3set||'{}').world||'real'}catch(e){return 'real'}})(),SPACE={on:WORLDK==='space'||WORLDK==='tron',kind:WORLDK==='tron'?'tron':'space'},MONT=WORLDK==='mont';
+// monde choisi (Réaliste, Montagne, Space ou Tron) : lu dès le lancement ; on en change sans recharger (worldSwitch)
+let WORLDK=(()=>{try{return JSON.parse(localStorage.v3set||'{}').world||'real'}catch(e){return 'real'}})(),MONT=WORLDK==='mont';const SPACE={on:WORLDK==='space'||WORLDK==='tron',kind:WORLDK==='tron'?'tron':'space'};
 // ====================== mondes Space et Tron : route transparente néon, décor, vaisseaux, anneaux, traînées, vélo futuriste ======================
-// choix du monde (SET.world : real, mont, space, tron) : changer de monde recharge l'appli. En Space et en Tron : ni photos, ni bâtiments, ni végétation
+// choix du monde (SET.world : real, mont, space, tron) : on en change sans recharger (worldSwitch reconstruit le monde et change les vélos). En Space et en Tron : ni photos, ni bâtiments, ni végétation
 // (rien à télécharger, sauf le relief SRTM du parcours) ; Tron dessine en plus le vrai relief en grille lumineuse et des immeubles en fils de lumière
 const SPG=new T.Group();SPG.visible=false;sc.add(SPG);
 const SPC={key:'',ch:[],dec:null,sky:null,vilW:-1,t:0,t0:0,mat:null,ships:[],trails:new Map(),lt:0,cL:new T.Color(),cR:new T.Color(),flr:[]};
-const TRON=SPACE.on&&SPACE.kind==='tron';
+let TRON=SPACE.on&&SPACE.kind==='tron';
 const SP_RW=3.4,SPO=[-5.4,-3.52,-3.46,-3.34,-3.28,-1.7,0,1.7,3.28,3.34,3.46,3.52,5.4],SPY=[0,0,.1,.1,0,0,0,0,0,.1,.1,0,0];
 const SPNAMES=['Nébuleuse d\'Orion','Porte d\'Andromède','Anneau de Saturne','Ceinture d\'astéroïdes','Station Véga','Porte de Sirius','Nébuleuse du Crabe','Cap Kepler','Porte Proxima','Station Altaïr','Porte Bételgeuse','Voie lactée','Station Rigel','Porte d\'Orion','Nébuleuse de l\'Aigle','Station Deneb'];
 const TRNAMES=['Secteur 01','Porte Alpha','Grille Bêta','Nœud Gamma','Secteur 07','Porte Delta','Grille Epsilon','Nœud Zêta','Secteur 12','Porte Omega','Grille Sigma','Nœud Kappa'];
@@ -647,13 +647,16 @@ function spWheel(G,A,nm,ng,col,fm,lite){const add=(p,o)=>{p.add(o);return o},r=B
  for(let k=0;k<(lite?4:6);k++){const a=k/(lite?4:6)*6.283,b=add(w,new T.Mesh(new T.BoxGeometry(.006,.05,.03),spBasic(0xffffff)));b.position.set(Math.cos(a)*(r-.04),Math.sin(a)*(r-.04),0);b.rotation.z=a}
  if(!lite)add(w,new T.Mesh(new T.CircleGeometry(r-.06,48),new T.MeshBasicMaterial({color:col,transparent:true,opacity:.07,side:T.DoubleSide,blending:T.AdditiveBlending,depthWrite:false})));
  W.userData={spokes:{material:{}},blur:{material:{}}};return W}
-function spaceBike(bk){const G=bk.G,add=(p,o)=>{p.add(o);return o},A=spAmb();
- for(const o of G.children)if(o!==bk.crank)o.visible=false;
- {const keep=new Set();for(const a of[bk.armR,bk.armL])a.traverse(o=>keep.add(o));bk.crank.traverse(o=>{if(o.isMesh&&!keep.has(o))o.visible=false})}
- const FB=add(G,new T.Group()),NC=spBasic(TRON?0x5ff3ff:A.R),NP=spBasic(TRON?0xff8a1f:A.L),NCg=spAdd(TRON?0x3ff0ff:A.R,.35),NPg=spAdd(TRON?0xff8a1f:A.L,.35);
+// mémorise ce qui est caché ou ajouté pour pouvoir revenir au vélo normal (spUndo)
+function spHide(bk,o){if(o.visible){o.visible=false;bk._sp.hid.push(o)}}
+function spUndo(bk){const u=bk._sp;if(!u)return;for(const o of u.hid)o.visible=true;for(const o of u.add){if(o.parent)o.parent.remove(o)}if(u.wf){bk.wf=u.wf;bk.wr=u.wr}if('decal'in u)bk.decal=u.decal;delete bk._sp}
+function spaceBike(bk){const G=bk.G,add=(p,o)=>{p.add(o);return o},A=spAmb();bk._sp={hid:[],add:[],wf:bk.wf,wr:bk.wr,decal:bk.decal};
+ for(const o of G.children)if(o!==bk.crank)spHide(bk,o);
+ {const keep=new Set();for(const a of[bk.armR,bk.armL])a.traverse(o=>keep.add(o));bk.crank.traverse(o=>{if(o.isMesh&&!keep.has(o))spHide(bk,o)})}
+ const FB=add(G,new T.Group());bk._sp.add.push(FB);const NC=spBasic(TRON?0x5ff3ff:A.R),NP=spBasic(TRON?0xff8a1f:A.L),NCg=spAdd(TRON?0x3ff0ff:A.R,.35),NPg=spAdd(TRON?0xff8a1f:A.L,.35);
  spBikeParts(add,FB,frameMat,NC,NP,NCg,NPg,false);
  const r=BK.r,RA=BK.RA;spGlow(FB,0,RA.y,RA.z,.18,TRON?0x3ff0ff:A.R,.8);
- bk.wr=spWheel(G,RA,NC,NCg,TRON?0x3ff0ff:A.R,frameMat,false);bk.wf=spWheel(G,BK.FA,NP,NPg,TRON?0xff8a1f:A.L,frameMat,false);
+ bk.wr=spWheel(G,RA,NC,NCg,TRON?0x3ff0ff:A.R,frameMat,false);bk.wf=spWheel(G,BK.FA,NP,NPg,TRON?0xff8a1f:A.L,frameMat,false);bk._sp.add.push(bk.wr,bk.wf);
  spGlow(FB,0,BK.BB.y,BK.BB.z,.22,TRON?0xff8a1f:A.L,.9);spGlow(FB,0,BK.ST.y-.08,BK.ST.z-.12,.12,0xff2050,1);spGlow(FB,0,BK.HT.y-.03,BK.HT.z+.06,.14,0x9ff8ff,1);
  bk.decal=null;return bk}
 // PNJ : même vélo futuriste en version allégée ; cadre et roues fusionnés une fois (géométries partagées), couleur des néons propre à chaque PNJ
@@ -666,11 +669,21 @@ function spNpcGeos(){if(SPNB)return SPNB;const add=(p,o)=>{p.add(o);return o},da
  SPNB={frame:merge(fr,m=>m===dark),neon:merge(ne,m=>m===wn),dark,wheel:null};
  // roue : pneu + jante sombres, anneau néon (une roue, centrée sur l'axe)
  const w1=new T.Group();spWheel(w1,new T.Vector3(),wn,null,0,dark,true);SPNB.wTire=merge(w1,m=>m!==wn);SPNB.wNeon=merge(w1,m=>m===wn);return SPNB}
-function spaceNpcBike(bk){const S=spNpcGeos(),A=spAmb(),cols=TRON?[0x3ff0ff,0xff8a1f,0xff4fd8]:[A.L,A.R,0xffd23f,0xb36bff],col=cols[(Math.random()*cols.length)|0],nm=spBasic(col);
- for(const o of bk.G.children)if(o!==bk.crank&&o!==bk.wf&&o!==bk.wr)o.visible=false;
- if(S.frame)bk.G.add(new T.Mesh(S.frame,S.dark));if(S.neon)bk.G.add(new T.Mesh(S.neon,nm));
- for(const W of[bk.wf,bk.wr]){for(const o of W.children)o.visible=false;if(S.wTire)W.add(new T.Mesh(S.wTire,S.dark));if(S.wNeon)W.add(new T.Mesh(S.wNeon,nm))}
+function spaceNpcBike(bk){const S=spNpcGeos(),A=spAmb(),cols=TRON?[0x3ff0ff,0xff8a1f,0xff4fd8]:[A.L,A.R,0xffd23f,0xb36bff],col=cols[(Math.random()*cols.length)|0],nm=spBasic(col);bk._sp={hid:[],add:[]};
+ const put=(p,m)=>{p.add(m);bk._sp.add.push(m)};
+ for(const o of bk.G.children)if(o!==bk.crank&&o!==bk.wf&&o!==bk.wr)spHide(bk,o);
+ if(S.frame)put(bk.G,new T.Mesh(S.frame,S.dark));if(S.neon)put(bk.G,new T.Mesh(S.neon,nm));
+ for(const W of[bk.wf,bk.wr]){for(const o of[...W.children])spHide(bk,o);if(S.wTire)put(W,new T.Mesh(S.wTire,S.dark));if(S.wNeon)put(W,new T.Mesh(S.wNeon,nm))}
  return bk}
+// changer de monde sans recharger : drapeaux, décor Space/Tron vidé, vélos du joueur et des PNJ changés, monde reconstruit autour du parcours
+function spReset(){for(const o of[...SPG.children]){SPG.remove(o);o.traverse(m=>{if(m.geometry)m.geometry.dispose()})}
+ Object.assign(SPC,{key:'',ch:[],flr:[],dec:null,sky:null,ships:[],vilW:-1,t0:0});SPC.trails.clear();if(SPC.mat){SPC.mat.dispose();SPC.mat=null}SPNB=null;SPG.visible=false}
+function worldSwitch(w){if(w===WORLDK)return;WORLDK=w;SET.world=w;ssave();
+ SPACE.on=w==='space'||w==='tron';SPACE.kind=w==='tron'?'tron':'space';TRON=SPACE.on&&SPACE.kind==='tron';MONT=w==='mont';
+ spReset();
+ const sw=(bk,npc)=>{if(!bk)return;spUndo(bk);if(SPACE.on)npc?spaceNpcBike(bk):spaceBike(bk)};sw(RIDER.bike,false);for(const n of NPCS)if(n.inst)sw(n.inst.bike,true);
+ if(!SPACE.on&&typeof applyKit==='function')applyKit();
+ skT=-1e9;if(COURSE)startWorld()}
 // changer d'ambiance (Space) : ciel, décor et couleurs refaits sans recharger
 function spAmbSet(k){SET.spAmb=k;ssave();if(SPC.sky){SPG.remove(SPC.sky);SPC.sky.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose()})}SPC.sky=null;
  if(SPC.mat){const A=spAmb(),u=SPC.mat.uniforms;u.uL.value.setHex(A.L);u.uR.value.setHex(A.R);u.uDeck.value.set(...A.deck)}
@@ -3813,8 +3826,8 @@ function ldgTick(now){const el=$('ldg');if(!el)return ldgHide();const el2=(now-L
  if(now-LDG.tt>4500){LDG.tt=now;LDG.tip=(LDG.tip+1)%TIPS.length;el.querySelector('.tip').textContent='💡 '+TIPS[LDG.tip]}
  if(pr>.97){if(!LDG.done)LDG.done=now;else if(now-LDG.done>600)ldgHide()}else LDG.done=0;if(el2>30)ldgHide()}
 function ldgHide(){LDG.on=false;const el=$('ldg');if(!el)return;el.classList.remove('on');setTimeout(()=>{if(!LDG.on)el.style.display='none'},460)}
-// changer de monde : on garde le choix et on recharge (le repère, le vélo et les données en dépendent)
-function worldSet(w){if(w===WORLDK)return;SET.world=w;ssave();mod('<h3>'+{real:'🌍 Mode réaliste',mont:'🏔️ Montagne stylisée',space:'🚀 Mode Space',tron:'🟦 Mode Tron'}[w]+'</h3><p>Chargement du monde…</p>',[]);setTimeout(()=>location.reload(),350)}
+// changer de monde : sans recharger (worldSwitch)
+function worldSet(w){if(w===WORLDK)return;worldSwitch(w);say({real:'🌍 Mode réaliste',mont:'🏔️ Montagne stylisée',space:'🚀 Mode Space',tron:'🟦 Mode Tron'}[w]+' : monde en préparation…');homeRender()}
 function homeRender(){homeHeader();const sm=$('s-main'),c=CRS.cur,w=weekStats(),wp=Math.min(100,w.km/(GS.goal.km||1)*100);
  const hero=c?'<div class="hero"><div class="k">PROCHAINE SORTIE</div><div class="t">'+esc(c.name)+'</div><div class="s"><span>📏 '+nf(c.km,1)+' km</span><span id="hdp">⛰️ '+nf(c.dp||0)+' m D+</span><span>'+(COURSE&&COURSE.loop?'🔁 Boucle':'➡️ Aller simple')+'</span></div><canvas id="hpf"></canvas><div class="chips wsel" id="hwd">'+[['real','🌍 Réaliste'],['mont','🏔️ Montagne'],['space','🚀 Space'],['tron','🟦 Tron']].map(([k,t])=>'<button data-w="'+k+'"'+(WORLDK===k?' class="on"':'')+'>'+t+'</button>').join('')+'</div>'+(SPACE.on&&!TRON?'<div class="chips wsel" id="hamb">'+Object.entries(SPAMB).filter(([k])=>k!=='tron').map(([k,a])=>'<button data-a="'+k+'"'+((SET.spAmb||'neb')===k?' class="on"':'')+'>'+a.n+'</button>').join('')+'</div>':'')+'<div class="b"><button class="cta" id="hgo">▶ ROULER</button><button class="ghost" id="h3d" title="Vue 3D du parcours">🧭 3D</button><button class="ghost" id="hch" title="Changer de parcours">⇄</button></div></div>'
   :'<div class="hero"><div class="k">BIENVENUE</div><div class="t">Roule sur tes propres routes</div><span style="color:#c9d3de;font-size:13px;line-height:1.4">Importe un fichier GPX de n\'importe quel endroit du monde : l\'appli le reproduit en 3D, avec le relief, les photos aériennes et les bâtiments.</span><div class="b"><button class="cta" id="himp">📂 IMPORTER UN GPX</button><button class="ghost" id="hvel" title="Vélodrome">🏟️</button></div></div>';
@@ -5288,6 +5301,7 @@ function llOf(Rg){const[n,w]=xz2ll(Rg.x0,Rg.z0),[s2,e]=xz2ll(Rg.x1,Rg.z1);return
 function onDataTile(a,b){dataDirty=1;const x0=a*DT-64,x1=(a+1)*DT+64,z0=b*DT-64,z1=(b+1)*DT+64;
  for(const[k,c]of VEG.cells){const cx=(c.a+.5)*VC,cz=(c.b+.5)*VC;if(cx>x0&&cx<x1&&cz>z0&&cz<z1){c.dirty=true;c.band=-1}}
  for(const k of[...MASKC.keys()])MASKC.delete(k);if(DATA.n.w!==waterDirty)waterDirty=-1}
+const ATT0=$('att')?$('att').textContent:'';
 async function startWorld(){const id=++WID;resetWorld();if(!NOVEG&&!TREEG.b)initTreeGeos();if(!NET.ready)initNetwork();
  {const sb=document.querySelector('#hh .sub');if(sb)sb.textContent=CRS.cur?CRS.cur.name+' · '+nf(CRS.cur.km,1)+' km':'Importe un GPX pour rouler'}
  setupRegions();if(!CLIP.k)clipInit();computeNearCoverage();initGrass();CAM.snap=true;
@@ -5299,7 +5313,7 @@ async function startWorld(){const id=++WID;resetWorld();if(!NOVEG&&!TREEG.b)init
  if(ok12){finishTrack(groundDem);buildCoarse();DEMOK=true;waterInvalidate();courseClimbs();ldSet('dem','Relief réel (SRTM 30 m)',0)}else ldSet('dem','Relief simulé (hors ligne)',-1);
  terrInvalidate();roadInvalidate();bldInvalidate();vegInvalidate();
  if(SPACE.on){ldSet('vil',TRON?'Mode Tron':'Mode Space',1);const at=$('att');if(at)at.textContent='Parcours : ton GPX · Altitudes © AWS Terrain Tiles (SRTM) · '+(TRON?'Mode Tron':'Mode Space');return}
- if(MONT){PHOTO.dead=true;const at=$('att');if(at)at.textContent='Parcours : ton GPX · Relief © AWS Terrain Tiles (SRTM) · Montagne stylisée'}
+ PHOTO.dead=MONT;if(!MONT){PHOTO.fail=0;PHOTO.ok=0}{const at=$('att');if(at)at.textContent=MONT?'Parcours : ton GPX · Relief © AWS Terrain Tiles (SRTM) · Montagne stylisée':ATT0}
  job(procMosaic(MOS_RING,4),9000,'pr');job(procMosaic(MOS_FAR,4),8500,'pf');job(procMosaic(MOS_MID,4),8000,'pm');
  loadMosaicPhotos(MOS_MID,'ph');loadMosaicPhotos(MOS_FAR,null);loadMosaicPhotos(MOS_RING,null);
  (async()=>{for(const[z,Rg,mx]of[[10,REG.far,42],[8,REG.ring,30]]){try{const L=await dz(z,Rg,mx);if(id!==WID)return;DEMS.push(L);DEMS.sort((a,b)=>b.z-a.z);terrInvalidate(false,true)}catch(e){console.warn('MNT',z,e)}}
