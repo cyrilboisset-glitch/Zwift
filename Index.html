@@ -10,6 +10,10 @@ button{font:inherit;color:#eef3f8;background:#222c38;border:1px solid #3a485a;bo
 button.on{background:var(--ac);border-color:var(--ac);color:#15120a;font-weight:700}
 input[type=number]{font:inherit;color:#eef3f8;background:#222c38;border:1px solid #3a485a;border-radius:8px;padding:6px;width:70px}
 #hud{top:calc(8px + var(--sa));left:calc(8px + var(--sl));padding:6px 12px;pointer-events:none;max-width:calc(100% - 70px - var(--sl) - var(--sr))}
+#zg{margin-top:6px;min-width:220px}#zg .zbar{position:relative;display:flex;gap:2px;height:9px;margin-top:9px}#zg .zbar i{flex:var(--w);background:var(--c);opacity:.28;border-radius:3px;transition:opacity .35s,transform .35s,box-shadow .35s}
+#zg .zbar i.on{opacity:1;transform:scaleY(1.55);box-shadow:0 0 12px var(--c),0 0 3px var(--c)}#zmk{position:absolute;top:-9px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #fff;transform:translateX(-50%);transition:left .3s ease;filter:drop-shadow(0 1px 2px #000)}
+#zg .zlab{display:flex;gap:8px;align-items:center;margin-top:6px;font:600 12px system-ui;white-space:nowrap}#zg .zlab b{font:800 14px var(--num);padding:1px 8px;border-radius:7px;color:#0b0f14;transition:background .35s}#zzp{opacity:.8}#zzm{opacity:.6;font-size:11px}
+body.noavg #hud [data-f=avg],body.nozone #zg{display:none!important}#hud.big #zg .zbar{height:12px}#hud.big #zg .zlab{font-size:14px}#hud.big #zg .zlab b{font-size:17px}
 .m b{font:700 24px/1 var(--num)}.m i{font-style:normal;font-size:11px;color:var(--mut);margin:0 12px 0 3px}.m i:last-child{margin-right:0}
 .n{font-size:12px;color:var(--mut);margin-top:3px;white-space:nowrap}
 #toast{display:none;top:calc(78px + var(--sa));left:calc(8px + var(--sl));padding:6px 12px;font-size:12.5px;max-width:calc(100% - 70px);pointer-events:none}
@@ -232,7 +236,7 @@ button.back{width:40px;height:40px;padding:0;border-radius:50%;font-size:18px;di
 #mn{transition:transform .3s cubic-bezier(.2,.8,.2,1),background .2s}#mn.x{transform:rotate(90deg)}
 </style></head><body><div id="lv"><i>📱</i><b>Touche l'écran</b><small>pour passer en plein écran, en paysage</small></div>
 <canvas id="c"></canvas>
-<div id="hud" class="p"><div class="m"><span data-f="spd"><b id="vs">0</b><i>km/h</i></span><span data-f="pw"><b id="vp">0</b><i>W</i></span><span data-f="p3"><b id="vp3">0</b><i>W 3 s</i></span><span data-f="wkg"><b id="vwk">0</b><i>W/kg</i></span><span data-f="cad"><b id="vc">0</b><i>tr/min</i></span><span data-f="grd"><b id="vg">0.0</b><i>%</i></span><span data-f="hr"><b id="vh">–</b><i>bpm</i></span><span data-f="np"><b id="vnp">0</b><i>NP</i></span></div><div class="n"><span data-f="dist"><span id="vd">0.0</span> km · </span><span data-f="rest"><span id="vrl">reste</span> <span id="vr">0.0</span> <span id="vru">km</span> · </span><span data-f="alt"><span id="va">0</span> m · </span><span data-f="dp">D+ <span id="vdp">0</span> m · </span><span data-f="time"><span id="vt">0:00</span> · </span><span data-f="kcal"><span id="vk">0</span> kcal</span><span data-f="wind" id="vwd"></span><span id="vdrf" style="color:var(--ac);font-weight:700"></span></div></div>
+<div id="hud" class="p"><div class="m"><span data-f="spd"><b id="vs">0</b><i>km/h</i></span><span data-f="pw"><b id="vp">0</b><i>W</i></span><span data-f="p3"><b id="vp3">0</b><i>W 3 s</i></span><span data-f="wkg"><b id="vwk">0</b><i>W/kg</i></span><span data-f="cad"><b id="vc">0</b><i>tr/min</i></span><span data-f="grd"><b id="vg">0.0</b><i>%</i></span><span data-f="hr"><b id="vh">–</b><i>bpm</i></span><span data-f="np"><b id="vnp">0</b><i>NP</i></span></div><div class="n"><span data-f="dist"><span id="vd">0.0</span> km · </span><span data-f="avg">moy. <span id="vav">0,0</span> km/h · </span><span data-f="rest"><span id="vrl">reste</span> <span id="vr">0.0</span> <span id="vru">km</span> · </span><span data-f="alt"><span id="va">0</span> m · </span><span data-f="dp">D+ <span id="vdp">0</span> m · </span><span data-f="time"><span id="vt">0:00</span> · </span><span data-f="kcal"><span id="vk">0</span> kcal</span><span data-f="wind" id="vwd"></span><span id="vdrf" style="color:var(--ac);font-weight:700"></span></div><div id="zg" data-f="zone"><div class="zbar" id="zbar"><em id="zmk"></em></div><div class="zlab"><b id="zzn">Z1</b><span id="zzt">Récup</span><span id="zzp">0 % FTP</span><span id="zzm"></span></div></div></div>
 <div id="toast" class="p"></div>
 <button id="mn" class="p">☰</button>
 <div id="top" class="p">
@@ -3846,8 +3850,10 @@ function homeRender(){homeHeader();const sm=$('s-main'),c=CRS.cur,w=weekStats(),
  document.querySelector('#s-hw .back').dataset.b='s-reg';for(const id of['s-gar','s-kit'])document.querySelector('#'+id+' .back').onclick=()=>{regRender();showScr('s-reg')}}
 // ====================== préférences, commentateur vocal, écrans de résultat, célébrations, musique, météo, moment de la journée ======================
 const SET=Object.assign({world:'real',wkRel:1,spAmb:'neb',sprLen:150,sprGap:5,snap:1,profAll:0,voice:1,coach:1,mus:0,musV:.5,natV:1,tod:'real',fcmax:185,rkg:0,
- hud:['spd','pw','cad','grd','hr','dist','rest','alt','time','kcal'],hudBig:0},(()=>{try{return JSON.parse(localStorage.v3set||'{}')}catch(e){return{}}})());
+ hud:['spd','pw','cad','grd','hr','dist','avg','rest','alt','dp','time','kcal','zone'],hudBig:0},(()=>{try{return JSON.parse(localStorage.v3set||'{}')}catch(e){return{}}})());
 const ssave=()=>{try{localStorage.v3set=JSON.stringify(SET)}catch(e){}};
+// HUD enregistré avant l'ajout de la vitesse moyenne, du D+ et de la jauge des zones : on les ajoute une fois
+if((SET.hudV|0)<2){for(const k of['avg','dp','zone'])if(!SET.hud.includes(k))SET.hud.push(k);SET.hudV=2;ssave()}
 const sprL=()=>SET.sprLen||150;// longueur du sprint (m), réglable
 // sprints retenus : tirés au hasard (toujours les mêmes pour un parcours) parmi les sorties d'agglomération, avec un écart minimal réglable entre deux sprints
 const SPRA={v:0,1:[],'-1':[]};
@@ -4186,8 +4192,16 @@ function wkCoach(dt,B,Pt,P){if(!SET.coach||wk.over||wpz)return;const bl=wk.bl[B[
  else if(!msg&&P>Pt*1.15&&Pt>0)msg='Tu es au-dessus de la cible : la puissance va redescendre vers '+Pt+' watts.';
  if(msg){speak(msg);WC.warn=25}}
 // ---- HUD personnalisable ----
-const HUDF=[['spd','Vitesse'],['pw','Puissance'],['p3','Puissance 3 s'],['wkg','W/kg'],['cad','Cadence'],['grd','Pente'],['hr','Cardio'],['np','NP'],['dist','Distance'],['rest','Reste / carrefour'],['alt','Altitude'],['dp','D+'],['time','Temps'],['kcal','kcal']];
+const HUDF=[['spd','Vitesse'],['pw','Puissance'],['p3','Puissance 3 s'],['wkg','W/kg'],['cad','Cadence'],['grd','Pente'],['hr','Cardio'],['np','NP'],['dist','Distance'],['avg','Vitesse moyenne (sortie)'],['rest','Reste / carrefour'],['alt','Altitude'],['dp','D+'],['time','Temps'],['kcal','kcal'],['zone','Jauge des zones']];
 function hudApply(){document.querySelectorAll('#hud [data-f]').forEach(e=>e.style.display=SET.hud.includes(e.dataset.f)?'':'none');$('hud').classList.toggle('big',!!SET.hudBig)}
+// jauge des zones de puissance (puissance 3 s) : 7 segments, zone actuelle en lumière, curseur, % FTP, temps passé dans la zone pendant la sortie
+const ZG={t:0,z:-1,tz:new Float32Array(7),lt:0};
+function zoneHud(now,on){if(now-ZG.t<150)return;{const h=$('hud'),g=$('gm');if(g&&h){const t=h.offsetTop+h.offsetHeight+6;if(t!==ZG.gt){ZG.gt=t;g.style.top=t+'px'}}}// le bandeau des points se place sous le HUD (sa hauteur dépend des champs choisis)
+ const dt=ZG.lt?Math.min(1,(now-ZG.lt)/1000):0;ZG.lt=now;ZG.t=now;document.body.classList.toggle('nozone',!on);if(!on)return;
+ const bar=$('zbar');if(!bar.children.length||bar.children.length<8){const B=[0,.55,.75,.9,1.05,1.2,1.5,1.8];bar.innerHTML='';for(let k=0;k<7;k++){const i=document.createElement('i');i.style.setProperty('--w',(B[k+1]-B[k]).toFixed(2));i.style.setProperty('--c',ZN[k][1]);bar.appendChild(i)}const m=document.createElement('em');m.id='zmk';bar.appendChild(m)}
+ const r=P3/FTP,z=zi(r);if(REC.on&&v>.5)ZG.tz[z]+=dt;
+ if(z!==ZG.z){ZG.z=z;[...bar.children].forEach((e,k)=>e.classList&&e.tagName==='I'&&e.classList.toggle('on',k===z));const n=ZN[z][2].split(' ');$('zzn').textContent=n[0];$('zzn').style.background=ZN[z][1];$('zzt').textContent=n.slice(1).join(' ');$('zzt').style.color=ZN[z][1]}
+ $('zmk').style.left=(Math.min(1,r/1.8)*100).toFixed(1)+'%';$('zzp').textContent=Math.round(r*100)+' % FTP';const tz=ZG.tz[z];$('zzm').textContent=tz>=60?Math.floor(tz/60)+' min dans la zone':''}
 let P3=0;const NPS={t0:-1,i:0,s4:0,c:0};
 function npLive(){if(REC.t0!==NPS.t0){NPS.t0=REC.t0;NPS.i=0;NPS.s4=0;NPS.c=0}const p=REC.pts;for(;NPS.i<p.length;NPS.i++){if(NPS.i<29)continue;let a=0;for(let k=NPS.i-29;k<=NPS.i;k++)a+=p[k].pw;a/=30;NPS.s4+=a*a*a*a;NPS.c++}return NPS.c?Math.pow(NPS.s4/NPS.c,.25):0}
 // ---- vestiaire : équipements à débloquer ----
@@ -5164,7 +5178,7 @@ function pedReset(){PED.list=[];PED.spect.clear()}
 
 // ====================== enregistrement de la sortie, fichier FIT « vélo virtuel », envoi vers Strava après validation ======================
 const REC={on:false,t0:0,pts:[],last:0,asc:0,lastAlt:null,mode:''};
-function recStart(m){REC.on=true;REC.t0=Date.now();REC.pts=[];REC.last=0;REC.asc=0;REC.lastAlt=null;REC.mode=m}
+function recStart(m){ZG.tz.fill(0);REC.on=true;REC.t0=Date.now();REC.pts=[];REC.last=0;REC.asc=0;REC.lastAlt=null;REC.mode=m}
 function recTick(now,P,x,z,y){if(!REC.on)return;const t=Date.now();if(t-REC.last<1000)return;REC.last=t;const[lat,lon]=xz2ll(x,z);
  if(REC.lastAlt!=null){const d=y-REC.lastAlt;if(d>.4){REC.asc+=d;REC.lastAlt=y}else if(d<-.4)REC.lastAlt=y}else REC.lastAlt=y;
  REC.pts.push({t,lat,lon,alt:y,dist:s,spd:v,pw:Math.round(P),hr:hr||0,cad:Math.round(conn?cad:(v>.3&&P>5?cadS:0))});
@@ -5386,6 +5400,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  RIDER.bike.wr.visible=!hm;
  GU.uTime.value=now/1000;
  let P=conn?pw:+$('dem').value;
+ if(!hm){zoneHud(now,mode!=='explore');const na=mode!=='ride'||VEL.on;if(na!==loop.na){loop.na=na;document.body.classList.toggle('noavg',na)}}
  if(mode==='wk'&&wk){
   if(wk.over)P=0;else{
    const B=blk(wt);if(!B){endWk();return}
@@ -5462,7 +5477,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
   $('vt').textContent=fmt(tt);prof();if(now-(loop.mp||0)>400){loop.mp=now;drawMap()}
   // champs optionnels du HUD
   const wk2=riderKg();$('vp3').textContent=mode==='explore'?'–':Math.round(P3);$('vwk').textContent=mode==='explore'?'–':(P3/wk2).toFixed(1).replace('.',',');$('vnp').textContent=REC.on?Math.round(npLive()):'–';
-  $('vdp').textContent=SES.on?Math.round(SES.asc):0;$('vh').style.color=hr?HRZ[Math.max(0,hzi(hr))][1]:'';
+  $('vdp').textContent=SES.on?Math.round(SES.asc):0;$('vav').textContent=(tt>5?s/tt*3.6:0).toFixed(1).replace('.',',');$('vh').style.color=hr?HRZ[Math.max(0,hzi(hr))][1]:'';
   if(mode==='wk'&&wk&&!wk.ramp)$('wi2').textContent=(conn?'ERG · ':'')+Math.round(conn?cad:cadS)+' tr/min'+(hr?' · ♥ '+hr:'');
   $('vk').textContent=SES.on?nf(SES.kcal):'0';$('vp').style.color=mode==='explore'?'':ZN[zi(P/FTP)][1];// puissance colorée selon la zone
   if(BIGM.on&&now-BIGM.t>300){BIGM.t=now;drawBig()}
