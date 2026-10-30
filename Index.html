@@ -187,6 +187,16 @@ button.back{width:40px;height:40px;padding:0;border-radius:50%;font-size:18px;di
  .hm{gap:8px}.hero{border-radius:16px}.hero>span{display:none}.hero .k{font-size:10px}.hero .t{font-size:18px}.hero .s span{font-size:11px;padding:2px 7px}
  .tiles{gap:8px}.tiles .card{min-height:0;padding:9px 11px;border-radius:14px;flex-direction:row;align-items:center;justify-content:flex-start;gap:9px}.tiles .card .ic{margin:0;flex:0 0 32px;width:32px;height:32px;font-size:17px}
  .tiles .card .prog{display:none}}
+/* vue 3D du parcours */
+#c3d{position:fixed;inset:0;z-index:40;display:none;background:radial-gradient(120% 90% at 50% 20%,#1b2633,#080c12);opacity:0;transition:opacity .3s}
+#c3d.on{opacity:1}#c3d canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
+#c3d .info{position:absolute;left:calc(12px + var(--sl));top:calc(12px + var(--sa));width:min(330px,44vw);max-height:calc(100% - 24px);overflow:auto;padding:14px 16px;border-radius:18px;background:rgba(14,19,27,.82);border:1px solid var(--line);box-shadow:0 14px 40px rgba(0,0,0,.45)}
+#c3d .info h3{margin:0 0 2px;font:800 20px/1.15 var(--num);color:#fff}#c3d .info .k{font:800 10.5px system-ui;letter-spacing:.16em;color:var(--cta2)}
+#c3d .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}#c3d .grid div{padding:6px 9px;border-radius:10px;background:rgba(255,255,255,.06)}#c3d .grid b{display:block;font:800 17px var(--num);color:#fff}#c3d .grid small{font-size:11px;color:var(--mut)}
+#c3d .cl{font-size:12.5px;line-height:1.5;color:#d5dde6}#c3d .cl i{font-style:normal;display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#c3d .bt{position:absolute;right:calc(12px + var(--sr));top:calc(12px + var(--sa));display:flex;gap:8px}
+#c3d .lg{position:absolute;right:calc(12px + var(--sr));bottom:calc(12px + var(--sb));display:flex;gap:4px;font:700 10.5px system-ui;color:#fff}#c3d .lg span{padding:3px 6px;border-radius:6px}
+@media(max-height:520px){#c3d .info{width:min(290px,40vw);padding:10px 12px}#c3d .grid b{font-size:15px}}
 /* menu ☰ pendant la sortie : ouverture animée */
 #top{opacity:0;transform:translateY(-12px) scale(.96);transform-origin:top right;transition:opacity .22s ease,transform .32s cubic-bezier(.2,.8,.2,1);border-radius:18px;background:rgba(14,19,27,.9);box-shadow:0 18px 50px rgba(0,0,0,.5);padding:12px}
 #top.open{opacity:1;transform:none}
@@ -3435,6 +3445,7 @@ function cardIcon(b,t,k){const m=/^(\p{Extended_Pictographic}\uFE0F?|▶)\s*(.*)
 const hcard=(box,t,d,f)=>{const b=document.createElement('button');b.className='card';const k=box.children.length;b.style.setProperty('--i',k);b.innerHTML=cardIcon(b,t,k)+'<span>'+d+'</span>';b.onclick=f;box.appendChild(b);return b};
 function roulRender(){const box=document.querySelector('#s-roul .cards');box.innerHTML='';PLAN.after=null;
  if(COURSE)hcard(box,'▶ Rouler sur « '+esc(COURSE.name)+' »',(ROUTE?nf(ROUTE.len/1000,1)+' km · ':'')+(COURSE.loop?'boucle':'aller simple')+' · le dernier parcours choisi',()=>nav('ride'));
+ if(COURSE)hcard(box,'🧭 Vue 3D du parcours','Relief coloré selon la pente, montées, cols, sprints, temps estimé',c3dOpen);
  hcard(box,'🏟️ Vélodrome','Piste UCI 250 m · endurance zone 2 avec lumière de rythme · jeux de lumière',()=>velStart());
  hcard(box,'📂 Importer un GPX','N\'importe quel tracé : il est reproduit en 3D (relief, photos, bâtiments)',()=>$('gf').click());
  hcard(box,'📚 Mes parcours',CRS.list.length?CRS.list.length+' parcours importé'+(CRS.list.length>1?'s':''):'Aucun parcours pour l\'instant',crsMenu);
@@ -3459,13 +3470,60 @@ function heroDraw(cv){const g=cv.getContext('2d'),f=devicePixelRatio||1,W=cv.wid
  CPF.t=-1e9;cpfBuild(performance.now());if(CPF.n<3)return;let lo=1e9,hi=-1e9;for(let q=0;q<CPF.n;q++){lo=Math.min(lo,CPF.y[q]);hi=Math.max(hi,CPF.y[q])}if(hi-lo<30){const m=(hi+lo)/2;lo=m-15;hi=m+15}
  const cols=Math.floor(W/(2*f)),cw=W/cols;for(let c=0;c<cols;c++){const q=Math.min(CPF.n-1,Math.round(c/cols*(CPF.n-1))),y=H-3*f-(CPF.y[q]-lo)/(hi-lo)*(H-8*f);g.fillStyle=GCOL(CPF.g[q]);g.fillRect(c*cw,y,cw+.5,H-y)}
  let dp=0;for(let q=1;q<CPF.n;q++)dp+=Math.max(0,CPF.y[q]-CPF.y[q-1]);return dp}
+// ---- vue 3D du parcours (dessin en perspective sur une toile 2D : léger pour la tablette) ----
+const C3D={on:false,yaw:.7,pit:.62,zoom:1,auto:true,d:null};
+function c3dData(){if(!COURSE||!NET.ready)return null;const ed=COURSE.edges;let tot=0;const off=[];for(const[e]of ed){off.push(tot);tot+=NET.E[e].len}
+ const step=Math.max(12,tot/800),n=Math.floor(tot/step)+1,X3=new Float32Array(n),Z3=new Float32Array(n),Y3=new Float32Array(n),G3=new Float32Array(n),P={};let k=0;
+ for(let q=0;q<n;q++){const D=Math.min(tot,q*step);while(k<ed.length-1&&D>off[k]+NET.E[ed[k][0]].len)k++;const E=NET.E[ed[k][0]],u=clamp(D-off[k],0,E.len);posAt(E.id,ed[k][1]>0?u:E.len-u,ed[k][1],P);X3[q]=P.x;Z3[q]=P.z;Y3[q]=P.y}
+ const w=Math.max(1,Math.round(50/step));let dp=0,dm=0,gmax=0,lo=1e9,hi=-1e9,ihi=0;
+ for(let q=0;q<n;q++){const a=Math.max(0,q-w),b=Math.min(n-1,q+w);G3[q]=b>a?(Y3[b]-Y3[a])/((b-a)*step)*100:0;gmax=Math.max(gmax,G3[q]);if(Y3[q]<lo)lo=Y3[q];if(Y3[q]>hi){hi=Y3[q];ihi=q}if(q){const dz=Y3[q]-Y3[q-1];if(dz>0)dp+=dz;else dm-=dz}}
+ // temps estimé à 75 % de la FTP (masse cycliste + 8 kg, CdA 0,32, Crr 0,004, descentes limitées à 60 km/h)
+ const Pw=.75*FTP,m=riderKg()+8;let t=0;for(let q=1;q<n;q++){const g=G3[q]/100,sn=g/Math.sqrt(1+g*g),cs=1/Math.sqrt(1+g*g);let v=8;for(let it=0;it<30;it++){const f=v*(m*9.81*(.004*cs+sn)+.5*1.2*.32*v*v)-Pw,df=m*9.81*(.004*cs+sn)+1.5*1.2*.32*v*v;v=clamp(v-f/df,1,16.7)}t+=step/v}
+ let bx0=1e9,bx1=-1e9,bz0=1e9,bz1=-1e9;for(let q=0;q<n;q++){bx0=Math.min(bx0,X3[q]);bx1=Math.max(bx1,X3[q]);bz0=Math.min(bz0,Z3[q]);bz1=Math.max(bz1,Z3[q])}
+ return{n,step,tot,X3,Z3,Y3,G3,dp,dm,gmax,lo,hi,ihi,t,cx:(bx0+bx1)/2,cz:(bz0+bz1)/2,R:Math.max(bx1-bx0,bz1-bz0,400)/2}}
+function c3dOpen(){const D=c3dData();if(!D)return say('Parcours en préparation…');C3D.d=D;let el=$('c3d');
+ if(!el){el=document.createElement('div');el.id='c3d';el.innerHTML='<canvas></canvas><div class="info"></div><div class="bt"><button class="ghost" id="c3a" title="Rotation automatique">⟳</button><button class="cta" id="c3g">▶ ROULER</button><button id="c3x">✕</button></div><div class="lg"></div>';document.body.appendChild(el);
+  const cv=el.querySelector('canvas'),pt=new Map();let pd=0;
+  cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);pt.set(e.pointerId,[e.clientX,e.clientY]);C3D.auto=false};cv.onpointerup=cv.onpointercancel=e=>{pt.delete(e.pointerId);pd=0};
+  cv.onpointermove=e=>{const o=pt.get(e.pointerId);if(!o)return;pt.set(e.pointerId,[e.clientX,e.clientY]);if(pt.size===2){const[a,b]=[...pt.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pd)C3D.zoom=clamp(C3D.zoom*d/pd,.5,4);pd=d;return}
+   C3D.yaw+=(e.clientX-o[0])*.008;C3D.pit=clamp(C3D.pit+(e.clientY-o[1])*.005,.15,1.35)};
+  cv.onwheel=e=>{C3D.zoom=clamp(C3D.zoom*Math.exp(-e.deltaY*.0012),.5,4);e.preventDefault()};
+  el.querySelector('#c3x').onclick=c3dClose;el.querySelector('#c3g').onclick=()=>{c3dClose();nav('ride')};el.querySelector('#c3a').onclick=()=>C3D.auto=!C3D.auto;
+  el.querySelector('.lg').innerHTML=[[-4,'descente'],[0,'0–2 %'],[3,'2–4 %'],[5,'4–6 %'],[7,'6–8 %'],[9,'8–10 %'],[11,'> 10 %']].map(([g,t])=>'<span style="background:'+GCOL(g)+'">'+t+'</span>').join('')}
+ const cl=(COURSE.climbs||[]).map(c=>'<div><i style="background:'+GCOL(c.avg*100)+'"></i><b>'+esc(climbName(c))+'</b> · km '+nf(c.s0/1000,1)+' · '+nf(c.len/1000,1)+' km à '+nf(c.avg*100,1)+' % · +'+Math.round(c.dp)+' m</div>').join('')||'<div>Aucune montée de plus de 500 m à 4 %.</div>';
+ const h=Math.floor(D.t/3600),mi=Math.round(D.t%3600/60);
+ el.querySelector('.info').innerHTML='<div class="k">PARCOURS EN 3D</div><h3>'+esc(COURSE.name)+'</h3><div class="grid"><div><b>'+nf(D.tot/1000,1)+' km</b><small>Distance</small></div><div><b>'+Math.round(D.dp)+' m</b><small>Dénivelé +</small></div>'+
+  '<div><b>'+Math.round(D.dm)+' m</b><small>Dénivelé −</small></div><div><b>'+nf(D.gmax,1)+' %</b><small>Pente maxi (100 m)</small></div><div><b>'+Math.round(D.lo)+' → '+Math.round(D.hi)+' m</b><small>Altitudes</small></div>'+
+  '<div><b>'+(h?h+' h '+String(mi).padStart(2,'0'):mi+' min')+'</b><small>Temps estimé à '+Math.round(.75*FTP)+' W</small></div><div><b>'+(COURSE.loop?'Boucle':'Aller simple')+'</b><small>Type</small></div><div><b>'+SPRA[1].length+'</b><small>Sprints repérés</small></div></div>'+
+  '<div class="k" style="margin-top:4px">MONTÉES</div><div class="cl">'+cl+'</div>';
+ el.style.display='block';requestAnimationFrame(()=>el.classList.add('on'));C3D.on=true;C3D.auto=true;C3D.zoom=1;c3dLoop()}
+function c3dClose(){const el=$('c3d');if(!el)return;el.classList.remove('on');C3D.on=false;setTimeout(()=>{if(!C3D.on)el.style.display='none'},300)}
+function c3dLoop(){if(!C3D.on)return;requestAnimationFrame(c3dLoop);const el=$('c3d'),cv=el.querySelector('canvas'),f=Math.min(2,devicePixelRatio||1),W=cv.clientWidth*f,H=cv.clientHeight*f;if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H}
+ const D=C3D.d,g=cv.getContext('2d');if(C3D.auto)C3D.yaw+=.0025;g.clearRect(0,0,W,H);
+ const ve=clamp(D.R*.45/Math.max(60,D.hi-D.lo),1,6),cy=Math.cos(C3D.yaw),sy=Math.sin(C3D.yaw),cp=Math.cos(C3D.pit),sp=Math.sin(C3D.pit),infoW=Math.min(330,innerWidth*.44)*f,ox=(W+infoW)/2,oy=H*.56,S=Math.min(W-infoW,H)*.42/D.R*C3D.zoom;
+ const pr=(x,y,z)=>{const X=(x-D.cx)*cy-(z-D.cz)*sy,Z=(x-D.cx)*sy+(z-D.cz)*cy,Y=(y-D.lo)*ve;const yy=Y*cp-Z*sp,zz=Y*sp+Z*cp,k=1/(1+zz/(D.R*4));return[ox+X*S*k,oy-yy*S*k,zz]};
+ // plan de base (quadrillage)
+ g.strokeStyle='rgba(255,255,255,.06)';g.lineWidth=f;for(let i=-5;i<=5;i++){for(const[a,b]of[[[i/5*D.R*1.2,-D.R*1.2],[i/5*D.R*1.2,D.R*1.2]],[[-D.R*1.2,i/5*D.R*1.2],[D.R*1.2,i/5*D.R*1.2]]]){const p=pr(D.cx+a[0],D.lo,D.cz+a[1]),q=pr(D.cx+b[0],D.lo,D.cz+b[1]);g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(q[0],q[1]);g.stroke()}}
+ // ombre au sol
+ g.strokeStyle='rgba(0,0,0,.55)';g.lineWidth=3*f;g.beginPath();for(let q=0;q<D.n;q++){const p=pr(D.X3[q],D.lo,D.Z3[q]);q?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])}g.stroke();
+ // rideau coloré selon la pente, du plus loin au plus proche
+ const segs=[];for(let q=0;q<D.n-1;q++){const a=pr(D.X3[q],D.Y3[q],D.Z3[q]),b=pr(D.X3[q+1],D.Y3[q+1],D.Z3[q+1]),a0=pr(D.X3[q],D.lo,D.Z3[q]),b0=pr(D.X3[q+1],D.lo,D.Z3[q+1]);segs.push([a[2]+b[2],a,b,b0,a0,D.G3[q]])}
+ segs.sort((u,v)=>v[0]-u[0]);for(const[,a,b,b0,a0,gr]of segs){g.fillStyle=GCOL(gr);g.globalAlpha=.88;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.lineTo(b0[0],b0[1]);g.lineTo(a0[0],a0[1]);g.closePath();g.fill();g.globalAlpha=1}
+ g.strokeStyle='#fff';g.lineWidth=2*f;g.beginPath();for(let q=0;q<D.n;q++){const p=pr(D.X3[q],D.Y3[q],D.Z3[q]);q?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])}g.stroke();
+ // repères : km, départ, arrivée, point culminant, cols, sprints
+ const lab=(q,t,col,dy)=>{const p=pr(D.X3[q],D.Y3[q],D.Z3[q]);g.font='700 '+(11*f)+'px system-ui';const w=g.measureText(t).width+10*f,y=p[1]-(dy||22)*f;g.strokeStyle=col;g.lineWidth=1.5*f;g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(p[0],y);g.stroke();
+  g.fillStyle='rgba(14,19,27,.85)';g.fillRect(p[0]-w/2,y-15*f,w,16*f);g.strokeRect(p[0]-w/2,y-15*f,w,16*f);g.fillStyle='#fff';g.textAlign='center';g.fillText(t,p[0],y-3*f)};
+ const kmStep=D.tot>60000?10000:5000;for(let d=kmStep;d<D.tot-kmStep/3;d+=kmStep)lab(Math.round(d/D.step),nf(d/1000)+' km','rgba(255,255,255,.5)',14);
+ lab(0,'🚩 Départ','#22c55e',30);if(!COURSE.loop)lab(D.n-1,'🏁 Arrivée','#fff',30);lab(D.ihi,'▲ '+Math.round(D.hi)+' m','#ffb21a',44);
+ for(const c of COURSE.climbs||[])lab(clamp(Math.round(c.s1/D.step),0,D.n-1),'⛰️ '+climbName(c),'#ff6a13',62);
+ for(const c of SPRA[1])lab(clamp(Math.round(c/D.step),0,D.n-1),'⚡','#22c55e',18)}
 function homeRender(){homeHeader();const sm=$('s-main'),c=CRS.cur,w=weekStats(),wp=Math.min(100,w.km/(GS.goal.km||1)*100);
- const hero=c?'<div class="hero"><div class="k">PROCHAINE SORTIE</div><div class="t">'+esc(c.name)+'</div><div class="s"><span>📏 '+nf(c.km,1)+' km</span><span id="hdp">⛰️ '+nf(c.dp||0)+' m D+</span><span>'+(COURSE&&COURSE.loop?'🔁 Boucle':'➡️ Aller simple')+'</span></div><canvas id="hpf"></canvas><div class="b"><button class="cta" id="hgo">▶ ROULER</button><button class="ghost" id="hch" title="Changer de parcours">⇄</button></div></div>'
+ const hero=c?'<div class="hero"><div class="k">PROCHAINE SORTIE</div><div class="t">'+esc(c.name)+'</div><div class="s"><span>📏 '+nf(c.km,1)+' km</span><span id="hdp">⛰️ '+nf(c.dp||0)+' m D+</span><span>'+(COURSE&&COURSE.loop?'🔁 Boucle':'➡️ Aller simple')+'</span></div><canvas id="hpf"></canvas><div class="b"><button class="cta" id="hgo">▶ ROULER</button><button class="ghost" id="h3d" title="Vue 3D du parcours">🧭 3D</button><button class="ghost" id="hch" title="Changer de parcours">⇄</button></div></div>'
   :'<div class="hero"><div class="k">BIENVENUE</div><div class="t">Roule sur tes propres routes</div><span style="color:#c9d3de;font-size:13px;line-height:1.4">Importe un fichier GPX de n\'importe quel endroit du monde : l\'appli le reproduit en 3D, avec le relief, les photos aériennes et les bâtiments.</span><div class="b"><button class="cta" id="himp">📂 IMPORTER UN GPX</button><button class="ghost" id="hvel" title="Vélodrome">🏟️</button></div></div>';
  const sub={crs:CRS.list.length?CRS.list.length+' parcours importé'+(CRS.list.length>1?'s':''):'Aucun parcours pour l\'instant',sui:'Cette semaine : '+nf(w.km,1)+' / '+nf(GS.goal.km)+' km'};
  sm.innerHTML='<div class="hm">'+hero+'<div class="tiles">'+HTILES.map((t,i)=>{const cc=CCOL[t[4]];return '<button class="card" data-h="'+t[0]+'" style="--i:'+i+';--cc:'+cc[0]+';--cc2:'+cc[1]+'"><i class="ic">'+t[1]+'</i><b>'+t[2]+'</b><span>'+(t[3]||sub[t[0]])+'</span>'+(t[0]==='sui'?'<div class="prog"><i style="width:'+wp.toFixed(0)+'%"></i></div>':'')+'</button>'}).join('')+'</div></div>';
  const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};
- on('hgo',()=>nav('ride'));on('hch',crsMenu);on('himp',()=>$('gf').click());on('hvel',()=>velStart());
+ on('hgo',()=>nav('ride'));on('h3d',c3dOpen);on('hch',crsMenu);on('himp',()=>$('gf').click());on('hvel',()=>velStart());
  sm.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{const h=b.dataset.h;if(h==='roul'){roulRender();showScr('s-roul')}else if(h==='wk'){listWk();showScr('s-wk')}else if(h==='sui'){suiviRender();showScr('s-sui')}
   else if(h==='vel')velStart();else if(h==='crs')crsMenu();else{regRender();showScr('s-reg')}});
  requestAnimationFrame(()=>{const cv=$('hpf');if(cv){const dp=heroDraw(cv);if(dp&&!c.dp){const e=$('hdp');if(e)e.textContent='⛰️ '+nf(dp)+' m D+'}}})}
