@@ -188,6 +188,17 @@ button.back{width:40px;height:40px;padding:0;border-radius:50%;font-size:18px;di
  .hm{gap:8px}.hero{border-radius:16px}.hero>span{display:none}.hero .k{font-size:10px}.hero .t{font-size:18px}.hero .s span{font-size:11px;padding:2px 7px}
  .tiles{gap:8px}.tiles .card{min-height:0;padding:9px 11px;border-radius:14px;flex-direction:row;align-items:center;justify-content:flex-start;gap:9px}.tiles .card .ic{margin:0;flex:0 0 32px;width:32px;height:32px;font-size:17px}
  .tiles .card .prog{display:none}}
+/* écran de fin de sortie */
+#fin{position:fixed;inset:0;z-index:29;display:none;overflow:auto;background:radial-gradient(120% 90% at 30% 0%,rgba(36,48,64,.97),rgba(6,9,14,.98));opacity:0;transition:opacity .4s;padding:calc(14px + var(--sa)) calc(14px + var(--sr)) calc(14px + var(--sb)) calc(14px + var(--sl))}
+#fin.on{opacity:1}#fin .wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(300px,1fr) 1.25fr;gap:14px;animation:up .5s both}
+@media(max-width:760px){#fin .wrap{grid-template-columns:1fr}}
+#fin .card2{border-radius:20px;padding:16px;background:linear-gradient(155deg,rgba(34,43,57,.92),rgba(14,19,27,.92));border:1px solid var(--line);box-shadow:0 14px 40px rgba(0,0,0,.4)}
+#fin .k{font:800 11px system-ui;letter-spacing:.18em;color:var(--cta2)}#fin h2{margin:2px 0 2px;font:800 clamp(22px,3vw,34px)/1.1 var(--num);color:#fff}#fin .dt{font-size:12.5px;color:var(--mut)}
+#fin .tiles2{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}#fin .tiles2 div{padding:9px 10px;border-radius:12px;background:rgba(255,255,255,.06)}
+#fin .tiles2 b{display:block;font:800 22px/1.1 var(--num);color:#fff}#fin .tiles2 small{font-size:11px;color:var(--mut)}#fin .tiles2 .big b{font-size:28px;background:linear-gradient(90deg,var(--cta1),var(--cta2));-webkit-background-clip:text;background-clip:text;color:transparent}
+#fin .pr{margin-top:10px;font-size:13px;line-height:1.6}#fin .pr div{padding:4px 8px;border-radius:8px;background:rgba(255,178,26,.12);border:1px solid rgba(255,178,26,.35);margin-top:4px}
+#fin canvas{width:100%;display:block;border-radius:14px;background:rgba(0,0,0,.25)}#fin .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}#fin .acts .cta{flex:1 1 100%;padding:13px;font-size:16px}
+@media(max-height:520px){#fin .card2{padding:11px}#fin h2{font-size:20px}#fin .tiles2{gap:6px;margin-top:8px}#fin .tiles2 div{padding:6px 8px}#fin .tiles2 b{font-size:15px;white-space:nowrap}#fin .tiles2 .big b{font-size:18px}#fin .tiles2 small{font-size:10px}#fin #finm{height:150px!important}#fin #fing{height:100px!important}#fin .acts .cta{padding:10px;font-size:14px}}
 /* écran de chargement avant la sortie */
 #ldg{position:fixed;inset:0;z-index:35;display:none;align-items:center;justify-content:center;background:radial-gradient(120% 90% at 50% 10%,rgba(30,42,56,.96),rgba(6,9,14,.98));opacity:0;transition:opacity .45s}
 #ldg.on{opacity:1}#ldg .bx{width:min(640px,92vw);display:flex;flex-direction:column;gap:12px;animation:up .5s both}
@@ -3785,7 +3796,8 @@ function analyzeRide(pts){const n=pts.length,pw=pts.map(q=>q.pw||0),o={};if(n<10
  for(const q of pts){o.pz[Math.max(0,zi((q.pw||0)/FTP))]++;if(q.hr>0){o.hz[Math.max(0,hzi(q.hr))]++;hs+=q.hr;hn++;hm=Math.max(hm,q.hr)}if(q.cad>0){cs+=q.cad;cn++}}
  o.ahr=hn?Math.round(hs/hn):0;o.mhr=hm;o.acad=cn?Math.round(cs/cn):0;o.mx=Math.round(pw.reduce((a,x)=>x>a?x:a,0));return o}
 // records de puissance (toutes sorties confondues) et détection de FTP (95 % de la meilleure 20 min)
-function prCheck(A){if(!A||!A.pc)return;const got=[];for(const d of PCD){const w=A.pc[d];if(!w)continue;const o=GS.pc[d];if(!o||w>o.w){if(o)got.push(pcLab(d)+' : '+w+' W');GS.pc[d]={w,t:Date.now()}}}
+let LASTPR=[];
+function prCheck(A){LASTPR=[];if(!A||!A.pc)return;const got=LASTPR;for(const d of PCD){const w=A.pc[d];if(!w)continue;const o=GS.pc[d];if(!o||w>o.w){if(o)got.push(pcLab(d)+' : '+w+' W');GS.pc[d]={w,t:Date.now()}}}
  if(got.length){reward('📈','Record de puissance · '+got.slice(0,3).join(' · '),40*got.length);celebrate(got.length>1);speak('Nouveau record de puissance : '+got[0].replace(':',''),null,0)}
  const p20=A.pc[1200];if(p20){const f=Math.round(p20*.95);if(f>FTP+3)modQ('📈 Nouvelle FTP estimée : <b style="font:800 34px var(--num);color:var(--ac)">'+f+' W</b><br><small>95 % de ta meilleure puissance sur 20 min ('+p20+' W). FTP actuelle : '+FTP+' W.</small>',
   [['Appliquer '+f+' W',()=>{FTP=f;$('ftp').value=f;save();ftpLog(f,1);$('zn').innerHTML=zonesHTML()}],['Garder '+FTP+' W',()=>{}]])}
@@ -4929,7 +4941,29 @@ function offerStrava(R){const S=rideSummary(R),fit=fitEncode(R),d=new Date(R.t0)
  const btn=[];if(STR.id&&STR.ref)btn.push(['Envoyer sur Strava',send]);else btn.push(['Connecter Strava…',()=>{stravaPanel(()=>offerStrava(R))}]);
  btn.push(['📊 Analyse',()=>anaOpen(R)],['🖼️ Carte souvenir',()=>postcard(R)]);if(DIAG.on&&DIAG.frames)btn.push(['🩺 Diagnostic',diagShow]);
  btn.push(['Télécharger le .fit',()=>downloadFit(fit,fname)],['Ne pas envoyer',()=>{}]);
- mod((R.ses?'Bravo ! 🎉'+sesHTML(R.ses):'')+'Envoyer cette sortie sur Strava ?<br><small>'+S.txt+'<br>Trace GPS réelle du parcours, marquée « vélo virtuel »</small>',btn)}
+ finShow(R,S,btn)}
+// ---- écran de fin de sortie (façon applis du commerce) : chiffres clés, records, trace, puissance et altitude ----
+function finShow(R,S,btn){let el=$('fin');if(!el){el=document.createElement('div');el.id='fin';document.body.appendChild(el)}
+ const A=analyzeRide(R.pts),p=R.pts,h=R.ses,el2=S.el,spd=el2>0?S.km/(el2/3600):0,kc=h?h.kcal:Math.round(p.reduce((a,q)=>a+q.pw,0)/(.24*4184)),tl=(v,l,c)=>'<div'+(c?' class="big"':'')+'><b>'+v+'</b><small>'+l+'</small></div>';
+ const prs=(LASTPR||[]).map(t=>'<div>📈 Record · '+esc(t)+'</div>').join('')+(h&&h.rew.length?h.rew.slice(0,6).map(t=>'<div>'+t+'</div>').join(''):'');
+ el.innerHTML='<div class="wrap"><div class="card2"><div class="k">'+(R.mode==='wk'?'SÉANCE TERMINÉE':'SORTIE TERMINÉE')+'</div><h2>'+esc((R.wkn?R.wkn+' · ':'')+(ROUTE?ROUTE.name:COURSE?COURSE.name:'Vélodrome'))+'</h2><div class="dt">'+new Date(R.t0).toLocaleString('fr-FR',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})+'</div>'+
+  '<div class="tiles2">'+tl(nf(S.km,1)+' km','Distance',1)+tl(fmt(el2),'Temps',1)+tl(S.asc+' m','Dénivelé +',1)+tl(S.ap+' W','Puissance moy.')+tl((A.np||S.ap)+' W','Puissance normalisée')+tl((A.mx||0)+' W','Puissance maxi')+
+  tl(nf(spd,1)+' km/h','Vitesse moy.')+tl(nf(kc)+' kcal','Énergie')+tl((A.tss||0)+'','Charge (TSS)')+tl(A.ahr?A.ahr+' / '+A.mhr:'—','Cardio moy. / max')+tl(A.acad?A.acad+' tr/min':'—','Cadence moy.')+tl(A.ifv?nf(A.ifv,2):'—','Intensité (IF)')+'</div>'+
+  (prs?'<div class="pr">'+prs+'</div>':'')+'<div class="acts"></div></div>'+
+  '<div class="card2"><div class="k">TRACE · PUISSANCE PAR ZONE</div><canvas id="finm" style="height:min(42vh,360px);margin-top:8px"></canvas><div class="k" style="margin-top:12px">PUISSANCE ET ALTITUDE</div><canvas id="fing" style="height:150px;margin-top:8px"></canvas></div></div>';
+ const ac=el.querySelector('.acts');btn.forEach(([l,f],i)=>{const b=document.createElement('button');b.textContent=l;if(i===0)b.className='cta';if(/Ne pas envoyer/.test(l)){b.textContent='Fermer';b.className='ghost'}
+  b.onclick=()=>{if(/Ne pas envoyer|Fermer|Analyse|Carte|Diagnostic/.test(l))finHide();f()};ac.appendChild(b)});
+ el.style.display='block';requestAnimationFrame(()=>{el.classList.add('on');finDraw(R)})}
+function finHide(){const el=$('fin');if(!el)return;el.classList.remove('on');setTimeout(()=>{if(!el.classList.contains('on'))el.style.display='none'},400)}
+function finDraw(R){const p=R.pts.filter(q=>isFinite(q.lat)&&isFinite(q.lon)),f=devicePixelRatio||1;
+ const cm=$('finm');if(cm&&p.length>2){const W=cm.width=cm.clientWidth*f,H=cm.height=cm.clientHeight*f,g=cm.getContext('2d');let a=1e9,b=-1e9,c=1e9,d=-1e9;for(const q of p){a=Math.min(a,q.lat);b=Math.max(b,q.lat);c=Math.min(c,q.lon);d=Math.max(d,q.lon)}
+  const kx=Math.cos(((a+b)/2)*Math.PI/180),sx=(d-c)*kx||1e-6,sy=(b-a)||1e-6,S=Math.min((W-30*f)/sx,(H-30*f)/sy),ox=(W-sx*S)/2,oy=(H-sy*S)/2,P=q=>[ox+(q.lon-c)*kx*S,H-oy-(q.lat-a)*S];
+  g.lineCap='round';g.lineWidth=7*f;g.strokeStyle='rgba(0,0,0,.45)';g.beginPath();p.forEach((q,i)=>{const[x,y]=P(q);i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();g.lineWidth=4*f;
+  for(let i=1;i<p.length;i++){const[x0,y0]=P(p[i-1]),[x1,y1]=P(p[i]);g.strokeStyle=ZN[Math.max(0,zi((p[i].pw||0)/FTP))][1];g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke()}
+  const[sx0,sy0]=P(p[0]),[ex,ey]=P(p[p.length-1]);g.fillStyle='#22c55e';g.beginPath();g.arc(sx0,sy0,7*f,0,6.283);g.fill();g.fillStyle='#fff';g.beginPath();g.arc(ex,ey,7*f,0,6.283);g.fill();g.strokeStyle='#111';g.lineWidth=2*f;g.stroke()}
+ const cg=$('fing');if(cg&&R.pts.length>2){const q=R.pts,W=cg.width=cg.clientWidth*f,H=cg.height=cg.clientHeight*f,g=cg.getContext('2d'),n=q.length;let lo=1e9,hi=-1e9,pm=1;for(const o of q){if(o.alt>-500){lo=Math.min(lo,o.alt);hi=Math.max(hi,o.alt)}pm=Math.max(pm,o.pw||0)}if(hi-lo<20)hi=lo+20;
+  g.fillStyle='rgba(255,255,255,.12)';g.beginPath();g.moveTo(0,H);for(let i=0;i<n;i++)g.lineTo(i/(n-1)*W,H-(q[i].alt-lo)/(hi-lo)*H*.85);g.lineTo(W,H);g.closePath();g.fill();
+  const k=Math.max(1,Math.floor(n/W*f));for(let i=0;i<n;i+=k){let s=0,c=0;for(let j=i;j<Math.min(n,i+k*3);j++){s+=q[j].pw||0;c++}const w=s/c,y=H-w/pm*H*.95;g.fillStyle=ZN[Math.max(0,zi(w/FTP))][1];g.fillRect(i/(n-1)*W,y,Math.max(1,k/(n-1)*W+1),H-y)}}}
 // ---- réglages Strava ----
 function stravaPanel(after){const ok=!!(STR.id&&STR.ref);
  mod(`<div style="text-align:left;font-size:13.5px;line-height:1.45;max-width:min(84vw,420px);overflow-wrap:anywhere">Strava : ${ok?'<span style="font-weight:700;color:#7fd67a">connecté'+(STR.who?' · '+STR.who.replace(/</g,''):'')+'</span>':'non connecté'}${GS.strv&&GS.strv.length?'<br><small>Dernières sorties envoyées : '+GS.strv.slice(-3).reverse().map(x=>new Date(x.t).toLocaleDateString('fr-FR')+' · '+esc(x.n)).join(' ; ')+'</small>':''}<br>

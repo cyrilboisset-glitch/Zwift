@@ -262,6 +262,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
 - En quittant la sortie (☰ → « 🏁 Terminer et enregistrer », ou ✕ en séance), une **fenêtre demande** s'il faut l'envoyer sur Strava. Rien ne part sans validation.
   - La sortie est gardée dès **30 s et 100 m**, même si le parcours n'est pas fini.
   - **Sauvegarde automatique** toutes les 30 s et quand l'appli passe en arrière-plan (`recSave`, clé `v3rec`). Au lancement suivant, une sortie interrompue (appli fermée, écran éteint…) est proposée à l'envoi sur Strava et ajoutée à l'historique (`recOfferSaved`).
+- **Écran de fin de sortie** (31 octobre 2026, `finShow`, `finDraw`, `finHide`, écran `#fin`, records `LASTPR` remplis par `prCheck`) : remplace la petite fenêtre « Envoyer sur Strava ? » ; titre (séance ou sortie, parcours, date), 12 chiffres (distance, temps, D+ en grand ; puissance moyenne, normalisée, maxi, vitesse moyenne, kcal, TSS, cardio moyen / maxi, cadence, IF), records de puissance battus et récompenses, **trace colorée par zone de puissance** (départ vert, arrivée blanche), **graphique puissance + altitude** ; boutons : Envoyer sur Strava / Connecter Strava (en premier, orange), Analyse, Carte souvenir, .fit, Diagnostic, Fermer. Les fenêtres d'envoi s'affichent par-dessus.
 - **Fichier FIT** encodé dans le navigateur.
   - Messages : file_id, event, record, lap, session et activity.
   - Session en `sport = cycling (2)`, `sub_sport = virtual_activity (58)`.
