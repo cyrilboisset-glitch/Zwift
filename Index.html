@@ -360,7 +360,7 @@ async function loadBitmap(url,ms,minSz){const b=await cachedBlob(url,ms);if(minS
 function limiter(n){let act=0;const q=[];const nx=()=>{while(act<n&&q.length){const[f,ok,ko]=q.shift();act++;f().then(ok,ko).finally(()=>{act--;nx()})}};
  return f=>new Promise((ok,ko)=>{q.push([f,ok,ko]);nx()})}
 const LIM_TILE=limiter(6),LIM_OVP=limiter(2),LIM_WFS=limiter(3);
-const OVP=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+const OVP=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
 let ovpOK=0;
 async function overpass(q,ms){return LIM_OVP(async()=>{const txt=await cachedText('ovp:'+q,async()=>{let err;
   for(let k=0;k<OVP.length;k++){const u=OVP[(ovpOK+k)%OVP.length];
@@ -1028,12 +1028,14 @@ function addCurv(m,key){const ob=m.onBeforeCompile;m.onBeforeCompile=(sh,r)=>{if
 const PHOTO={fail:0,ok:0,dead:false,ign:0,blank:0};
 const PHOTO_SRCS=[
  (z,x,y)=>`https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&FORMAT=image/jpeg`,
- (z,x,y)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`];
+ (z,x,y)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+ // dernier secours gratuit : Sentinel-2 sans nuages (EOX, 10 m par pixel, usage non commercial) ; pas au-delà de z15
+ (z,x,y)=>z>15?null:`https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/${z}/${y}/${x}.jpg`];
 let photoSrcI=0;
 // l'IGN renvoie une image toute blanche (≈ 1,6 Ko) hors de France et sur la mer : on prend alors ArcGIS pour cette tuile
 async function photoTile(z,x,y){if(PHOTO.dead)throw new Error('off');
- let blank=false;for(let k=0;k<PHOTO_SRCS.length;k++){const si=(photoSrcI+k)%PHOTO_SRCS.length;try{const b=await LIM_TILE(()=>loadBitmap(PHOTO_SRCS[si](z,x,y),20000,si===0?2600:0));if(!b||!b.width)throw 0;
-   if(si===0)PHOTO.ign++;if(!blank)photoSrcI=si;PHOTO.ok++;return b}
+ let blank=false;for(const si of [photoSrcI,1-photoSrcI,2]){const u=PHOTO_SRCS[si](z,x,y);if(!u)continue;try{const b=await LIM_TILE(()=>loadBitmap(u,20000,si===0?2600:0));if(!b||!b.width)throw 0;
+   if(si===0)PHOTO.ign++;if(!blank&&si<2)photoSrcI=si;PHOTO.ok++;return b}
   catch(e){if(si===0&&e&&e.message==='vide'){blank=true;PHOTO.blank++;if(PHOTO.blank>40&&PHOTO.ign<PHOTO.blank*.1)photoSrcI=1}}}// presque tout blanc : parcours hors de France
  PHOTO.fail++;if(PHOTO.fail>30&&PHOTO.ok<PHOTO.fail*.15)PHOTO.dead=true;throw new Error('photo')}
 // uv d'une mosaïque mercator : u linéaire en x, v quadratique en z

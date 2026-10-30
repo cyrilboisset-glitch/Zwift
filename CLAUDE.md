@@ -362,7 +362,8 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 - Altitude : `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png`
 - Photos : `https://data.geopf.fr/wmts?…ORTHOIMAGERY.ORTHOPHOTOS…`, avec ArcGIS World Imagery en secours.
 - Données : `https://data.geopf.fr/wfs/ows`. Couches BDTOPO_V3 : `batiment`, `zone_de_vegetation`, `surface_hydrographique`, `zone_d_habitation`.
-- OSM : Overpass (3 miroirs). Communes : `https://geo.api.gouv.fr/communes`.
+- OSM : Overpass (4 miroirs gratuits, dont `overpass.kumi.systems` ajouté le 30 octobre 2026).
+- Photos, dernier secours gratuit (30 octobre 2026) : Sentinel-2 sans nuages d'EOX (`s2cloudless-2020_3857`, 10 m par pixel, licence non commerciale, jusqu'à z15 seulement), essayé seulement si l'IGN et ArcGIS échouent ; jamais choisi comme source par défaut. Non testé (serveur EOX bloqué sur le banc). Communes : `https://geo.api.gouv.fr/communes`.
 
 ### Stockage local (localStorage)
 - `v3q2` : qualité graphique (`tab`, `low`, `med`, `high`, `ultra`). L'ancienne clé `v3q` n'est plus lue, pour que la tablette reparte en « Tablette ».
