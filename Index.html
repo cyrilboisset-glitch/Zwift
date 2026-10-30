@@ -330,7 +330,7 @@ const QPRE={
  // tablette (Redmi Pad SE, Adreno 610) : pas d'anticrénelage, ombres simples et courtes, pas de nuages, distances réduites, PNJ simplifiés
  tab:{n:'Tablette',dpr:1,shadow:1024,sh:32,near:560,cor:760,tree:380,treeNear:33,treeN:2500,grass:2200,grassP:24,bld:460,bldD:140,clip:1024,photoZ:15,clouds:0,npc:3,ped:8,npcSeg:.45,road:3200,aa:0,ani:4,soft:0,data:4000,minPR:.55,fpsLo:28,fpsHi:50}};
 let QK='med';const QDEF=WEAK_GPU?'tab':IS_MOBILE?'med':'high';try{QK=localStorage.v3q2||QDEF}catch(e){QK=QDEF}
-if(!QPRE[QK])QK='med';const QP=QPRE[QK];
+if(!QPRE[QK])QK='med';const QP=Object.assign({},QPRE[QK]);// copie : la qualité se change à chaud (qualitySet)
 
 // ---------- file de tâches (évite les saccades) ----------
 const JOBS=[],JKEYS=new Set();let JOBID=0,JSORT=0;
@@ -2333,7 +2333,7 @@ function buildChurch(b,r,yMin,yMax,det,wg,rg){const o=obb(b.p),big=b.kind==='chu
 // bâtiments d'une tuile : paquets d'environ 120 bâtiments (pas de tableau géant à agrandir), et on rend la main à l'affichage toutes les 4 ms
 // villes denses (Paris…) : au plus BCAP bâtiments par tuile de 512 m, les plus proches du parcours d'abord (la première rangée cache les suivantes) ;
 // détails (fenêtres, balcons) seulement près du parcours quand la tuile est dense
-const BCAP={tab:[220,110],low:[360,180],med:[600,320],high:[900,480],ultra:[1300,700]}[QK]||[600,320],BDET=QK==='tab'?40:QK==='low'?55:80;
+let BCAP={tab:[220,110],low:[360,180],med:[600,320],high:[900,480],ultra:[1300,700]}[QK]||[600,320],BDET=QK==='tab'?40:QK==='low'?55:80;
 function bldPick(t,lod){const cap=BCAP[lod?1:0],A=t.L.some(b=>b.skip)?t.L.filter(b=>!b.skip):t.L;for(const b of A)if(b.td===undefined)b.td=trackDist(b.cx,b.cz);
  if(A.length<=cap)return{L:A,dense:false};return{L:A.slice().sort((a,c)=>a.td-c.td).slice(0,cap),dense:true}}
 function* buildTile(t,lod){const det=lod===0,G=new T.Group();G.matrixAutoUpdate=false;let wg=new GB(true),rg=new GB(true),n=0,t0=performance.now();
@@ -3747,8 +3747,8 @@ function regRender(){const box=document.querySelector('#s-reg .cards');box.inner
  hcard(box,'🔧 Garage','Points, équipement, historique FTP, records de sprint',()=>{garage();showScr('s-gar')});
  hcard(box,'🩺 Diagnostic des blocages','Mesure ce qui ralentit l\'appli pendant une sortie, puis rapport à copier',diagPanel);
  hcard(box,'🎛️ Préférences','Sprints, voix, musique, météo, nuit, affichage, FC max',()=>{prefRender();showScr('s-pref')});
- hcard(box,'🖥️ Graphismes','Qualité actuelle : '+QPRE[QK].n,()=>mod('Qualité graphique<br><small>Actuelle : '+QPRE[QK].n+'. L\'appli se recharge après le choix.</small>',
-  ['tab','low','med','high','ultra'].map(k=>[QPRE[k].n,()=>{try{localStorage.v3q2=k}catch(e){}location.reload()}]).concat([['Annuler',()=>{}]])))}
+ hcard(box,'🖥️ Graphismes','Qualité actuelle : '+QPRE[QK].n,()=>mod('Qualité graphique<br><small>Actuelle : '+QPRE[QK].n+'. Changement immédiat, sans recharger.</small>',
+  ['tab','low','med','high','ultra'].map(k=>[QPRE[k].n,()=>{qualitySet(k);regRender()}]).concat([['Annuler',()=>{}]])))}
 // ---- accueil façon applis du commerce : carte « prochaine sortie » (profil coloré, gros bouton) + tuiles colorées + niveau ----
 const HTILES=[['wk','🏋️','S\'entraîner','Séances ERG guidées, créateur, test FTP',1],['vel','🏟️','Vélodrome','Piste UCI 250 m, lumière de rythme',4],['crs','📚','Mes parcours','',2],
  ['roul','🚴','Rouler','Importer, exploration, options',0],['sui','📈','Mon suivi','',3],['reg','⚙️','Réglages','Matériel, Strava, vestiaire, graphismes',5]];
@@ -4831,7 +4831,7 @@ function uTurn(){RID.dir=-RID.dir;RID.prev=null;RID.jx=null;RID.pick=-1;CAM.snap
 function goStart(){if(COURSE){const s0=COURSE.edges[0],E0=NET.E[s0[0]];RID.e=s0[0];RID.dir=s0[1];RID.u=s0[1]>0?.5:E0.len-.5;RID.prev=null;if(ROUTE){ROUTE.k=0;ROUTE.ei=0}}else if(ROUTE){const p=ROUTE.P[0];setRoute(ROUTE.P.map(q=>xz2ll(q[0],q[1])),ROUTE.name)}else{const st=nearestNet(0,0);RID.e=st.e;RID.u=st.u;RID.dir=1}RID.jx=null;RID.pick=-1;CAM.snap=true}
 
 // ====================== cyclistes PNJ : plus forts / équivalents / moins forts, aspiration réelle, sprints aux pancartes ======================
-const NPCN=QP.npc||7;
+let NPCN=QP.npc||7;
 const NPC_NAMES=['Julien','Marc','Sophie','Thomas','Léa','Nicolas','Camille','Pierre','Emma','Lucas','Manon','Hugo','Chloé','Antoine','Sarah','Romain','Laura','Mathieu','Julie','Kévin','Élodie','Bastien','Pauline','Florian'];
 const NPC_TEAMS=[['#d7263d','#ffffff','#111114',0xd7263d,'RED WOLVES','CYCLING CLUB'],['#1e88e5','#ffd23f','#ffffff',0x1565c0,'BLUE RIDERS','VÉLO CLUB'],['#2e7d32','#ffffff','#ffd23f',0x1b5e20,'GREEN HILLS','CC'],
  ['#111114','#ff7043','#ffffff',0x222222,'BLACK ARROWS','UC'],['#7b1fa2','#ffffff','#ffd23f',0x6a1b9a,'PURPLE PEAKS','VS'],['#ff9800','#111114','#ffffff',0xef6c00,'ORANGE BOLT','CYCLO'],
@@ -5067,7 +5067,7 @@ function fauSounds(now,px,pz){if(!AC||AC.state!=='running'||MUTE||!SET.natV||now
 function churchStroke(t,v,pan,r){const out=fauOut(v,pan);for(const[q,a]of[[1,.05],[2,.03],[2.4,.022],[3,.015],[4.2,.01]]){const x=AC.createOscillator(),g=AC.createGain();x.frequency.value=196*(r||1)*q;
   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(a,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+2.6);x.connect(g);g.connect(out);x.start(t);x.stop(t+2.7)}}
 // ====================== piétons et promeneurs : marchent sur les trottoirs, applaudissent et sifflent pendant les sprints ======================
-const PEDN=QP.ped||18;
+let PEDN=QP.ped||18;
 const PED={list:[],meshes:null,cheerT:0,voiceT:0,whT:0,spect:new Set()};
 const SHIRTS=[0xd7263d,0x1e88e5,0x2e7d32,0xffd23f,0xf5f5f5,0x6d4c41,0x7b1fa2,0xff7043,0x37474f,0x00897b,0xe91e63,0x90a4ae],PANTS=[0x263238,0x37474f,0x1a237e,0x5d4037,0x9e9e9e,0x212121,0x3e2723],SKINS=[0xe0ac8a,0xc68863,0x8d5524,0xf1c27d,0xd09a78],HAIRS=[0x2b1b0e,0x4a3020,0x111111,0x8d6e4e,0xc9a26b,0x9e9e9e];
 function pedInit(){if(PED.meshes)return;const mat=new T.MeshLambertMaterial({color:0xffffff});
@@ -5302,6 +5302,24 @@ function onDataTile(a,b){dataDirty=1;const x0=a*DT-64,x1=(a+1)*DT+64,z0=b*DT-64,
  for(const[k,c]of VEG.cells){const cx=(c.a+.5)*VC,cz=(c.b+.5)*VC;if(cx>x0&&cx<x1&&cz>z0&&cz<z1){c.dirty=true;c.band=-1}}
  for(const k of[...MASKC.keys()])MASKC.delete(k);if(DATA.n.w!==waterDirty)waterDirty=-1}
 const ATT0=$('att')?$('att').textContent:'';
+// qualité graphique changée sans recharger : réglages, résolution, ombres, PNJ, piétons, puis monde reconstruit avec les nouvelles distances
+// (l'anticrénelage et la finesse du vélo, de l'avatar, des arbres et du vélodrome ne changent qu'au prochain lancement)
+function qualitySet(k){if(!QPRE[k]||k===QK)return;QK=k;try{localStorage.v3q2=k}catch(e){}
+ for(const key of Object.keys(QP))delete QP[key];Object.assign(QP,QPRE[k]);
+ BCAP={tab:[220,110],low:[360,180],med:[600,320],high:[900,480],ultra:[1300,700]}[k]||[600,320];BDET=k==='tab'?40:k==='low'?55:80;
+ // résolution
+ DPRS.lo=DPRS.hi=0;DPRS.t=performance.now();PR=PRMAX();ren.setPixelRatio(PR);rs();
+ // ombres : taille de la carte, étendue, adoucissement
+ {const z=Math.min(QP.shadow,MAXTEX),c=SUNL.shadow.camera;SUNL.shadow.mapSize.set(z,z);if(SUNL.shadow.map){SUNL.shadow.map.dispose();SUNL.shadow.map=null}
+  c.left=c.bottom=-QP.sh;c.right=c.top=QP.sh;c.updateProjectionMatrix();const ty=QP.soft===0?T.PCFShadowMap:T.PCFSoftShadowMap;
+  if(ren.shadowMap.type!==ty){ren.shadowMap.type=ty;sc.traverse(o=>{if(o.material)[].concat(o.material).forEach(m=>m.needsUpdate=true)})}}
+ // photo proche
+ CLIP.z=QP.photoZ;CLIP.imgs.clear();CLIP.on=false;
+ // PNJ : on en ajoute ou on en retire
+ NPCN=QP.npc||7;if(NPCS.length){while(NPCS.length<NPCN)NPCS.push(makeNPC(NPCS.length));while(NPCS.length>NPCN){const n=NPCS.pop();n.alive=false;if(n.R){n.R.visible=false;if(n.R.parent)n.R.parent.remove(n.R)}}}
+ // piétons : maillages refaits au nombre voulu
+ PEDN=QP.ped||18;if(PED.meshes){for(const m of Object.values(PED.meshes))if(m.parent)m.parent.remove(m);PED.meshes=null;PED.list=[]}
+ say('Qualité « '+QPRE[k].n+' »');if(COURSE)startWorld()}
 async function startWorld(){const id=++WID;resetWorld();if(!NOVEG&&!TREEG.b)initTreeGeos();if(!NET.ready)initNetwork();
  {const sb=document.querySelector('#hh .sub');if(sb)sb.textContent=CRS.cur?CRS.cur.name+' · '+nf(CRS.cur.km,1)+' km':'Importe un GPX pour rouler'}
  setupRegions();if(!CLIP.k)clipInit();computeNearCoverage();initGrass();CAM.snap=true;
@@ -5455,7 +5473,7 @@ function drawMap(){const c=$('map');if(!c||!N)return;const W=c.width,g=c.getCont
 // ---- menu : qualité, vues, itinéraires, Strava, sons ----
 {const t=$('top'),h=document.createElement('h4');h.textContent='Graphismes';t.appendChild(h);const sel=document.createElement('select');
  for(const k of['ultra','high','med','low','tab']){const o=document.createElement('option');o.value=k;o.textContent=QPRE[k].n+(k==='tab'?' (Redmi Pad)':'')+(k===QK?' (actuelle)':'');if(k===QK)o.selected=true;sel.appendChild(o)}
- const lab=document.createElement('label');lab.textContent='Qualité ';lab.appendChild(sel);t.appendChild(lab);sel.onchange=()=>{try{localStorage.v3q2=sel.value}catch(e){}say('Qualité « '+QPRE[sel.value].n+' » : rechargement…');setTimeout(()=>location.reload(),600)};
+ const lab=document.createElement('label');lab.textContent='Qualité ';lab.appendChild(sel);t.appendChild(lab);sel.onchange=()=>{qualitySet(sel.value);for(const o of sel.options)o.textContent=QPRE[o.value].n+(o.value==='tab'?' (Redmi Pad)':'')+(o.value===QK?' (actuelle)':'')};
  const vb2=document.createElement('button');vb2.textContent='🎥 Changer de vue';vb2.onclick=nextView;t.appendChild(vb2);
  const ts=document.createElement('select');ts.id='todsel';for(const[k,n]of TODS){const o=document.createElement('option');o.value=k;o.textContent=n;ts.appendChild(o)}ts.value=SET.tod||'real';
  const tl=document.createElement('label');tl.textContent='Moment ';tl.appendChild(ts);t.appendChild(tl);ts.onchange=()=>{SET.tod=ts.value;ssave();todApply()};
