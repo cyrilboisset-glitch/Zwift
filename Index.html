@@ -188,6 +188,16 @@ button.back{width:40px;height:40px;padding:0;border-radius:50%;font-size:18px;di
  .hm{gap:8px}.hero{border-radius:16px}.hero>span{display:none}.hero .k{font-size:10px}.hero .t{font-size:18px}.hero .s span{font-size:11px;padding:2px 7px}
  .tiles{gap:8px}.tiles .card{min-height:0;padding:9px 11px;border-radius:14px;flex-direction:row;align-items:center;justify-content:flex-start;gap:9px}.tiles .card .ic{margin:0;flex:0 0 32px;width:32px;height:32px;font-size:17px}
  .tiles .card .prog{display:none}}
+/* écran de chargement avant la sortie */
+#ldg{position:fixed;inset:0;z-index:35;display:none;align-items:center;justify-content:center;background:radial-gradient(120% 90% at 50% 10%,rgba(30,42,56,.96),rgba(6,9,14,.98));opacity:0;transition:opacity .45s}
+#ldg.on{opacity:1}#ldg .bx{width:min(640px,92vw);display:flex;flex-direction:column;gap:12px;animation:up .5s both}
+#ldg .k{font:800 11px system-ui;letter-spacing:.18em;color:var(--cta2)}#ldg h2{margin:0;font:800 clamp(24px,4vw,40px)/1.05 var(--num);color:#fff}
+#ldg .s{display:flex;gap:6px;flex-wrap:wrap}#ldg .s span{font:700 12.5px system-ui;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--line)}
+#ldg canvas{width:100%;height:90px;border-radius:12px;background:rgba(0,0,0,.25)}
+#ldg .pb{height:10px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}#ldg .pb i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cta1),var(--cta2));transition:width .4s;box-shadow:0 0 18px rgba(255,140,40,.6)}
+#ldg .st{display:flex;gap:12px;flex-wrap:wrap;font:600 12px system-ui;color:var(--mut)}#ldg .st span.ok{color:#5ee08a}
+#ldg .tip{font-size:13px;color:#c9d3de;min-height:2.6em;transition:opacity .4s}#ldg .row2{display:flex;justify-content:space-between;align-items:center;gap:10px}
+@media(max-height:520px){#ldg .bx{gap:7px}#ldg canvas{height:56px}#ldg h2{font-size:24px}}
 /* vue 3D du parcours */
 #c3d{position:fixed;inset:0;z-index:40;display:none;background:radial-gradient(120% 90% at 50% 20%,#1b2633,#080c12);opacity:0;transition:opacity .3s}
 #c3d.on{opacity:1}#c3d canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
@@ -2870,7 +2880,7 @@ function nav(m){const pm=mode,wkn=wk&&wk.n,wkp=wk&&wk.plan!=null&&WT&&wt>=.8*WT?
  $('pad').style.display=m==='explore'?'flex':'none';$('wkb').style.display=m==='wk'?'flex':'none';$('home').style.display=m==='home'?'flex':'none';
  for(const i of['hud','bot','mn','vb','fsb'])$(i).style.display=m==='home'?'none':'';
  topShow(false);v=0;lastG=9;lastBi=-1;done=false;yaw=0;pit=m==='home'?.27:.28;dist=m==='home'?4.6:7;$('vw').style.display='none';
- if(m!=='home'){s=0;tt=0;CAM.snap=true}else{if(VEL.on)velStop();showScr('s-main');homeRender();$('zn').innerHTML=zonesHTML();if(conn)sim(0)}
+ if(m!=='home'){s=0;tt=0;CAM.snap=true;if(pm==='home'&&m!=='explore')setTimeout(ldgShow,0)}else{ldgHide();if(VEL.on)velStop();showScr('s-main');homeRender();$('zn').innerHTML=zonesHTML();if(conn)sim(0)}
  if(m==='explore'&&conn)sim(0);rs();if(typeof onNav==='function')onNav(m);
  if(m==='ride'||m==='wk'){recStart(m);sesStart(m);}
  KOM=null;$('spz').style.display=$('kmz').style.display='none';
@@ -3525,6 +3535,25 @@ function c3dLoop(){if(!C3D.on)return;requestAnimationFrame(c3dLoop);const el=$('
  lab(0,'🚩 Départ','#22c55e',30);if(!COURSE.loop)lab(D.n-1,'🏁 Arrivée','#fff',30);lab(D.ihi,'▲ '+Math.round(D.hi)+' m','#ffb21a',44);
  for(const c of COURSE.climbs||[])lab(clamp(Math.round(c.s1/D.step),0,D.n-1),'⛰️ '+climbName(c),'#ff6a13',62);
  for(const c of SPRA[1])lab(clamp(Math.round(c/D.step),0,D.n-1),'⚡','#22c55e',18)}
+// ---- écran de chargement avant la sortie : aperçu du parcours, astuces, avancement réel (relief, photos, données, construction) ----
+const LDG={on:false,t0:0,jmax:20,tip:0,tt:0,done:0};
+const TIPS=['Touche le profil du bas : ⤢ montre le parcours entier, ⤡ la portion autour de toi.','Le menu ☰ permet de changer le moment de la journée : aube, coucher du soleil, nuit…',
+ 'Les bornes au bord des montées donnent la pente du kilomètre suivant et la distance jusqu\'au sommet.','Reste dans la roue d\'un cycliste : l\'aspiration réduit l\'effort jusqu\'à 40 %.',
+ 'Les sprints démarrent à l\'arche verte et finissent au panneau de sortie du village.','La vue 🧭 3D de l\'accueil montre tout le parcours, les cols et le temps estimé.',
+ 'Réglages → Préférences : écart entre les sprints, voix, musique, moment de la journée.','Bois régulièrement : à l\'intérieur, on transpire beaucoup plus que dehors.'];
+function ldgShow(){if(!COURSE||(typeof VEL!=='undefined'&&VEL.on))return;let el=$('ldg');
+ if(!el){el=document.createElement('div');el.id='ldg';el.innerHTML='<div class="bx"><div class="k">CHARGEMENT DU PARCOURS</div><h2></h2><div class="s"></div><canvas></canvas><div class="pb"><i></i></div><div class="st"></div><div class="row2"><div class="tip"></div><button class="cta" id="ldgo">Démarrer</button></div></div>';document.body.appendChild(el);
+  el.querySelector('#ldgo').onclick=()=>ldgHide()}
+ const c=CRS.cur;el.querySelector('h2').textContent=COURSE.name;el.querySelector('.s').innerHTML=c?'<span>📏 '+nf(c.km,1)+' km</span><span>⛰️ '+nf(c.dp||0)+' m D+</span><span>'+(COURSE.loop?'🔁 Boucle':'➡️ Aller simple')+'</span>':'';
+ el.style.display='flex';requestAnimationFrame(()=>{el.classList.add('on');heroDraw(el.querySelector('canvas'))});Object.assign(LDG,{on:true,t0:performance.now(),jmax:20,tip:Math.floor(Math.random()*TIPS.length),tt:0,done:0});
+ el.querySelector('.tip').textContent='💡 '+TIPS[LDG.tip];el.querySelector('#ldgo').textContent='Démarrer maintenant'}
+function ldgTick(now){const el=$('ldg');if(!el)return ldgHide();const el2=(now-LDG.t0)/1000;LDG.jmax=Math.max(LDG.jmax,JOBS.length);
+ const dem=DEMOK||el2>12?1:0,ph=PHOTO.dead||el2>20?1:Math.min(1,CLIP.imgs.size/Math.max(4,(CLIP.S/256)**2*.6)),dat=tileReady(RW.x,RW.z)||el2>18?1:0,job=clamp(1-JOBS.length/LDG.jmax,0,1),pr=(dem+ph+dat+job)/4;
+ el.querySelector('.pb i').style.width=(pr*100).toFixed(0)+'%';
+ el.querySelector('.st').innerHTML=[[dem,'Relief'],[ph,'Photos aériennes'],[dat,'Bâtiments et routes'],[job>.9?1:0,'Paysage']].map(([v,t])=>'<span class="'+(v>=1?'ok':'')+'">'+(v>=1?'✓ ':'⏳ ')+t+'</span>').join('');
+ if(now-LDG.tt>4500){LDG.tt=now;LDG.tip=(LDG.tip+1)%TIPS.length;el.querySelector('.tip').textContent='💡 '+TIPS[LDG.tip]}
+ if(pr>.97){if(!LDG.done)LDG.done=now;else if(now-LDG.done>600)ldgHide()}else LDG.done=0;if(el2>30)ldgHide()}
+function ldgHide(){LDG.on=false;const el=$('ldg');if(!el)return;el.classList.remove('on');setTimeout(()=>{if(!LDG.on)el.style.display='none'},460)}
 function homeRender(){homeHeader();const sm=$('s-main'),c=CRS.cur,w=weekStats(),wp=Math.min(100,w.km/(GS.goal.km||1)*100);
  const hero=c?'<div class="hero"><div class="k">PROCHAINE SORTIE</div><div class="t">'+esc(c.name)+'</div><div class="s"><span>📏 '+nf(c.km,1)+' km</span><span id="hdp">⛰️ '+nf(c.dp||0)+' m D+</span><span>'+(COURSE&&COURSE.loop?'🔁 Boucle':'➡️ Aller simple')+'</span></div><canvas id="hpf"></canvas><div class="b"><button class="cta" id="hgo">▶ ROULER</button><button class="ghost" id="h3d" title="Vue 3D du parcours">🧭 3D</button><button class="ghost" id="hch" title="Changer de parcours">⇄</button></div></div>'
   :'<div class="hero"><div class="k">BIENVENUE</div><div class="t">Roule sur tes propres routes</div><span style="color:#c9d3de;font-size:13px;line-height:1.4">Importe un fichier GPX de n\'importe quel endroit du monde : l\'appli le reproduit en 3D, avec le relief, les photos aériennes et les bâtiments.</span><div class="b"><button class="cta" id="himp">📂 IMPORTER UN GPX</button><button class="ghost" id="hvel" title="Vélodrome">🏟️</button></div></div>';
@@ -5003,7 +5032,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
    const B=blk(wt);if(!B){endWk();return}
    const Pt=Math.round(B[2]*FTP*(wk.ramp?1:ix));if(!conn)P=Pt;
    if(conn&&(B[0]!==lastBi||(Pt!==lastT&&now-lastSim>1000)||now-lastSim>10000)){/* consigne ERG renvoyée au moins toutes les 10 s */erg(wpz?Math.round(.4*FTP):Pt);lastT=Pt;lastBi=B[0];lastSim=now}
-   if(wpz)P=0;else{wt+=dt;tt+=dt;
+   if(wpz||LDG.on)P=0;else{wt+=dt;tt+=dt;
     if(wk.ramp&&wt>=300){const k=Math.floor((wt-300)/60);if(k!==stepI){if(stepI>=0&&sT>55)best=Math.max(best,sA/sT);stepI=k;sA=0;sT=0}sA+=P*dt;sT+=dt;bad=conn&&P<.75*Pt?bad+dt:0;if(bad>12){endRamp();return}}}
    // consigne du bloc, annonce du suivant et bips 3-2-1 avant le changement
    const z=ZN[zi(B[2])],cb=wk.bl[B[0]],nb=wk.bl[B[0]+1],rem=Math.ceil(B[1]);if(nb&&rem>=1&&rem<=3&&rem!==loop.bp&&!wpz){loop.bp=rem;sfx('tick')}
@@ -5017,7 +5046,8 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  const stand=(sprinting||surge||(gP>.075&&P>FTP*.95)||(standT>60))&&v>1.2;
  RDRAFT=!hm?riderDraft():0;
  WX.head=hm?0:wxHead(pos.tx,pos.tz);
- if(riding){const m=Math.max(40,(+$('kg').value||80)-EQ.mass),a=Math.atan(gP),cda=EQ.cda*(tuck?.82:stand?1.12:1)*(1-RDRAFT),va=v+WX.head,// vitesse de l'air (vent de face > 0)
+ if(riding&&LDG.on){v=0;ldgTick(now)}
+ else if(riding){const m=Math.max(40,(+$('kg').value||80)-EQ.mass),a=Math.atan(gP),cda=EQ.cda*(tuck?.82:stand?1.12:1)*(1-RDRAFT),va=v+WX.head,// vitesse de l'air (vent de face > 0)
   F=EQ.eff*P/Math.max(v,1.2)-m*9.81*Math.sin(a)-.004*EQ.crr*m*9.81*Math.cos(a)-.5*1.2*.32*cda*va*Math.abs(va),
   gW=clamp(.5*1.2*.32*cda*(va*Math.abs(va)-v*v)/(m*9.81),-.08,.08);// le vent envoyé au home trainer sous forme de pente équivalente
   v=Math.max(0,Math.min(25,v+F/(m+1.5)*dt));if(P<5&&v<.25&&gP>-.015)v=0;
