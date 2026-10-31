@@ -3062,7 +3062,7 @@ let mode='home',conn=false,pw=0,cad=0,v=0,s=0,tt=0,play=false,yaw=0,pit=.28,dist
 let cp,q=Promise.resolve(),lastT=-1,lastBi=-1,hr=0,wk=null,wt=0,WT=1,ix=1,wpz=0,best=0,sA=0,sT=0,bad=0,stepI=-1,FTP=200;
 try{FTP=+localStorage.ftp||200;$('kg').value=+localStorage.kg||80}catch(e){}
 const save=()=>{try{localStorage.ftp=FTP;localStorage.kg=$('kg').value}catch(e){}};
-const wcp=a=>q=q.then(()=>(cp.writeValueWithResponse||cp.writeValue).call(cp,new Uint8Array(a))).catch(e=>say('Commande refusée : '+e.message));
+const wcp=a=>!cp?q:q=q.then(()=>(cp.writeValueWithResponse||cp.writeValue).call(cp,new Uint8Array(a))).catch(e=>say('Commande refusée : '+e.message));
 // simulation de pente (FTMS 0x11) : vent 0, pente en 0,01 %, Crr 0,0040, Cw 0,19
 // l'aspiration réduit le coefficient de traînée envoyé au home trainer (Cw 0,19 kg/m sans abri)
 const sim=(g,dr)=>{const b=new DataView(new ArrayBuffer(7));b.setUint8(0,17);b.setInt16(1,0,true);b.setInt16(3,Math.round(Math.max(-.2,Math.min(.2,g))*10000),true);b.setUint8(5,40);b.setUint8(6,Math.max(5,Math.round(19*(1-(dr||0)))));wcp(b.buffer)};
@@ -3077,23 +3077,42 @@ function onCP(e){const d=e.target.value;if(d.byteLength<3||d.getUint8(0)!==0x80)
  if(res===5&&CPERR<3){CPERR++;wcp([0]);setTimeout(()=>{if(op===5&&ergT)erg(ergT);else if(op===17)sim(lastG===9?0:lastG,RDRAFT)},400);return}
  if(op===5||op===17)say('Home trainer : commande '+(op===5?'ERG':'de pente')+' refusée (code '+res+')')}
 // données du home trainer (Indoor Bike Data 0x2AD2) : vitesse, cadence, puissance, et cardio s'il en transmet un
-function onIB(e){const d=e.target.value,f=d.getUint16(0,true);let o=2;
+function onIB(e){IBT=performance.now();const d=e.target.value,f=d.getUint16(0,true);let o=2;
  if(!(f&1))o+=2;if(f&2)o+=2;if(f&4){cad=d.getUint16(o,true)/2;CADOK=true;o+=2}if(f&8)o+=2;if(f&16)o+=3;if(f&32)o+=2;if(f&64){pw=Math.max(0,d.getInt16(o,true));o+=2}
  if(f&128)o+=2;if(f&256)o+=5;if(f&512&&o<d.byteLength){const h=d.getUint8(o);if(!HRBELT&&h>0)hr=h}}
 const noBT=()=>{say('Web Bluetooth indisponible : ouvre ce fichier dans Chrome ou Edge (ordinateur) ou Chrome Android.')};
-async function setupTrainer(d){const sv=await(await d.gatt.connect()).getPrimaryService(0x1826);
- const ib=await sv.getCharacteristic(0x2ad2);ib.addEventListener('characteristicvaluechanged',onIB);await ib.startNotifications();
- cp=await sv.getCharacteristic(0x2ad9);cp.addEventListener('characteristicvaluechanged',onCP);try{await cp.startNotifications()}catch(e){}
- try{const pr=await sv.getCharacteristic(0x2ad8),dv=await pr.readValue();PRNG=[dv.getInt16(0,true),dv.getInt16(2,true)];if(!(PRNG[1]>PRNG[0]))PRNG=null}catch(e){PRNG=null}// plage de puissance supportée
- wcp([0]);wcp([7]);conn=true;CPERR=0;lastG=9;lastT=-1;lastBi=-1;$('bC').classList.add('on');$('bC').textContent='Connecté';$('h1').textContent=(d.name||'Connecté')+(PRNG?' · ERG '+PRNG[0]+'–'+PRNG[1]+' W':'')}
+// liaison au home trainer : FTMS (puissance, cadence et commande de résistance) ; sinon service « Cycling Power » 0x1818 (puissance et cadence seules, sans résistance)
+let IBT=0,CPS=null,TRW=0;
+function onCPM(e){IBT=performance.now();const d=e.target.value,f=d.getUint16(0,true);pw=Math.max(0,d.getInt16(2,true));let o=4;if(f&1)o+=1;if(f&4)o+=2;if(f&16)o+=6;
+ if(f&32&&o+4<=d.byteLength){const cr=d.getUint16(o,true),ct=d.getUint16(o+2,true),now=performance.now();
+  if(CPS.cr!=null){const dr=(cr-CPS.cr+65536)%65536,dtt=((ct-CPS.ct+65536)%65536)/1024;if(dr>0&&dtt>0){cad=Math.min(200,dr/dtt*60);CADOK=true;CPS.t=now}else if(now-CPS.t>2500)cad=0}
+  if(CPS.cr==null||cr!==CPS.cr){CPS.cr=cr;CPS.ct=ct}}}
+async function setupTrainer(d){const srv=await d.gatt.connect();let sv=null;try{sv=await srv.getPrimaryService(0x1826)}catch(e){}
+ if(sv){const ib=await sv.getCharacteristic(0x2ad2);ib.addEventListener('characteristicvaluechanged',onIB);await ib.startNotifications();
+  try{cp=await sv.getCharacteristic(0x2ad9);cp.addEventListener('characteristicvaluechanged',onCP);try{await cp.startNotifications()}catch(e){}}catch(e){cp=null}
+  try{const pr=await sv.getCharacteristic(0x2ad8),dv=await pr.readValue();PRNG=[dv.getInt16(0,true),dv.getInt16(2,true)];if(!(PRNG[1]>PRNG[0]))PRNG=null}catch(e){PRNG=null}// plage de puissance supportée
+  if(cp){wcp([0]);wcp([7])}}
+ else{const ps=await srv.getPrimaryService(0x1818),ch=await ps.getCharacteristic(0x2a63);CPS={};ch.addEventListener('characteristicvaluechanged',onCPM);await ch.startNotifications();cp=null;PRNG=null}
+ conn=true;IBT=performance.now();TRW=0;CPERR=0;lastG=9;lastT=-1;lastBi=-1;try{localStorage.v3tr=d.name||''}catch(e){}
+ $('bC').classList.add('on');$('bC').textContent='Connecté';$('h1').textContent=(d.name||'Connecté')+(cp?(PRNG?' · ERG '+PRNG[0]+'–'+PRNG[1]+' W':''):' · puissance seule (pas de résistance)')}
+function trainerDisc(d){return async()=>{conn=false;$('bC').classList.remove('on');$('bC').textContent='Appairer';$('h1').textContent='Déconnecté';
+ if(mode!=='home')for(let k=0;k<3&&!conn;k++){say('Home trainer déconnecté : reconnexion… ('+(k+1)+'/3)');await new Promise(ok=>setTimeout(ok,2000));try{await setupTrainer(d);say('Home trainer reconnecté ✓');if(mode==='wk'&&ergT)erg(ergT)}catch(e){}}}}
 async function connect(){if(!navigator.bluetooth)return noBT();
  try{$('h1').textContent='Recherche…';
-  const d=await navigator.bluetooth.requestDevice({filters:[{services:[0x1826]},{namePrefix:'CYCPLUS'},{namePrefix:'Cycplus'},{namePrefix:'T2'}],optionalServices:[0x1826]});
+  const d=await navigator.bluetooth.requestDevice({filters:[{services:[0x1826]},{services:[0x1818]},{namePrefix:'CYCPLUS'},{namePrefix:'Cycplus'},{namePrefix:'T2'}],optionalServices:[0x1826,0x1818,0x180a]});
   // reconnexion automatique (3 essais) si la liaison saute pendant une sortie
-  d.addEventListener('gattserverdisconnected',async()=>{conn=false;$('bC').classList.remove('on');$('bC').textContent='Appairer';$('h1').textContent='Déconnecté';
-   if(mode!=='home')for(let k=0;k<3&&!conn;k++){say('Home trainer déconnecté : reconnexion… ('+(k+1)+'/3)');await new Promise(ok=>setTimeout(ok,2000));try{await setupTrainer(d);say('Home trainer reconnecté ✓');if(mode==='wk'&&ergT)erg(ergT)}catch(e){}}});
-  await setupTrainer(d);
- }catch(e){$('h1').textContent='Échec : '+e.message}}
+  d.addEventListener('gattserverdisconnected',trainerDisc(d));
+  await setupTrainer(d);say('✅ Home trainer connecté : '+(d.name||'')+(cp?'':' (puissance seule)'));
+ }catch(e){$('h1').textContent='Échec : '+e.message;if(!/cancel|annul/i.test(e.message+''))mod('<h3>⚠️ Home trainer non connecté</h3><p style="text-align:left;line-height:1.45">'+esc(e.message)+'<br><br>Vérifie que :<br>• le home trainer est allumé (pédale quelques tours pour le réveiller) ;<br>• il n\'est <b>pas déjà connecté à une autre appli</b> (Zwift, MyWhoosh, appli du fabricant, téléphone…) : ferme-la ;<br>• le Bluetooth et la localisation de la tablette sont activés.<br><br>Sans home trainer, l\'appli roule en <b>mode démo</b> avec la puissance du curseur « Watts démo ».</p>',[['OK',()=>{}]])}}
+// mode démo : bandeau visible et avertissement au départ si aucun home trainer n'est connecté ; alerte si le home trainer n'envoie plus rien
+function demoBar(){let b=$('demob');if(!b){b=document.createElement('div');b.id='demob';b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);top:6px;z-index:60;background:#b45309;color:#fff;font:600 13px system-ui;padding:5px 12px;border-radius:14px;cursor:pointer;box-shadow:0 2px 8px #0006;display:none';b.onclick=connect;document.body.appendChild(b)}
+ const on=!conn&&(mode==='ride'||mode==='wk');b.style.display=on?'block':'none';if(on)b.textContent='⚠️ Mode démo · '+(+$('dem').value)+' W — touche ici pour appairer le home trainer'}
+function demoCheck(m){demoBar();if(conn||(m!=='ride'&&m!=='wk')||demoCheck.done)return;demoCheck.done=1;
+ mod('<h3>⚠️ Home trainer non connecté</h3><p style="text-align:left;line-height:1.45">L\'appli roule en <b>mode démo</b> à '+(+$('dem').value)+' W (curseur « Watts démo »).<br>La connexion Bluetooth se perd quand la page se recharge (import d\'un GPX, changement de parcours) : il faut alors réappairer.</p>',[['Appairer le home trainer',connect],['Rouler en démo',()=>{}]])}
+setInterval(()=>{demoBar();if(conn&&mode!=='home'&&performance.now()-IBT>6000){if(!TRW){TRW=1;say('⚠️ Le home trainer est connecté mais n\'envoie aucune puissance : pédale, ou réappaire-le (☰ → Appairer).')}}else if(conn&&performance.now()-IBT<2000)TRW=0},1000);
+// après un rechargement de la page : on tente de retrouver tout seul le dernier home trainer (si Chrome le permet, getDevices)
+(async()=>{try{const nm=localStorage.v3tr;if(!nm||!navigator.bluetooth||!navigator.bluetooth.getDevices)return;const L=await navigator.bluetooth.getDevices(),d=L.find(x=>x.name===nm);if(!d)return;
+ d.addEventListener('gattserverdisconnected',trainerDisc(d));$('h1').textContent='Reconnexion…';await setupTrainer(d);say('✅ Home trainer reconnecté : '+nm)}catch(e){$('h1').textContent='Non connecté'}})();
 async function connectHR(){if(!navigator.bluetooth)return noBT();
  try{$('h2').textContent='Recherche…';const d=await navigator.bluetooth.requestDevice({filters:[{services:[0x180d]}]});
   d.addEventListener('gattserverdisconnected',()=>{hr=0;HRBELT=false;$('bHR').classList.remove('on');$('bHR').textContent='Appairer';$('h2').textContent='Déconnectée'});
@@ -3151,7 +3170,7 @@ function endRamp(){if(wk.over)return;wk.over=1;doneWk();if(stepI>=0&&sT>55)best=
 function nav(m){const pm=mode,wkn=wk&&wk.n,wkp=wk&&wk.plan!=null&&WT&&wt>=.8*WT?wk.plan:null;let R2=null,S2=null;if((pm==='ride'||pm==='wk')&&m!==pm){R2=recStop();S2=sesStop(wkn)}
  // analyse de la sortie : NP, TSS, courbe de puissance, records, série de jours, plan
  if(S2&&R2){const A=analyzeRide(R2.pts);Object.assign(S2,{np:A.np,tss:A.tss,ifv:A.ifv,pc:A.pc});LASTR=Object.assign(R2,{n:S2.n,h:S2});lastSave(R2,S2);prCheck(A);gsave()}
- if(S2)streakTick(S2);if(wkp!=null&&wk&&!wk.over)tplanDone(wkp);mode=m;if(BIGM.on)bigMapToggle(false);wakeLock(m!=='home');if(m!=='wk')wk=null;document.body.classList.toggle('hm',m==='home');
+ if(S2)streakTick(S2);if(wkp!=null&&wk&&!wk.over)tplanDone(wkp);mode=m;demoCheck(m);if(BIGM.on)bigMapToggle(false);wakeLock(m!=='home');if(m!=='wk')wk=null;document.body.classList.toggle('hm',m==='home');
  document.querySelectorAll('.r').forEach(e=>e.style.display=m==='ride'?'flex':'none');
  document.querySelectorAll('.e').forEach(e=>e.style.display=m==='explore'?'flex':'none');
  $('pad').style.display=m==='explore'?'flex':'none';$('wkb').style.display=m==='wk'?'flex':'none';$('home').style.display=m==='home'?'flex':'none';
