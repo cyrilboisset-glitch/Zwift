@@ -3169,8 +3169,8 @@ function endRamp(){if(wk.over)return;wk.over=1;doneWk();if(stepI>=0&&sT>55)best=
  const f=Math.round(.75*best);mod('FTP estimée<br><b>'+f+' W</b><br><small>75 % de ta meilleure minute ('+Math.round(best)+' W)</small>',[['Utiliser cette FTP',()=>{FTP=f;$('ftp').value=f;save();ftpLog(f,1);nav('home')}],['Fermer',()=>nav('home')]])}
 function nav(m){const pm=mode,wkn=wk&&wk.n,wkp=wk&&wk.plan!=null&&WT&&wt>=.8*WT?wk.plan:null;let R2=null,S2=null;if((pm==='ride'||pm==='wk')&&m!==pm){R2=recStop();S2=sesStop(wkn)}
  // analyse de la sortie : NP, TSS, courbe de puissance, records, série de jours, plan
- if(S2&&R2){const A=analyzeRide(R2.pts);Object.assign(S2,{np:A.np,tss:A.tss,ifv:A.ifv,pc:A.pc});LASTR=Object.assign(R2,{n:S2.n,h:S2});lastSave(R2,S2);prCheck(A);gsave()}
- if(S2)streakTick(S2);if(wkp!=null&&wk&&!wk.over)tplanDone(wkp);mode=m;demoCheck(m);if(BIGM.on)bigMapToggle(false);wakeLock(m!=='home');if(m!=='wk')wk=null;document.body.classList.toggle('hm',m==='home');
+ if(S2&&R2){const A=analyzeRide(R2.pts);Object.assign(S2,{np:A.np,tss:A.tss,ifv:A.ifv,pc:A.pc});LASTR=Object.assign(R2,{n:S2.n,h:S2});lastSave(R2,S2);rideStore(R2,S2.n);prCheck(A);gsave()}
+ if(S2)streakTick(S2);if(wkp!=null&&wk&&!wk.over)tplanDone(wkp);mode=m;demoCheck(m);if(BIGM.on)bigMapToggle(false);wakeLock(true);if(m!=='wk')wk=null;document.body.classList.toggle('hm',m==='home');
  document.querySelectorAll('.r').forEach(e=>e.style.display=m==='ride'?'flex':'none');
  document.querySelectorAll('.e').forEach(e=>e.style.display=m==='explore'?'flex':'none');
  $('pad').style.display=m==='explore'?'flex':'none';$('wkb').style.display=m==='wk'?'flex':'none';$('home').style.display=m==='home'?'flex':'none';
@@ -3411,12 +3411,15 @@ function suiviRender(){progTick(true);const L=lvlOf(GS.xp),a=lvlXP(L),b=lvlXP(L+
  o+=suiviExtra();
  o+='<div class="gq">Badges · '+Object.keys(GS.bdg).length+' / '+BADGES.length+'</div><div class="bdg">'+BADGES.map(B=>{const ok=!!GS.bdg[B.id],p=Math.min(1,B.v()/B.goal);
   return '<div class="'+(ok?'ok':'')+'"><b>'+B.ic+'</b>'+B.n+'<br><small>'+B.d+'</small>'+(ok?'':'<div class="prog"><i style="width:'+(p*100).toFixed(0)+'%"></i></div>')+'</div>'}).join('')+'</div>';
- o+='<div class="gq">Historique</div><div class="hist">'+(GS.hist.slice(-40).reverse().map(h=>'<div><span>'+new Date(h.t).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+(h.m==='wk'?'🏋️':'🚴')+' '+String(h.n).replace(/</g,'').slice(0,28)+'</span><span style="white-space:nowrap">'+nf(h.km,1)+' km · '+fmt(h.el)+' · '+nf(h.kcal)+' kcal</span></div>').join('')||'<div>Aucune sortie enregistrée pour l\'instant.</div>')+'</div>';
+ const HN=SET.histAll?GS.hist.length:40;o+='<div class="gq">📜 Historique des sorties <small style="font-weight:400">(touche une sortie : .fit, Strava, analyse)</small></div><div class="hist" id="hil">'+(GS.hist.slice(-HN).reverse().map(h=>'<div data-t="'+h.t+'" style="cursor:pointer"><span><i class="hfit" style="font-style:normal"></i>'+new Date(h.t).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+(h.m==='wk'?'🏋️':'🚴')+' '+String(h.n).replace(/</g,'').slice(0,28)+'</span><span style="white-space:nowrap">'+nf(h.km,1)+' km · '+fmt(h.el)+' · '+nf(h.kcal)+' kcal</span></div>').join('')||'<div>Aucune sortie enregistrée pour l\'instant.</div>')+'</div>';o+='<div class="chips" style="margin:6px 0 10px">'+(GS.hist.length>40?'<button id="hia">'+(SET.histAll?'Voir les 40 dernières':'Voir tout ('+GS.hist.length+')')+'</button>':'')+'<button id="hix">⬇ Exporter tout en .fit</button></div>';
  const el=$('sb2');el.innerHTML=o;
  for(const id of['gok','goc','wkg'])$(id).onkeydown=e=>e.stopPropagation();
  $('gok').onchange=()=>{GS.goal.km=clamp(+$('gok').value||100,10,3000);gsave();suiviRender()};$('goc').onchange=()=>{GS.goal.kcal=clamp(+$('goc').value||3000,200,50000);gsave();suiviRender()};
  $('wks').onclick=()=>{const kg=+$('wkg').value;if(!(kg>=35&&kg<=250))return say('Poids invalide');const now=Date.now(),l=GS.wlog[GS.wlog.length-1];
   if(l&&new Date(l.t).toDateString()===new Date(now).toDateString())l.kg=kg;else GS.wlog.push({t:now,kg});if(GS.wlog.length>400)GS.wlog.shift();gsave();say('Poids enregistré : '+nf(kg,1)+' kg');suiviRender()};
+ if($('hia'))$('hia').onclick=()=>{SET.histAll=!SET.histAll;suiviRender()};$('hix').onclick=histExportAll;
+ $('hil').querySelectorAll('[data-t]').forEach(d=>d.onclick=()=>{const h=GS.hist.find(x=>x.t===+d.dataset.t);if(h)histOpen(h)});
+ rideKeys().then(K=>$('hil').querySelectorAll('[data-t]').forEach(d=>{if(K.has(+d.dataset.t))d.querySelector('.hfit').textContent='📁 '}));
  requestAnimationFrame(()=>{weekChart($('sgc'));weightChart($('swc'))});suiviExtraAfter()}
 // ---- créateur de séances automatique ----
 const GOALS=[
@@ -3594,7 +3597,9 @@ function drawBig(){const c=$('bmap');if(!c||!N||!BIGM.on)return;const W=c.width,
  g.font='700 '+(14*f)+'px system-ui';g.lineWidth=4*f;g.strokeStyle='rgba(0,0,0,.6)';const tt2=jx?'Carrefour dans '+Math.round(distToNode(RID))+' m · touche la carte pour la fermer':'Touche la carte pour la fermer';g.strokeText(tt2,W/2,W*.92);g.fillStyle='#fff';g.fillText(tt2,W/2,W*.92)}
 // ---- veille de l'écran (tablette) et plein écran ----
 let WLK=null;async function wakeLock(on){try{if(on&&!WLK&&navigator.wakeLock){WLK=await navigator.wakeLock.request('screen');WLK.addEventListener('release',()=>WLK=null)}else if(!on&&WLK){await WLK.release();WLK=null}}catch(e){}}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&mode!=='home')wakeLock(true)});
+// l'écran reste allumé tant que l'appli est ouverte (accueil compris) : demandé au lancement, au premier toucher et au retour au premier plan
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')wakeLock(true)});
+wakeLock(true);addEventListener('pointerdown',()=>{if(!WLK)wakeLock(true)},{capture:true});
 function fsEnter(){if(!document.fullscreenElement)fullScreen()}
 function fullScreen(){try{if(document.fullscreenElement){LANDOFF=true;document.exitFullscreen()}else{LANDOFF=false;document.documentElement.requestFullscreen({navigationUI:'hide'}).then(lockLand).catch(()=>{})}}catch(e){}}
 // paysage dès le lancement (tablette, téléphone) : Chrome ne verrouille l'écran en paysage qu'en plein écran, et n'accepte le plein écran
@@ -5214,7 +5219,7 @@ function recStop(){if(!REC.on)return null;REC.on=false;try{delete localStorage.v
 function recOfferSaved(){let J=null;try{J=JSON.parse(localStorage.v3rec||'null')}catch(e){}if(!J||!J.p||J.p.length<30){try{delete localStorage.v3rec}catch(e){}return}
  const R={t0:J.t0,mode:J.mode,asc:J.asc||0,wkn:J.wkn,pts:J.p.map(a=>({t:a[0],lat:a[1],lon:a[2],alt:a[3],dist:a[4],spd:a[5],pw:a[6],hr:a[7],cad:a[8]}))},S=rideSummary(R);
  // ajoutée aussi à l'historique du suivi
- if(!GS.hist.some(h=>h.t===R.t0)){GS.hist.push({t:R.t0,m:R.mode,n:(R.wkn||'Sortie')+' (interrompue)',km:+S.km.toFixed(2),el:Math.round(S.el),kcal:Math.round(R.pts.reduce((a,q)=>a+q.pw,0)/KCAL_J),ap:S.ap,asc:S.asc,mx:Math.max(...R.pts.map(q=>q.pw)),rew:[]});gsave()}
+ if(!GS.hist.some(h=>h.t===R.t0)){GS.hist.push({t:R.t0,m:R.mode,n:(R.wkn||'Sortie')+' (interrompue)',km:+S.km.toFixed(2),el:Math.round(S.el),kcal:Math.round(R.pts.reduce((a,q)=>a+q.pw,0)/KCAL_J),ap:S.ap,asc:S.asc,mx:Math.max(...R.pts.map(q=>q.pw)),rew:[]});gsave()}rideStore(R,(R.wkn||'Sortie')+' (interrompue)');
  setTimeout(()=>mod('Sortie interrompue retrouvée<br><small>'+new Date(R.t0).toLocaleString('fr-FR')+' · '+S.txt+'</small>',[['Voir / envoyer sur Strava',()=>{try{delete localStorage.v3rec}catch(e){}offerStrava(R)}],
   ['Supprimer',()=>{try{delete localStorage.v3rec}catch(e){}}],['Plus tard',()=>{}]]),1800)}
 // ---- encodeur FIT (protocole 2.0) ----
@@ -5262,6 +5267,28 @@ async function strUpload(fit,name,desc,onStep){const tok=await strAccess();const
  if(j.error)throw new Error(j.error);if(!j.activity_id)throw new Error('traitement trop long, vérifie sur Strava');
  try{await fetch('https://www.strava.com/api/v3/activities/'+j.activity_id,{method:'PUT',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({sport_type:'VirtualRide',trainer:true})})}catch(e){}
  return j.activity_id}
+// ---- historique des sorties complètes (IndexedDB « velo3d-rides ») : export .fit, Strava, analyse, à tout moment ----
+const RDB={p:null};
+function rdb(){return RDB.p||(RDB.p=new Promise((ok,ko)=>{try{const q=indexedDB.open('velo3d-rides',1);q.onupgradeneeded=()=>q.result.createObjectStore('r',{keyPath:'t0'});q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)}catch(e){ko(e)}}))}
+async function rdbDo(mode,f){const db=await rdb();return new Promise((ok,ko)=>{const tx=db.transaction('r',mode),r=f(tx.objectStore('r'));tx.oncomplete=()=>ok(r&&r.result);tx.onerror=()=>ko(tx.error)})}
+function rideStore(R,n){if(!R||!R.pts||R.pts.length<10)return;rdbDo('readwrite',st=>st.put({t0:R.t0,mode:R.mode,asc:Math.round(R.asc||0),wkn:R.wkn||'',n:n||R.n||'',
+ p:R.pts.map(q=>[q.t,+q.lat.toFixed(6),+q.lon.toFixed(6),+(+q.alt).toFixed(1),+(+q.dist).toFixed(1),+(+q.spd).toFixed(2),q.pw,q.hr,q.cad])})).catch(e=>say('Historique : sortie non gardée ('+e.message+')'))}
+async function rideGet(t0){const J=await rdbDo('readonly',st=>st.get(t0));if(!J)return null;
+ return{t0:J.t0,mode:J.mode,asc:J.asc,wkn:J.wkn,n:J.n,pts:J.p.map(a=>({t:a[0],lat:a[1],lon:a[2],alt:a[3],dist:a[4],spd:a[5],pw:a[6],hr:a[7],cad:a[8]}))}}
+async function rideKeys(){try{return new Set(await rdbDo('readonly',st=>st.getAllKeys()))}catch(e){return new Set()}}
+function fitName(R,n){const d=new Date(R.t0),z=x=>String(x).padStart(2,'0');return 'VCT-'+d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'-'+z(d.getHours())+'h'+z(d.getMinutes())+(n?'-'+String(n).normalize('NFD').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40):'')+'.fit'}
+// fiche d'une sortie de l'historique
+async function histOpen(h){let R=null;try{R=await rideGet(h.t)}catch(e){}
+ const tx='<h3>'+(h.m==='wk'?'🏋️ ':'🚴 ')+esc(h.n||'Sortie')+'</h3><p>'+new Date(h.t).toLocaleString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})+'<br>'+
+  nf(h.km,1)+' km · '+fmt(h.el)+' · '+(h.asc||0)+' m D+ · '+(h.ap||0)+' W moy.'+(h.np?' · NP '+h.np+' W':'')+' · '+nf(h.kcal)+' kcal</p>'+
+  (R?'':'<p style="color:var(--mut)"><small>Trace détaillée absente (sortie faite avant l\'historique complet) : export .fit impossible.</small></p>');
+ const B=[];
+ if(R){B.push(['⬇ Télécharger le .fit',()=>downloadFit(fitEncode(R),fitName(R,h.n))]);B.push(['🟧 Envoyer sur Strava',()=>offerStrava(R)]);B.push(['📊 Analyse',()=>{R.h=h;R.n=h.n;anaOpen(R)}])}
+ B.push(['🗑 Supprimer',()=>mod('Supprimer cette sortie de l\'historique ?<br><small>'+esc(h.n)+' · '+new Date(h.t).toLocaleDateString('fr-FR')+'</small>',[['Supprimer',()=>{const i=GS.hist.indexOf(h);if(i>=0)GS.hist.splice(i,1);gsave();rdbDo('readwrite',st=>st.delete(h.t)).catch(()=>{});suiviRender()}],['Annuler',()=>{}]])]);
+ B.push(['Fermer',()=>{}]);mod(tx,B)}
+// toutes les sorties qui ont une trace : un .fit chacune
+async function histExportAll(){const K=[...await rideKeys()].sort();if(!K.length)return say('Aucune sortie détaillée à exporter.');
+ mod('Exporter '+K.length+' sortie'+(K.length>1?'s':'')+' en .fit ?<br><small>Un fichier par sortie, dans Téléchargements. Chrome peut demander l\'autorisation de télécharger plusieurs fichiers.</small>',[['Exporter',async()=>{for(const t of K){const R=await rideGet(t);if(R){const h=GS.hist.find(x=>x.t===t);downloadFit(fitEncode(R),fitName(R,h?h.n:R.n));await new Promise(o=>setTimeout(o,400))}}say('✓ '+K.length+' fichier(s) .fit téléchargé(s)')}],['Annuler',()=>{}]])}
 function downloadFit(fit,fname){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([fit],{type:'application/octet-stream'}));a.download=fname;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
 // ---- fenêtre de fin de sortie : on demande, tu valides ----
 function rideSummary(R){const p=R.pts,el=(p[p.length-1].t-p[0].t)/1000,km=(p[p.length-1].dist-p[0].dist)/1000,ap=Math.round(p.reduce((a,q)=>a+q.pw,0)/p.length);
