@@ -439,7 +439,10 @@ T.ShaderChunk.fog_fragment=`#ifdef USE_FOG
 sc.fog=new T.FogExp2(0xc9d9e8,1/42000);
 const WORLD=new T.Group();sc.add(WORLD);WORLD.matrixAutoUpdate=false;
 // monde choisi (Réaliste, Montagne, Space ou Tron) : lu dès le lancement ; on en change sans recharger (worldSwitch)
-let WORLDK=(()=>{try{return JSON.parse(localStorage.v3set||'{}').world||'real'}catch(e){return 'real'}})(),MONT=WORLDK==='mont';const SPACE={on:WORLDK==='space'||WORLDK==='tron',kind:WORLDK==='tron'?'tron':'space'};
+let WORLDK=(()=>{try{return JSON.parse(localStorage.v3set||'{}').world||'real'}catch(e){return 'real'}})();
+// parcours imaginaire : pas de vraie carte, il se roule dans un monde stylisé (Aventure par défaut)
+if(CRS.cur&&CRS.cur.gen&&(WORLDK==='real'||WORLDK==='mont'))WORLDK='adv';
+let MONT=WORLDK==='mont';const SPACE={on:WORLDK==='space'||WORLDK==='tron'||WORLDK==='adv',kind:WORLDK==='tron'?'tron':WORLDK==='adv'?'adv':'space'};
 // ====================== mondes Space et Tron : route transparente néon, décor, vaisseaux, anneaux, traînées, vélo futuriste ======================
 // choix du monde (SET.world : real, mont, space, tron) : on en change sans recharger (worldSwitch reconstruit le monde et change les vélos). En Space et en Tron : ni photos, ni bâtiments, ni végétation
 // (rien à télécharger, sauf le relief SRTM du parcours) ; Tron dessine en plus le vrai relief en grille lumineuse et des immeubles en fils de lumière
@@ -582,11 +585,11 @@ function spArch(x,y,z,yaw,kind,title,sub){const G=new T.Group();G.position.set(x
  const ln=new T.Mesh(new T.PlaneGeometry(6.8,.35),spAdd(col,.9));ln.rotation.x=-Math.PI/2;ln.position.y=.08;G.add(ln);
  G.userData.arch=1;return G}
 // portes de sprint régulières (pas de villages ici) : le réglage « écart minimal entre deux sprints » choisit lesquelles servent
-function spaceVillages(){let n=0;const NM=TRON?TRNAMES:SPNAMES;for(const E of NET.E){if(!inWorld(E.id)||E.len<1500)continue;
+function spaceVillages(){let n=0;const NM=TRON?TRNAMES:SPNAMES,cnt=[0,0,0,0,0,0];if(ADV&&!ADVC.zb)ADVC.zb=advZones();for(const E of NET.E){if(!inWorld(E.id)||E.len<1500)continue;
  for(let d=1800;d<E.len-700;d+=2600){const i=E.i0+Math.round(d/SEG);if(i-45<E.i0||i+45>E.i1)continue;
-  VIL.push({id:VID++,e:E.id,i0:i-45,i1:i+45,sg0:true,sg1:true,name:NM[n++%NM.length],commune:'',syn:true,g:null,named:true})}}
+  let nm;if(ADV){const cd=courseDist(E.id,i),z=cd==null?0:advZoneAt(cd);nm=ADVN[z][cnt[z]++%ADVN[z].length]}else nm=NM[n++%NM.length];VIL.push({id:VID++,e:E.id,i0:i-45,i1:i+45,sg0:true,sg1:true,name:nm,commune:'',syn:true,g:null,named:true})}}
  if(typeof onVillages==='function')onVillages()}
-function spaceLight(){const A=spAmb();LD.set(-.42,.68,.36).normalize();SUNL.intensity=TRON?.9:1.3;SUNL.color.setHex(A.sun);HL.intensity=TRON?.55:.75;HL.color.setHex(A.hc);HL.groundColor.setHex(A.hg);NIGHT=0;DAYF=1}
+function spaceLight(){if(ADV)return advLight();const A=spAmb();LD.set(-.42,.68,.36).normalize();SUNL.intensity=TRON?.9:1.3;SUNL.color.setHex(A.sun);HL.intensity=TRON?.55:.75;HL.color.setHex(A.hc);HL.groundColor.setHex(A.hg);NIGHT=0;DAYF=1}
 // traînée lumineuse derrière un vélo : ruban vertical qui s'estompe, plus long quand on va vite (0,6 s de trajet)
 const _tv=new T.Vector3();
 function spTrail(key,R,col,on){let t=SPC.trails.get(key);
@@ -610,15 +613,16 @@ function spShipsTick(dt){const nS=QK==='tab'||QK==='low'?3:6,A=spAmb();
   s.g.position.addScaledVector(s.v,dt);_tv.copy(s.g.position).add(s.v);s.g.lookAt(_tv)}}
 function spaceTick(now,hm){SPG.visible=!hm&&!VEL.on;if(!NET.ready||!COURSE)return;const dt=Math.min(.1,(now-(SPC.lt||now))/1000);SPC.lt=now;
  if(SPC.vilW!==WID){SPC.vilW=WID;spaceVillages()}
- if(!SPC.sky){SPC.sky=spSkyBuild();SPG.add(SPC.sky)}SPC.sky.position.copy(cam.position);
+ if(!ADV){if(!SPC.sky){SPC.sky=spSkyBuild();SPG.add(SPC.sky)}SPC.sky.position.copy(cam.position)}
  if(!SPC.t0)SPC.t0=performance.now();
  // route (et relief Tron) reconstruite quand le relief réel arrive (les altitudes changent)
  const key=WID+'/'+(DEMOK?1:0);if(SPC.key!==key&&(DEMOK||performance.now()-SPC.t0>9000)){SPC.key=key;
   for(const m of SPC.ch.concat(SPC.flr))if(m){SPG.remove(m);m.geometry.dispose()}SPC.ch=[];SPC.flr=[];if(SPC.dec){SPG.remove(SPC.dec);SPC.dec.traverse(o=>{if(o.geometry)o.geometry.dispose()})}SPC.dec=null;
-  CHUNKS.forEach((ch,c)=>{if(!inWorld(ch.e))return;job(()=>{const m=new T.Mesh(spChunkGeo(c),spRoadMat());m.renderOrder=2;SPC.ch[c]=m;SPG.add(m);
+  CHUNKS.forEach((ch,c)=>{if(!inWorld(ch.e))return;job(()=>{const m=new T.Mesh(spChunkGeo(c),ADV?advRoadMat():spRoadMat());m.renderOrder=2;SPC.ch[c]=m;SPG.add(m);
    if(TRON){const f=new T.Mesh(spFloorGeo(c),spFloorMat());SPC.flr[c]=f;SPG.add(f)}return true},()=>Math.hypot(ch.cx-RW.x,ch.cz-RW.z),'sp'+c)});
-  job(()=>{SPC.dec=spDecorBuild();SPG.add(SPC.dec);return true},5000,'spdec')}
+  if(!ADV)job(()=>{SPC.dec=spDecorBuild();SPG.add(SPC.dec);return true},5000,'spdec')}
  if(now-SPC.t>800){SPC.t=now;for(let c=0;c<CHUNKS.length;c++){const ch=CHUNKS[c],vis=Math.hypot(ch.cx-cam.position.x,ch.cz-cam.position.z)-ch.r<3800;if(SPC.ch[c])SPC.ch[c].visible=vis;if(SPC.flr[c])SPC.flr[c].visible=vis}}
+ if(ADV){advTick(now,hm,dt);return}
  if(hm||VEL.on)return;
  // bords de la route : couleurs de l'ambiance en Z1-Z2, couleur de ta zone de puissance au-delà ; pulsation en sprint
  const A=spAmb(),u=spRoadMat().uniforms,z=mode==='explore'?0:zi(P3/FTP),k=Math.min(1,dt*2.5);
@@ -682,17 +686,312 @@ function spaceNpcBike(bk){const S=spNpcGeos(),A=spAmb(),cols=TRON?[0x3ff0ff,0xff
  return bk}
 // changer de monde sans recharger : drapeaux, décor Space/Tron vidé, vélos du joueur et des PNJ changés, monde reconstruit autour du parcours
 function spReset(){for(const o of[...SPG.children]){SPG.remove(o);o.traverse(m=>{if(m.geometry)m.geometry.dispose()})}
- Object.assign(SPC,{key:'',ch:[],flr:[],dec:null,sky:null,ships:[],vilW:-1,t0:0});SPC.trails.clear();if(SPC.mat){SPC.mat.dispose();SPC.mat=null}SPNB=null;SPG.visible=false}
+ if(typeof advReset==='function')advReset();Object.assign(SPC,{key:'',ch:[],flr:[],dec:null,sky:null,ships:[],vilW:-1,t0:0});SPC.trails.clear();if(SPC.mat){SPC.mat.dispose();SPC.mat=null}SPNB=null;SPG.visible=false}
 function worldSwitch(w){if(w===WORLDK)return;WORLDK=w;SET.world=w;ssave();
- SPACE.on=w==='space'||w==='tron';SPACE.kind=w==='tron'?'tron':'space';TRON=SPACE.on&&SPACE.kind==='tron';MONT=w==='mont';
+ SPACE.on=w==='space'||w==='tron'||w==='adv';SPACE.kind=w==='tron'?'tron':w==='adv'?'adv':'space';TRON=SPACE.on&&SPACE.kind==='tron';ADV=SPACE.on&&SPACE.kind==='adv';MONT=w==='mont';
  spReset();
- const sw=(bk,npc)=>{if(!bk)return;spUndo(bk);if(SPACE.on)npc?spaceNpcBike(bk):spaceBike(bk)};sw(RIDER.bike,false);for(const n of NPCS)if(n.inst)sw(n.inst.bike,true);
- if(!SPACE.on&&typeof applyKit==='function')applyKit();
+ const sw=(bk,npc)=>{if(!bk)return;spUndo(bk);if(SPACE.on&&!ADV)npc?spaceNpcBike(bk):spaceBike(bk)};sw(RIDER.bike,false);for(const n of NPCS)if(n.inst)sw(n.inst.bike,true);
+ if((!SPACE.on||ADV)&&typeof applyKit==='function')applyKit();
  skT=-1e9;if(VEL.built)velTheme();if(COURSE)startWorld()}
 // changer d'ambiance (Space) : ciel, décor et couleurs refaits sans recharger
 function spAmbSet(k){SET.spAmb=k;ssave();if(SPC.sky){SPG.remove(SPC.sky);SPC.sky.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose()})}SPC.sky=null;
  if(SPC.mat){const A=spAmb(),u=SPC.mat.uniforms;u.uL.value.setHex(A.L);u.uR.value.setHex(A.R);u.uDeck.value.set(...A.deck)}
  if(SPC.dec){SPG.remove(SPC.dec);SPC.dec=null}SPC.key='';for(const s of SPC.ships)SPG.remove(s.g);SPC.ships=[];skT=-1e9}
+// ====================== monde Aventure : vallée préhistorique → pentes du volcan → dans le volcan → grotte de cristaux → tunnel sous-marin → île tropicale ======================
+// rien n'est téléchargé (sauf le relief SRTM d'un GPX importé sans altitude) ; les zones se suivent le long du parcours : la plus grosse montée devient le volcan ;
+// décor construit par tronçons de 250 m autour du cycliste (job), animations bon marché (ombres, particules calculées par la carte graphique)
+const ADVG=new T.Group();ADVG.visible=false;sc.add(ADVG);
+let ADV=SPACE.on&&SPACE.kind==='adv';
+const ADVZ=[
+ {k:'dino',n:'🦖 Vallée préhistorique',sky:['#2f7fcf','#9fd0ee','#e6efd2'],fog:0xbcd6b0,fd:.0016,hc:0xcfe9ff,hg:0x40502a,hi:.85,sc:0xfff0d0,si:1.35,ld:[-.45,.8,.35],g0:[.13,.33,.1],g1:[.3,.5,.18],edge:0x8bff6a,far:0x4f7a3a},
+ {k:'volcan',n:'🌋 Pentes du volcan',sky:['#2a0806','#7a1d0c','#e8702c'],fog:0x5b1e10,fd:.0019,hc:0xff6a30,hg:0x0a0302,hi:.5,sc:0xff9050,si:.85,ld:[.4,.5,-.75],g0:[.045,.04,.04],g1:[.12,.1,.09],edge:0xff6a1a,far:0x1a0d0a},
+ {k:'lave',n:'🔥 Dans le volcan',sky:['#050101','#140402','#2a0803'],fog:0x220804,fd:.009,hc:0x2a0e08,hg:0xff5212,hi:1.2,sc:0xff8a3a,si:.35,ld:[0,1,.01],g0:[.09,.05,.04],g1:[.17,.09,.06],edge:0xffa040,far:0x200602},
+ {k:'cristal',n:'💎 Grotte de cristaux',sky:['#07040f','#160a2c','#24104a'],fog:0x160a2c,fd:.0072,hc:0x6a5bff,hg:0x150a20,hi:.9,sc:0xcfd8ff,si:.7,ld:[.2,.9,-.3],g0:[.06,.045,.11],g1:[.12,.09,.19],edge:0xb26bff,far:0x0c0618},
+ {k:'mer',n:'🌊 Tunnel sous-marin',sky:['#0b6aa0','#06476f','#021a2c'],fog:0x064a73,fd:.0115,hc:0x7fd0f0,hg:0x062033,hi:.9,sc:0xbff4ff,si:1,ld:[.05,1,-.2],g0:[.45,.47,.4],g1:[.6,.6,.48],edge:0x38bdf8,far:0x0a3550},
+ {k:'plage',n:'🏝️ Île tropicale',sky:['#1e2a6e','#ff7a59','#ffc46b'],fog:0xffb27a,fd:.0011,hc:0xffd0a0,hg:0x3a2a40,hi:.8,sc:0xffb070,si:1.3,ld:[.15,.2,-.97],g0:[.86,.76,.55],g1:[.95,.86,.64],edge:0xff4fd8,far:0x2aa7c0}];
+const ADVN=[['Porte des Fougères','Gué du Brachiosaure','Gorge du T-rex','Col des Ptérodactyles'],['Coulée de lave','Cratère ardent','Faille des Geysers'],['Pont du Magma','Galerie des Braises','Lac de Feu'],['Cristallerie','Salle des Géodes','Forêt de Cristal'],['Récif de corail','Passage des Baleines','Jardin des Méduses'],['Lagon bleu','Plage des Palmiers','Baie des Dauphins']];
+const ADVC={cells:new Map(),zb:null,zkey:'',sky:null,skyC:'',far:null,land:null,anim:[],t:0,mix:null,road:null,geo:null,mat:null,snd:{},lastS:0};
+const ADV_CL=250;
+// ---- outils : mélange de couleurs, bruit, matériaux et géométries partagés ----
+const advH=(x,y)=>{const s=Math.sin(x*127.1+y*311.7)*43758.5453;return s-Math.floor(s)};
+function advN(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf),a=advH(xi,yi),b=advH(xi+1,yi),c=advH(xi,yi+1),d=advH(xi+1,yi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
+const advF=(x,y)=>advN(x,y)*.55+advN(x*2.1,y*2.1)*.3+advN(x*4.3,y*4.3)*.15;
+const advStd=(c,o)=>new T.MeshStandardMaterial(Object.assign({color:c,roughness:.85,metalness:0},o||{}));
+function advMergeGeos(L){// [{g, m:Matrix4}] → une seule géométrie (position + normale)
+ let n=0;const parts=L.map(o=>{const g=(o.g.index?o.g.toNonIndexed():o.g.clone());if(o.m)g.applyMatrix4(o.m);if(!g.attributes.normal)g.computeVertexNormals();n+=g.attributes.position.count;return g});
+ const P=new Float32Array(n*3),N=new Float32Array(n*3);let k=0;for(const g of parts){P.set(g.attributes.position.array,k*3);N.set(g.attributes.normal.array,k*3);k+=g.attributes.position.count;g.dispose()}
+ const out=new T.BufferGeometry();out.setAttribute('position',new T.BufferAttribute(P,3));out.setAttribute('normal',new T.BufferAttribute(N,3));out.computeBoundingSphere();return out}
+const advM4=(p,s,r)=>new T.Matrix4().compose(new T.Vector3(...p),new T.Quaternion().setFromEuler(new T.Euler(...(r||[0,0,0]))),new T.Vector3(...(s||[1,1,1])));
+function advTube(a,b,r0,r1,seg){const A=new T.Vector3(...a),B=new T.Vector3(...b),L=A.distanceTo(B),g=new T.CylinderGeometry(r1==null?r0:r1,r0,L,seg||8);g.translate(0,L/2,0);
+ const q=new T.Quaternion().setFromUnitVectors(UP,B.clone().sub(A).normalize());g.applyQuaternion(q);g.translate(A.x,A.y,A.z);return g}
+function advChain(pts,r0,r1,n,seg){const cur=new T.CatmullRomCurve3(pts.map(p=>new T.Vector3(...p))),L=[];for(let i=0;i<=n;i++){const t=i/n,p=cur.getPoint(t),r=r0+(r1-r0)*t;L.push({g:new T.SphereGeometry(r,seg||10,8),m:advM4([p.x,p.y,p.z])})}return L}
+const advEll=(p,s,r,seg)=>({g:new T.SphereGeometry(1,seg||14,10),m:advM4(p,s,r)});
+function advCanvasTex(w,h,fn){const k=mkCanvas(w,h);fn(k.getContext('2d'),w,h);const t=new T.CanvasTexture(k);t.wrapS=t.wrapT=T.RepeatWrapping;return t}
+let advSeed=1;const advR=()=>{advSeed=(advSeed*16807)%2147483647;return(advSeed-1)/2147483646},advRR=(a,b)=>a+(b-a)*advR(),advPick=a=>a[Math.floor(advR()*a.length)];
+function advGeo(){if(ADVC.geo)return ADVC.geo;const G={},lowQ=QK==='tab'||QK==='low';
+ // fougère : feuilles en éventail
+ const fern=(n,L)=>{const P=[];for(let i=0;i<n;i++){const a=i/n*Math.PI*2,c=Math.cos(a),s=Math.sin(a);for(let k=0;k<4;k++){const t0=k/4,t1=(k+1)/4,w0=Math.sin(t0*Math.PI)*.34,w1=Math.sin(t1*Math.PI)*.34,r0=t0*L,r1=t1*L,y0=Math.sin(t0*1.9)*1.1-t0*t0*.5,y1=Math.sin(t1*1.9)*1.1-t1*t1*.5;
+   const q=(r,w,y)=>[c*r-s*w,y,s*r+c*w];P.push(...q(r0,-w0,y0),...q(r1,-w1,y1),...q(r1,w1,y1),...q(r0,-w0,y0),...q(r1,w1,y1),...q(r0,w0,y0))}}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.computeVertexNormals();return g};
+ G.fern=fern(lowQ?7:9,2.6);G.palmLeaf=fern(10,4).translate(0,0,0);
+ G.trunk=new T.CylinderGeometry(.2,.34,1,6);G.trunk.translate(0,.5,0);
+ G.arauT=new T.CylinderGeometry(.35,.75,1,6);G.arauT.translate(0,.5,0);
+ G.arauC=advMergeGeos([0,1,2,3].map(k=>({g:new T.ConeGeometry(5.5-k*1.1,2.2,8),m:advM4([0,15+k*3.2,0])})));
+ G.rock=new T.DodecahedronGeometry(1,0);G.cone=new T.ConeGeometry(1,1,6);G.cone.translate(0,.5,0);
+ G.prism=advMergeGeos([{g:new T.CylinderGeometry(1,1,1,6),m:advM4([0,.5,0])},{g:new T.ConeGeometry(1,.35,6),m:advM4([0,1.17,0])}]);
+ G.mushC=new T.SphereGeometry(1,10,6,0,6.3,0,1.4);G.mushC.translate(0,1,0);G.mushS=new T.CylinderGeometry(.15,.2,1,5);G.mushS.translate(0,.5,0);
+ G.coral=new T.CylinderGeometry(.6,1,1,6);G.coral.translate(0,.5,0);G.brain=new T.SphereGeometry(1,10,7);G.fan=new T.CircleGeometry(1,12);G.fan.translate(0,1,0);
+ G.kelp=new T.PlaneGeometry(.6,22,1,12);{const p=G.kelp.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i)+11;p.setY(i,y);p.setX(i,p.getX(i)+Math.sin(y*.35)*.8)}G.kelp.computeVertexNormals()}
+ G.fish=new T.ConeGeometry(.12,.55,5);G.fish.rotateX(Math.PI/2);
+ G.rib=new T.TorusGeometry(5.65,.13,5,40);G.post=new T.CylinderGeometry(.08,.1,1.8,5);G.post.translate(0,.9,0);
+ G.pillar=new T.BoxGeometry(5,1,3);G.pillar.translate(0,.5,0);G.wall=new T.BoxGeometry(.5,1.2,1.6);
+ G.person=new T.CapsuleGeometry(.26,1.05,3,6);G.person.translate(0,.8,0);
+ // créatures (géométries fusionnées, quelques pièces articulées)
+ G.brBody=advMergeGeos([advEll([0,7,0],[3,3.3,5.6]),...[[1.7,3.2],[-1.7,3.2],[1.6,-3.3],[-1.6,-3.3]].map(([x,z])=>({g:advTube([x*1.05,0,z],[x,6.2,z],.8,.7,8)})),...advChain([[0,7,-5],[0,6,-9],[0,4,-13],[.5,2.5,-17],[1.5,1.6,-20]],1.6,.15,lowQ?10:18)]);
+ G.brNeck=advMergeGeos([...advChain([[0,0,0],[0,3.4,2.3],[0,6.9,3.8],[0,9.4,4.6]],1.25,.42,lowQ?10:18),advEll([0,10,5.4],[.55,.5,1.05],[-.2,0,0])]);
+ G.txBody=advMergeGeos([advEll([0,3.6,0],[1.45,1.6,2.8],[.25,0,0]),...advChain([[0,3.9,-2.2],[0,3.6,-4.5],[0,3.1,-7],[.4,2.6,-9.5]],1.15,.12,lowQ?8:14),...advChain([[0,4.4,2.2],[0,5.2,3.3]],1,.85,4),
+  ...[-1,1].flatMap(s=>[advEll([s*.95,2.9,.2],[.75,1.25,1]),{g:advTube([s*1.05,2.2,.1],[s*1.1,.75,-.6],.42,.36)},{g:advTube([s*1.1,.75,-.6],[s*1.1,.12,.3],.32,.27)},advEll([s*1.1,.12,.75],[.35,.14,.75]),{g:advTube([s*.75,3.9,2.4],[s*.85,3.4,3.0],.13,.1)}])]);
+ G.txHead=advMergeGeos([advEll([0,0,.9],[.85,.85,1.55],[-.25,0,0]),advEll([0,.25,1.3],[.7,.35,1.35],[-.25,0,0]),...[-1,1].map(s=>advEll([s*.62,.45,1.4],[.11,.11,.11]))]);
+ G.txJaw=advMergeGeos([advEll([0,-.1,.95],[.72,.32,1.3],[.12,0,0]),...Array.from({length:8},(_,i)=>[-1,1].map(s=>({g:new T.ConeGeometry(.06,.24,4),m:advM4([s*(.46-i*.03),.16,.5+i*.19])}))).flat()]);
+ G.ptBody=advMergeGeos([advEll([0,0,0],[.35,.3,1.3]),advEll([0,.15,1.4],[.22,.22,.75],[.3,0,0]),{g:new T.ConeGeometry(.12,1.2,5),m:advM4([0,.45,.9],null,[-1.9,0,0])}]);
+ {const w=new T.BufferGeometry();w.setAttribute('position',new T.Float32BufferAttribute([0,0,.6,0,0,-.6,4.2,.6,-.2, 4.2,.6,-.2,0,0,-.6,2.2,.2,-1.3],3));w.computeVertexNormals();G.ptWing=w}
+ G.shark=advMergeGeos([advEll([0,0,0],[.7,.8,3.4]),{g:new T.ConeGeometry(.5,1.4,4),m:advM4([0,1.1,.2],[1,1,.25])},{g:new T.ConeGeometry(.6,1.8,4),m:advM4([0,.5,-3.5],[1,1,.2],[-.6,0,0])},...[-1,1].map(s=>({g:new T.ConeGeometry(.35,1.6,4),m:advM4([s*.9,-.3,.8],[1,1,.25],[0,0,s*1.9])}))]);
+ G.whale=advMergeGeos([advEll([0,0,0],[4.5,4,16],null,16),advEll([0,-1.6,3],[3.6,2.6,12]),...[-1,1].flatMap(s=>[{g:new T.BoxGeometry(9,.4,2.4),m:advM4([s*6.5,-1.5,6],null,[0,s*.3,s*-.5])},{g:new T.BoxGeometry(5,.3,2.5),m:advM4([s*2.8,0,-18],null,[0,s*.5,0])}])]);
+ {const m=new T.BufferGeometry();m.setAttribute('position',new T.Float32BufferAttribute([0,0,2,4.5,.6,-.5,0,0,-1.6, 0,0,2,0,0,-1.6,-4.5,.6,-.5],3));m.computeVertexNormals();G.manta=m}
+ G.jelly=new T.SphereGeometry(.8,12,8,0,6.3,0,1.5);G.dolphin=advMergeGeos([advEll([0,0,0],[.5,.55,1.8]),{g:new T.ConeGeometry(.35,.8,4),m:advM4([0,.6,0],[1,1,.3])},{g:new T.ConeGeometry(.4,.9,4),m:advM4([0,0,-1.9],[1,1,.25],[-1.57,0,0])}]);
+ return ADVC.geo=G}
+function advMat(){if(ADVC.mat)return ADVC.mat;const M={},S=advStd;
+ M.ground=S(0xffffff,{vertexColors:true,roughness:.95});M.fern=S(0xffffff,{side:T.DoubleSide});M.trunk=S(0x6b4a2b);M.palmL=S(0x2f7a2c,{side:T.DoubleSide});M.arau=S(0x1f5a2a);M.arauT=S(0x5a3d26);
+ M.br=[S(0x5f7d4a),S(0x7a6a48),S(0x4f6b5a)];M.tx=S(0x6e4b2c);M.txJ=S(0x7a2a20);M.pt=S(0x8a5a3c,{side:T.DoubleSide});M.rock=S(0x1c1a1a,{flatShading:true});M.stal=S(0x24180f,{flatShading:true});
+ M.cry=new T.MeshStandardMaterial({color:0xffffff,emissive:0x4a2490,emissiveIntensity:.9,roughness:.08,metalness:.15});
+ M.mush=new T.MeshStandardMaterial({color:0xffffff,emissive:0x228899,emissiveIntensity:1.1});M.stem=S(0xd8d2e8);
+ M.coral=S(0xffffff,{roughness:.9});M.fan=S(0xffffff,{side:T.DoubleSide});M.kelp=S(0x5d7a2a,{side:T.DoubleSide});
+ // algues qui ondulent (déformation dans le shader)
+ M.kelp.onBeforeCompile=sh=>{sh.uniforms.uT=GU.uTime;sh.vertexShader='uniform float uT;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nfloat kw=position.y/22.;transformed.x+=sin(uT*1.3+position.y*.25+instanceMatrix[3].x*.3)*kw*kw*2.2;transformed.z+=cos(uT*.9+instanceMatrix[3].z*.2)*kw*kw*1.2;')};
+ M.fishY=new T.MeshStandardMaterial({color:0xffd23f,metalness:.6,roughness:.3});M.fishB=new T.MeshStandardMaterial({color:0x7fd3ff,metalness:.6,roughness:.3});M.fishO=new T.MeshStandardMaterial({color:0xff7a3c,metalness:.5,roughness:.35});
+ M.shark=S(0x6f8796);M.whale=S(0x2b3b4c);M.manta=S(0x1f2a33,{side:T.DoubleSide});M.dol=S(0x6c8fa8);
+ M.rib=S(0xc9d6e3,{metalness:.8,roughness:.3});M.glass=new T.MeshStandardMaterial({color:0xbfefff,transparent:true,opacity:.16,roughness:.05,emissive:0x0a3a55,side:T.DoubleSide,depthWrite:false});
+ M.pillar=S(0x2b2422,{flatShading:true});M.parapet=S(0x332b28);M.post=S(0x1a1a1a);M.person=S(0xffffff);
+ M.cave=S(0xffffff,{vertexColors:true,side:T.DoubleSide,flatShading:true,roughness:.95});
+ M.lava=new T.MeshBasicMaterial({map:advLavaTex()});M.lavaF=new T.MeshBasicMaterial({map:advLavaTex(),transparent:true,opacity:.95,side:T.DoubleSide});
+ M.water=new T.MeshStandardMaterial({color:0x2aa7c0,roughness:.12,metalness:.35,transparent:true,opacity:.95});
+ M.wf=new T.MeshStandardMaterial({map:advCanvasTex(64,256,(g,w,h)=>{g.fillStyle='rgba(200,235,255,.6)';g.fillRect(0,0,w,h);for(let i=0;i<50;i++){g.fillStyle='rgba(255,255,255,'+advRR(.3,.9)+')';g.fillRect(advRR(0,w),0,advRR(1,4),h)}}),transparent:true,opacity:.85,emissive:0x8fb8cc,emissiveIntensity:.35,roughness:.2,side:T.DoubleSide});
+ M.beam=new T.MeshBasicMaterial({color:0xbff4ff,transparent:true,opacity:.06,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide});
+ M.jelly=[0xff6ad5,0x7fe7ff,0xc6a0ff].map(c=>new T.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:.8,transparent:true,opacity:.55}));
+ return ADVC.mat=M}
+let ADVLT=null;function advLavaTex(){if(ADVLT)return ADVLT;return ADVLT=advCanvasTex(256,256,(g,w,h)=>{const r0=g.createLinearGradient(0,0,w,h);r0.addColorStop(0,'#ff7a12');r0.addColorStop(.5,'#ffc23a');r0.addColorStop(1,'#ff5a0a');g.fillStyle=r0;g.fillRect(0,0,w,h);
+ for(let i=0;i<40;i++){const x=advRR(0,w),y=advRR(0,h),r=g.createRadialGradient(x,y,0,x,y,advRR(8,22));r.addColorStop(0,'rgba(255,245,180,.9)');r.addColorStop(1,'rgba(255,120,0,0)');g.fillStyle=r;g.fillRect(0,0,w,h)}
+ for(let i=0;i<420;i++){const x=advRR(0,w),y=advRR(0,h),R=advRR(3,8);g.fillStyle=advPick(['#1a0603','#260904','#120402','#3a0d05']);g.beginPath();for(let k=0;k<6;k++){const a=k/6*6.283,q=R*advRR(.6,1);k?g.lineTo(x+Math.cos(a)*q,y+Math.sin(a)*q*.8):g.moveTo(x+Math.cos(a)*q,y+Math.sin(a)*q*.8)}g.closePath();g.fill()}})}
+// particules animées par la carte graphique : 0 = montée en boucle (braises, bulles, lucioles), 1 = éruption, 2 = feu d'artifice
+function advPts(n,fill,col,size,mode,hgt){const P=new Float32Array(n*3),A=new Float32Array(n*4);for(let i=0;i<n;i++)fill(i,P,A);
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(P,3));g.setAttribute('aV',new T.BufferAttribute(A,4));g.computeBoundingSphere();g.boundingSphere.radius+=200;
+ const m=new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,uniforms:{uT:GU.uTime,uC:{value:new T.Color(col)},uS:{value:size*560},uM:{value:mode},uK:ADVU.uK,uH:{value:hgt||20}},
+  vertexShader:`attribute vec4 aV;uniform float uT,uS,uM,uK,uH;varying float vA;
+void main(){vec3 p=position;float ph=aV.w;vA=1.;
+ if(uM<.5){float y=mod(uT*aV.y+ph*uH,uH);p+=vec3(sin(uT*.7+ph*6.)*aV.x,y,cos(uT*.5+ph*5.)*aV.z);vA=sin(3.1416*y/uH);}
+ else if(uM<1.5){float t=mod(uT*.42+ph,1.)*3.;p+=aV.xyz*t*(.55+.45*uK)+vec3(0.,-6.*t*t,0.);vA=1.-t/3.;}
+ else{float t=mod(uT+ph*3.,3.);float r=1.-exp(-t*2.5);p+=aV.xyz*r-vec3(0.,t*t*.8,0.);vA=max(0.,1.-t/2.6);}
+ vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=uS/max(1.,-mv.z);gl_Position=projectionMatrix*mv;}`,
+  fragmentShader:`uniform vec3 uC;varying float vA;void main(){float a=smoothstep(.5,0.,length(gl_PointCoord-.5))*vA;gl_FragColor=vec4(uC*a,a);}`});
+ const p=new T.Points(g,m);p.frustumCulled=false;return p}
+const ADVU={uK:{value:0}};
+// ---- zones le long du parcours ----
+function advZones(){if(!ROUTE)return null;const L=ROUTE.len;let c=null;for(const q of(COURSE&&COURSE.climbs)||[])if(!c||q.dp>c.dp)c=q;
+ let a,b;if(c&&c.dp>=40&&c.s1<L*.88&&L>3000){a=clamp(c.s0,L*.08,L*.5);b=Math.max(a+L*.08,c.s1)}else{a=L/6;b=L/3}
+ const r=(L-b)/4;return[0,a,b,b+r,b+2*r,b+3*r,L+1]}
+function advZoneW(s){const Z=ADVC.zb;if(!Z)return[0,0,0];let i=0;while(i<5&&s>=Z[i+1])i++;
+ // fondu de 150 m autour de chaque limite
+ if(i<5&&s>Z[i+1]-75)return[i,i+1,sm(Z[i+1]-75,Z[i+1]+75,s)];if(i>0&&s<Z[i]+75)return[i-1,i,sm(Z[i]-75,Z[i]+75,s)];return[i,i,0]}
+const advZoneAt=s=>{const w=advZoneW(s);return w[2]<.5?w[0]:w[1]};
+// point du parcours à la distance s : position, tangente, altitude de la route
+const _advQ={};function advAt(s){const R=ROUTE,c=R.cum;let lo=0,hi=c.length-1;s=clamp(s,0,R.len);while(hi-lo>1){const m=(lo+hi)>>1;if(c[m]<=s)lo=m;else hi=m}
+ const t=(s-c[lo])/((c[hi]-c[lo])||1),x=R.P[lo][0]+(R.P[hi][0]-R.P[lo][0])*t,z=R.P[lo][1]+(R.P[hi][1]-R.P[lo][1])*t;
+ const a=R.P[Math.max(0,lo-2)],b=R.P[Math.min(c.length-1,hi+2)];let tx=b[0]-a[0],tz=b[1]-a[1];const l=Math.hypot(tx,tz)||1;tx/=l;tz/=l;
+ const q=roadQ(x,z,_advQ);return{x,z,y:q?q.y:0,tx,tz,s}}
+// ---- forme du sol de chaque zone (o = décalage latéral, positif à droite) ----
+// au-delà de 220 m : montagnes jusqu'à 900 m de la route (la route est dans une vallée, l'horizon est fermé) ; mer à droite sur l'île
+function advGroundH(zk,o,x,z){const a=Math.abs(o),e=sm(200,330,a),M=zk===5&&o>0?-30:(advF(x/420,z/420)*.85+.15)*sm(180,900,a)*300+20*e;return advGroundH0(zk,o,x,z,a)*(1-e)+M*e}
+function advGroundH0(zk,o,x,z,a){const n=advF(x/90,z/90),n2=advF(x/22,z/22);
+ switch(zk){case 0:return(n*45+6)*sm(12,170,a)+n2*1.5*sm(5,14,a)-.5*sm(5,9,a);
+  case 1:return(n*30+n2*8)*sm(7,110,a)+(advF(x/260,z/260)-.4)*60*sm(60,300,a);
+  case 2:return a<6?-.6:-14.5;
+  case 3:return n2*5*sm(6,50,a)+sm(110,300,a)*90*n-.4*sm(5,9,a);
+  case 4:return-1.6-n2*3*sm(6,30,a)-sm(10,60,a)*4+sm(80,300,a)*50*n;
+  default:return o>0?-sm(8,45,o)*3.2:(n*55)*sm(30,190,a)+n2*1.2*sm(5,14,a)}}
+const ADV_OFF=[-900,-620,-420,-300,-200,-130,-85,-55,-36,-24,-15,-9.5,-6.2,-4.7,4.7,6.2,9.5,15,24,36,55,85,130,200,300,420,620,900];
+// ---- construction d'un tronçon de 250 m ----
+function advCell(k){const s0=k*ADV_CL,s1=Math.min(ROUTE.len,s0+ADV_CL);if(s0>=ROUTE.len)return null;advSeed=1000+k*7919;
+ const G=new T.Group(),M=advMat(),Gm=advGeo(),S=[];for(let s=s0;s<=s1+.1;s+=10)S.push(advAt(Math.min(s,s1)));
+ const lowQ=QK==='tab'||QK==='low',den=QK==='tab'?.45:QK==='low'?.6:QK==='med'?.8:1,anim=[];
+ const zw=S.map(p=>advZoneW(p.s)),zc=advZoneAt((s0+s1)/2),Z=ADVZ;
+ // sol
+ {const C=ADV_OFF.length,P=[],Cc=[],I=[];S.forEach((p,r)=>{const w=zw[r];for(let c=0;c<C;c++){const o=ADV_OFF[c],x=p.x-p.tz*o,z=p.z+p.tx*o;
+   const h=advGroundH(w[0],o,x,z)*(1-w[2])+advGroundH(w[1],o,x,z)*w[2];P.push(x,p.y-.08+h,z);
+   const n=advF(x/14,z/14),A=Z[w[0]],B=Z[w[1]],m=(a,b,i)=>(a[i]+(b[i]-a[i])*n)*(1-w[2])+(B===A?0:((B.g0[i]+(B.g1[i]-B.g0[i])*n)-(a[i]+(b[i]-a[i])*n))*w[2]);
+   let cr=m(A.g0,A.g1,0),cg=m(A.g0,A.g1,1),cb=m(A.g0,A.g1,2);if(Math.abs(o)<7){cr*=.8;cg*=.8;cb*=.8}Cc.push(cr,cg,cb)}
+  if(r)for(let c=0;c<C-1;c++){if(c===C/2-1)continue;const a=(r-1)*C+c,b=a+C;I.push(a,a+1,b,a+1,b+1,b)}});
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('color',new T.Float32BufferAttribute(Cc,3));g.setIndex(I);g.computeVertexNormals();
+  const m=new T.Mesh(g,M.ground);m.receiveShadow=true;G.add(m)}
+ // positions au hasard autour de la route dans une zone donnée
+ const spot=(zk,dmin,dmax,side)=>{for(let t=0;t<6;t++){const r=Math.floor(advR()*S.length),p=S[r];if(advZoneAt(p.s)!==zk)continue;const sd=side||(advR()<.5?-1:1),o=sd*advRR(dmin,dmax),x=p.x-p.tz*o,z=p.z+p.tx*o,w=zw[r];
+   return{x,z,y:p.y-.08+advGroundH(w[0],o,x,z)*(1-w[2])+advGroundH(w[1],o,x,z)*w[2],p,o}}return null};
+ const inst=(geo,mat,L,sh)=>{if(!L.length)return;const m=new T.InstancedMesh(geo,mat,L.length),o=new T.Object3D();L.forEach((q,i)=>{o.position.set(q.x,q.y,q.z);o.rotation.set(q.rx||0,q.ry||0,q.rz||0);const s=q.s||1;o.scale.set(q.sx||s,q.sy||s,q.sz||s);o.updateMatrix();m.setMatrixAt(i,o.matrix);if(q.c!=null)m.setColorAt(i,new T.Color(q.c))});
+  m.castShadow=!!sh&&!lowQ;m.receiveShadow=!!sh;m.frustumCulled=false;G.add(m);return m};
+ const cnt=n=>Math.round(n*den),zs=new Set(zw.flatMap(w=>[w[0],w[1]]));
+ const glow=(x,y,z,s,c,op)=>spGlow(G,x,y,z,s,c,op);
+ // ---------- 1. vallée préhistorique ----------
+ if(zs.has(0)){const F=[],Pa=[],Ar=[];for(let i=0;i<cnt(110);i++){const q=spot(0,5.2,160);if(!q)continue;const r=advR(),d=Math.abs(q.o);
+   if(r<.66)F.push({x:q.x,y:q.y,z:q.z,s:advRR(.8,2.2),ry:advRR(0,6),c:new T.Color().setHSL(advRR(.24,.33),.6,advRR(.18,.32))});else if(r<.87)Pa.push({x:q.x,y:q.y,z:q.z,ry:advRR(0,6),s:advRR(.8,1.5)});else if(d>14)Ar.push({x:q.x,y:q.y,z:q.z,s:advRR(.8,1.6)})}
+  inst(Gm.fern,M.fern,F,true);inst(Gm.trunk,M.trunk,Pa.map(q=>Object.assign({},q,{sy:3.2*q.s,sx:q.s,sz:q.s})),true);inst(Gm.fern,M.palmL,Pa.map(q=>Object.assign({},q,{y:q.y+3.2*q.s,s:q.s*1.25})),true);
+  inst(Gm.arauT,M.arauT,Ar.map(q=>Object.assign({},q,{sy:26*q.s})),true);inst(Gm.arauC,M.arau,Ar,true);
+  // brachiosaures (le cou se balance), T-rex (se tourne vers toi et rugit), ptérodactyles (tournent dans le ciel)
+  if(advR()<.75){const q=spot(0,30,90);if(q){const b=new T.Group(),mt=advPick(M.br);const bd=new T.Mesh(Gm.brBody,mt),nk=new T.Mesh(Gm.brNeck,mt);nk.position.set(0,8.6,4.2);b.add(bd,nk);bd.castShadow=nk.castShadow=!lowQ;
+   b.position.set(q.x,q.y,q.z);b.rotation.y=advRR(0,6.28);b.scale.setScalar(advRR(.9,1.3));G.add(b);const ph=advRR(0,6);anim.push({o:b,f:(t)=>{nk.rotation.x=Math.sin(t*.5+ph)*.25+.12;nk.rotation.y=Math.sin(t*.31+ph)*.35}})}}
+  if(advR()<.45){const q=spot(0,9,16);if(q){const b=new T.Group(),bd=new T.Mesh(Gm.txBody,M.tx),hd=new T.Group(),h=new T.Mesh(Gm.txHead,M.tx),j=new T.Mesh(Gm.txJaw,M.txJ);hd.add(h,j);hd.position.set(0,5.6,3.4);j.position.set(0,-.25,0);
+   b.add(bd,hd);bd.castShadow=h.castShadow=!lowQ;b.position.set(q.x,q.y,q.z);b.scale.setScalar(1.15);b.rotation.y=Math.atan2(q.p.x-q.x,q.p.z-q.z);G.add(b);
+   const st={roar:0};anim.push({o:b,f:(t,dt,d)=>{const near=d<45;const yaw=Math.atan2(RW.x-b.position.x,RW.z-b.position.z)-b.rotation.y;hd.rotation.y+=(clamp(Math.atan2(Math.sin(yaw),Math.cos(yaw)),-.9,.9)*(near?1:.2)-hd.rotation.y)*Math.min(1,dt*3);
+    if(near&&!st.roar){st.roar=1;advRoar(d)}if(!near&&d>80)st.roar=0;j.rotation.x=near?.35+Math.sin(t*9)*.12:.08+Math.sin(t*1.3)*.04;b.position.y=q.y+(near?Math.abs(Math.sin(t*2.4))*.15:0)}})}}
+  if(advR()<.6){const q=spot(0,20,60);if(q){const n=lowQ?2:4,cx=q.x,cz=q.z,cy=q.y+advRR(26,44);for(let i=0;i<n;i++){const p=new T.Group(),bd=new T.Mesh(Gm.ptBody,M.pt),w1=new T.Mesh(Gm.ptWing,M.pt),w2=new T.Mesh(Gm.ptWing,M.pt);w2.scale.x=-1;p.add(bd,w1,w2);p.scale.setScalar(advRR(1,1.5));G.add(p);
+    const R=advRR(14,30),sp=advRR(.25,.45)*(advR()<.5?-1:1),ph=advRR(0,6.28),hh=advRR(-4,4);anim.push({o:p,f:(t)=>{const a=t*sp+ph;p.position.set(cx+Math.cos(a)*R,cy+hh+Math.sin(t*.6+ph)*2,cz+Math.sin(a)*R);p.rotation.set(0,-a+(sp>0?Math.PI:0),sp>0?.3:-.3);const fl=Math.sin(t*5+ph)*.45;w1.rotation.z=fl;w2.rotation.z=-fl}})}}}
+  // cascade (une sur deux)
+  if(advR()<.35){const q=spot(0,40,70);if(q){const w=new T.Mesh(new T.PlaneGeometry(14,46),M.wf);w.position.set(q.x,q.y+23,q.z);w.lookAt(q.p.x,q.y+23,q.p.z);G.add(w);const cl=new T.Mesh(new T.BoxGeometry(30,52,10),M.rock);cl.position.copy(w.position);cl.quaternion.copy(w.quaternion);cl.translateZ(-5.2);G.add(cl);
+   G.add(advPts(cnt(120),(i,P,A)=>{P[i*3]=q.x+advRR(-6,6);P[i*3+1]=q.y;P[i*3+2]=q.z+advRR(-6,6);A.set([2,1.5,2,advR()],i*4)},0xdff4ff,.9,0,8))}}
+  G.add(advPts(cnt(160),(i,P,A)=>{const p=S[Math.floor(advR()*S.length)],o=advRR(-30,30);P[i*3]=p.x-p.tz*o;P[i*3+1]=p.y+.3;P[i*3+2]=p.z+p.tx*o;A.set([1.5,.25,1.5,advR()],i*4)},0xfff5b0,.12,0,5))}
+ // ---------- 2. pentes du volcan ----------
+ if(zs.has(1)){const R=[];for(let i=0;i<cnt(70);i++){const q=spot(1,6,150);if(q)R.push({x:q.x,y:q.y,z:q.z,s:advRR(.4,3.4),ry:advRR(0,6),rx:advRR(0,6)})}inst(Gm.rock,M.rock,R,true);
+  // rivières de lave de part et d'autre (texture qui coule)
+  for(const sd of[-1,1]){const o0=sd*advRR(22,60),P=[],U=[],I=[];let r=0;S.forEach((p,j)=>{if(advZoneAt(p.s)!==1)return;const o=o0+Math.sin(p.s/45)*9,wd=advRR(3,5);for(const e of[-wd,wd]){const oo=o+e,x=p.x-p.tz*oo,z=p.z+p.tx*oo;P.push(x,p.y-.08+advGroundH(1,oo,x,z)+.35,z);U.push(e>0?1:0,p.s/40)}
+    if(r){const a=(r-1)*2;I.push(a,a+1,a+2,a+1,a+3,a+2)}r++;if(j%4===0)glow(p.x-p.tz*o,p.y+advGroundH(1,o,p.x-p.tz*o,p.z+p.tx*o)+2,p.z+p.tx*o,14,0xff6a1a,.5)});
+   if(r>1){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('uv',new T.Float32BufferAttribute(U,2));g.setIndex(I);G.add(new T.Mesh(g,M.lava))}}
+  // geysers (vapeur), braises et cendres
+  if(advR()<.6){const q=spot(1,25,60);if(q)G.add(advPts(cnt(140),(i,P,A)=>{P[i*3]=q.x;P[i*3+1]=q.y;P[i*3+2]=q.z;A.set([advRR(.5,2.5),advRR(4,8),advRR(.5,2.5),advR()],i*4)},0xd8d0cc,2.2,0,26))}
+  G.add(advPts(cnt(260),(i,P,A)=>{const p=S[Math.floor(advR()*S.length)],o=advRR(-45,45);P[i*3]=p.x-p.tz*o;P[i*3+1]=p.y;P[i*3+2]=p.z+p.tx*o;A.set([2,advRR(.6,1.6),2,advR()],i*4)},0xff8a2a,.3,0,22))}
+ // ---------- 3. dans le volcan : grotte, lac de lave, pont, stalactites, chutes de lave, chauves-souris ----------
+ if(zs.has(2)){const Sz=S.filter(p=>advZoneAt(p.s)===2);
+  if(Sz.length>1){const N=lowQ?22:34,P=[],Cc=[],I=[];Sz.forEach((p,r)=>{for(let i=0;i<=N;i++){const a=i/N*Math.PI,R=(36+advF(i*.4,p.s/18)*24),o=Math.cos(a)*R*1.3,y=Math.sin(a)*R*.95-14;P.push(p.x-p.tz*o,p.y+y,p.z+p.tx*o);const n=advF(i*.9,p.s/6);Cc.push(.1+n*.1,.06+n*.05,.05+n*.04)}
+    if(r)for(let i=0;i<N;i++){const a=(r-1)*(N+1)+i,b=a+N+1;I.push(a,a+1,b,a+1,b+1,b)}});
+   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('color',new T.Float32BufferAttribute(Cc,3));g.setIndex(I);g.computeVertexNormals();G.add(new T.Mesh(g,M.cave));
+   // lac de lave
+   const LP=[],LU=[],LI=[];Sz.forEach((p,r)=>{for(const o of[-60,60]){LP.push(p.x-p.tz*o,p.y-14,p.z+p.tx*o);LU.push(o>0?6:0,p.s/20)}if(r){const a=(r-1)*2;LI.push(a,a+1,a+2,a+1,a+3,a+2)}});
+   const lg=new T.BufferGeometry();lg.setAttribute('position',new T.Float32BufferAttribute(LP,3));lg.setAttribute('uv',new T.Float32BufferAttribute(LU,2));lg.setIndex(LI);G.add(new T.Mesh(lg,M.lava));
+   const Pi=[],Pa=[],Po=[],St=[];Sz.forEach((p,r)=>{if(Math.round(p.s)%20===0)Pi.push({x:p.x,y:p.y-14,z:p.z,sy:13.5,ry:Math.atan2(p.tx,p.tz)});for(const sd of[-1,1]){Pa.push({x:p.x-p.tz*3.75*sd,y:p.y+.5,z:p.z+p.tx*3.75*sd,ry:Math.atan2(p.tx,p.tz),sz:6.4})}
+    if(Math.round(p.s)%30===0)for(const sd of[-1,1]){const x=p.x-p.tz*3.9*sd,z=p.z+p.tx*3.9*sd;Po.push({x,y:p.y,z});glow(x,p.y+2.3,z,2.8,0xffa040,1)}});
+   for(let i=0;i<cnt(90);i++){const p=Sz[Math.floor(advR()*Sz.length)],o=advRR(-40,40);St.push({x:p.x-p.tz*o,y:p.y+advRR(16,30),z:p.z+p.tx*o,rx:Math.PI,sx:advRR(.6,2),sy:advRR(3,12),sz:advRR(.6,2)})}
+   inst(Gm.pillar,M.pillar,Pi,false);inst(Gm.wall,M.parapet,Pa,false);inst(Gm.post,M.post,Po,false);inst(Gm.cone,M.stal,St,false);
+   // chutes de lave, cristaux, lueurs
+   for(let i=0;i<2;i++){const p=Sz[Math.floor(advR()*Sz.length)],sd=advR()<.5?-1:1,o=sd*advRR(36,44),x=p.x-p.tz*o,z=p.z+p.tx*o,f=new T.Mesh(new T.PlaneGeometry(advRR(4,8),44),M.lavaF);f.position.set(x,p.y+8,z);f.lookAt(p.x,p.y+8,p.z);G.add(f);for(let k=0;k<4;k++)glow(x,p.y+advRR(-12,26),z,advRR(14,24),0xff5a12,.5)}
+   for(let i=0;i<14;i++){const p=Sz[Math.floor(advR()*Sz.length)];glow(p.x-p.tz*advRR(-50,50),p.y-12,p.z+p.tx*advRR(-50,50),advRR(16,34),0xff6a1a,.45)}
+   const Cr=[];for(let i=0;i<cnt(6);i++){const p=Sz[Math.floor(advR()*Sz.length)],sd=advR()<.5?-1:1,o=sd*advRR(30,40),x=p.x-p.tz*o,z=p.z+p.tx*o,y=p.y+advRR(-4,14),c=advPick([0x37e7ff,0xb26bff,0x56ffb0]);for(let j=0;j<6;j++){const h=advRR(1.5,5);Cr.push({x:x+advRR(-1.2,1.2),y,z:z+advRR(-1.2,1.2),rx:advRR(-.5,.5),rz:-sd*advRR(.6,1.2),sx:h*.14,sy:h,sz:h*.14,c})}glow(x,y,z,10,c,.6)}inst(Gm.prism,M.cry,Cr,false);
+   G.add(advPts(cnt(300),(i,P,A)=>{const p=Sz[Math.floor(advR()*Sz.length)],o=advRR(-40,40);P[i*3]=p.x-p.tz*o;P[i*3+1]=p.y-12;P[i*3+2]=p.z+p.tx*o;A.set([2,advRR(.8,2),2,advR()],i*4)},0xffa040,.3,0,40));
+   for(let i=0;i<(lowQ?3:6);i++){const p=Sz[Math.floor(advR()*Sz.length)],b=new T.Group(),bd=new T.Mesh(Gm.ptBody,M.post),w1=new T.Mesh(Gm.ptWing,M.post),w2=new T.Mesh(Gm.ptWing,M.post);w2.scale.x=-1;b.add(bd,w1,w2);b.scale.setScalar(.32);G.add(b);
+    const cx=p.x,cz=p.z,cy=p.y+advRR(10,20),R2=advRR(6,14),sp=advRR(.8,1.4),ph=advRR(0,6);anim.push({o:b,f:t=>{const a=t*sp+ph;b.position.set(cx+Math.cos(a)*R2,cy+Math.sin(t*2+ph)*2,cz+Math.sin(a)*R2);b.rotation.y=-a+Math.PI;const fl=Math.sin(t*14+ph)*.6;w1.rotation.z=fl;w2.rotation.z=-fl}})}}}
+ // ---------- 4. grotte de cristaux ----------
+ if(zs.has(3)){const cols=[0xb26bff,0x37e7ff,0xff5fd2,0x7c5cff,0x56ffb0],Cr=[],Ms=[];
+  for(let i=0;i<cnt(34);i++){const q=spot(3,7,120);if(!q)continue;const c=advPick(cols),big=advR()<.3,n=big?5:3;for(let j=0;j<n;j++){const h=big?advRR(14,44):advRR(2,9);Cr.push({x:q.x+advRR(-2,2)*(big?2:1),y:q.y-1,z:q.z+advRR(-2,2)*(big?2:1),rx:advRR(-.5,.5),rz:advRR(-.5,.5),sx:h*.12,sy:h,sz:h*.12,c})}if(big)glow(q.x,q.y+16,q.z,40,c,.35)}
+  for(let i=0;i<cnt(60);i++){const q=spot(3,5,30);if(q)Ms.push({x:q.x,y:q.y,z:q.z,s:advRR(.3,1.2),c:advPick([0x37e7ff,0x8bff6a,0xff5fd2])})}
+  inst(Gm.prism,M.cry,Cr,false);inst(Gm.mushC,M.mush,Ms,false);inst(Gm.mushS,M.stem,Ms,false);for(const q of Ms.slice(0,14))glow(q.x,q.y+1,q.z,q.s*4,q.c,.6);
+  if(advR()<.5){const q=spot(3,10,40);if(q){const bm=new T.Mesh(new T.CylinderGeometry(6,22,180,16,1,true),M.beam);bm.position.set(q.x,q.y+80,q.z);G.add(bm)}}
+  G.add(advPts(cnt(220),(i,P,A)=>{const p=S[Math.floor(advR()*S.length)],o=advRR(-40,40);P[i*3]=p.x-p.tz*o;P[i*3+1]=p.y+1;P[i*3+2]=p.z+p.tx*o;A.set([3,advRR(.2,.6),3,advR()],i*4)},0xbfe9ff,.35,0,24))}
+ // ---------- 5. tunnel sous-marin ----------
+ if(zs.has(4)){const Sz=S.filter(p=>advZoneAt(p.s)===4);
+  if(Sz.length>1){const cur=new T.CatmullRomCurve3(Sz.map(p=>new T.Vector3(p.x,p.y+1.2,p.z)));G.add(new T.Mesh(new T.TubeGeometry(cur,Sz.length*2,5.6,lowQ?18:28,false),M.glass));
+   const Rb=[];Sz.forEach(p=>{if(Math.round(p.s)%10===0)Rb.push({x:p.x,y:p.y+1.2,z:p.z,ry:Math.atan2(p.tx,p.tz)})});inst(Gm.rib,M.rib,Rb,false);for(const q of Rb)if(advR()<.7)glow(q.x,q.y+5.4,q.z,2.2,0x7fe7ff,.9)}
+  const cc=[0xff5f7a,0xff9a3c,0xb86bff,0xffd23f,0x36d1c4,0xff4fb8],Br=[],Bn=[],Fa=[],Ke=[];
+  for(let i=0;i<cnt(140);i++){const q=spot(4,7,90);if(!q)continue;const c=advPick(cc),r=advR();if(r<.4){for(let j=0;j<4;j++)Br.push({x:q.x+advRR(-.8,.8),y:q.y,z:q.z+advRR(-.8,.8),rx:advRR(-.6,.6),rz:advRR(-.6,.6),sx:.18,sy:advRR(1,3),sz:.18,c})}else if(r<.62)Bn.push({x:q.x,y:q.y,z:q.z,s:advRR(.5,1.6),sy:advRR(.4,1),c});else if(r<.8)Fa.push({x:q.x,y:q.y,z:q.z,ry:advRR(0,6),s:advRR(1,2.6),c});else Ke.push({x:q.x,y:q.y,z:q.z,ry:advRR(0,6),s:advRR(.7,1.4)})}
+  inst(Gm.coral,M.coral,Br,false);inst(Gm.brain,M.coral,Bn,false);inst(Gm.fan,M.fan,Fa,false);inst(Gm.kelp,M.kelp,Ke,false);
+  // bancs de poissons qui tournent, requin, raie manta, baleine, méduses, rayons de soleil, bulles
+  for(let b=0;b<(lowQ?1:2);b++){const q=spot(4,9,20);if(!q)continue;const n=cnt(160),L=[],cx=q.x,cy=q.y+advRR(2,8),cz=q.z,R=advRR(4,8);for(let i=0;i<n;i++){const a=advRR(0,6.28),u=advRR(-1,1),r=R*Math.cbrt(advR());L.push({x:Math.cos(a)*r*Math.sqrt(1-u*u),y:u*r*.6,z:Math.sin(a)*r*Math.sqrt(1-u*u),ry:a+1.57,s:advRR(.8,1.3)})}
+   const sch=new T.Group();sch.position.set(cx,cy,cz);const m=new T.InstancedMesh(Gm.fish,advPick([M.fishY,M.fishB,M.fishO]),n),o=new T.Object3D();L.forEach((f,i)=>{o.position.set(f.x,f.y,f.z);o.rotation.set(0,f.ry,0);o.scale.setScalar(f.s);o.updateMatrix();m.setMatrixAt(i,o.matrix)});m.frustumCulled=false;sch.add(m);G.add(sch);
+   const sp=advRR(.3,.6)*(advR()<.5?-1:1),ph=advRR(0,6);anim.push({o:sch,f:t=>{sch.rotation.y=t*sp;sch.position.y=cy+Math.sin(t*.7+ph)*1.2}})}
+  if(advR()<.55){const q=spot(4,10,22);if(q){const sh=new T.Mesh(Gm.shark,M.shark);sh.scale.setScalar(1.3);G.add(sh);const cx=q.x,cz=q.z,cy=q.y+advRR(4,8),R=advRR(14,24),sp=advRR(.12,.2),ph=advRR(0,6);
+   anim.push({o:sh,f:t=>{const a=t*sp+ph;sh.position.set(cx+Math.cos(a)*R,cy+Math.sin(t*.4)*1.5,cz+Math.sin(a)*R);sh.rotation.set(0,-a,Math.sin(t*1.5)*.1)}})}}
+  if(advR()<.4){const q=spot(4,12,40);if(q){const mt=new T.Mesh(Gm.manta,M.manta);mt.scale.setScalar(1.5);G.add(mt);const cx=q.x,cz=q.z,cy=q.y+advRR(8,14),ph=advRR(0,6);anim.push({o:mt,f:t=>{mt.position.set(cx+Math.sin(t*.15+ph)*20,cy+Math.sin(t*.5)*2,cz+Math.cos(t*.15+ph)*20);mt.rotation.set(Math.sin(t*1.6)*.15,t*.15+ph+1.57,Math.sin(t*1.2)*.25);mt.scale.y=1.5+Math.sin(t*2)*.3}})}}
+  if(advR()<.3){const q=spot(4,0,30);if(q){const wh=new T.Mesh(Gm.whale,M.whale);G.add(wh);const p0=q.p,cy=q.y+advRR(24,34),ph=advRR(0,6);const st={sang:0};
+   anim.push({o:wh,f:(t,dt,d)=>{const u=Math.sin(t*.05+ph)*80;wh.position.set(p0.x+p0.tx*u+Math.sin(t*.1)*10,cy+Math.sin(t*.3)*2,p0.z+p0.tz*u);wh.rotation.set(Math.sin(t*.3)*.06,Math.atan2(p0.tx,p0.tz)+(Math.cos(t*.05+ph)>0?0:Math.PI),0);if(d<140&&!st.sang){st.sang=1;advWhale()}if(d>300)st.sang=0}})}}
+  for(let i=0;i<cnt(5);i++){const q=spot(4,8,24);if(!q)continue;const c=advR()*3|0,jm=new T.Mesh(Gm.jelly,M.jelly[c]),y0=q.y+advRR(3,14);jm.position.set(q.x,y0,q.z);G.add(jm);const gl=glow(q.x,y0,q.z,5,[0xff6ad5,0x7fe7ff,0xc6a0ff][c],.6),ph=advRR(0,6);
+   anim.push({o:jm,f:t=>{const y=y0+Math.sin(t*.8+ph)*1.5;jm.position.y=y;gl.position.y=y;jm.scale.set(1+Math.sin(t*2.4+ph)*.12,1-Math.sin(t*2.4+ph)*.12,1+Math.sin(t*2.4+ph)*.12)}})}
+  for(let i=0;i<2;i++){const q=spot(4,0,40);if(!q)continue;const r=new T.Mesh(new T.CylinderGeometry(advRR(1,3),advRR(6,12),120,12,1,true),M.beam);r.position.set(q.x,q.y+60,q.z);r.rotation.z=advRR(-.25,.25);G.add(r)}
+  G.add(advPts(cnt(220),(i,P,A)=>{const p=S[Math.floor(advR()*S.length)],o=advRR(-40,40);P[i*3]=p.x-p.tz*o;P[i*3+1]=p.y-2;P[i*3+2]=p.z+p.tx*o;A.set([.4,advRR(1,2.5),.4,advR()],i*4)},0xe6fbff,.18,0,40))}
+ // ---------- 6. île tropicale ----------
+ if(zs.has(5)){const Pt=[],Pl=[];for(let i=0;i<cnt(26);i++){const q=spot(5,6,70,advR()<.75?-1:1);if(!q||q.o>14)continue;const h=advRR(7,13),lean=advRR(-.25,.25);Pt.push({x:q.x,y:q.y,z:q.z,sy:h,rz:lean,ry:advRR(0,6)});Pl.push({x:q.x-Math.sin(lean)*h,y:q.y+h*Math.cos(lean),z:q.z,ry:advRR(0,6),s:advRR(1.1,1.6)})}
+  inst(Gm.trunk,M.trunk,Pt,true);inst(Gm.palmLeaf,M.palmL,Pl,true);
+  // mer à droite de la route
+  const Sz=S.filter(p=>advZoneAt(p.s)===5);if(Sz.length>1){const P=[],I=[];Sz.forEach((p,r)=>{for(const o of[20,900]){P.push(p.x-p.tz*o,p.y-1.9,p.z+p.tx*o)}if(r){const a=(r-1)*2;I.push(a,a+1,a+2,a+1,a+3,a+2)}});const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setIndex(I);g.computeVertexNormals();G.add(new T.Mesh(g,M.water));
+   for(let i=0;i<(lowQ?1:3);i++){const p=Sz[Math.floor(advR()*Sz.length)],d=new T.Mesh(Gm.dolphin,M.dol);d.scale.setScalar(1.6);G.add(d);const o=advRR(40,90),cx=p.x-p.tz*o,cz=p.z+p.tx*o,y0=p.y-1.9,ph=advRR(0,6);
+    anim.push({o:d,f:t=>{const c=(t*.35+ph)%3,u=c<1?c:0;d.visible=c<1;const x=cx+p.tx*(u*14-7),z=cz+p.tz*(u*14-7);d.position.set(x,y0+Math.sin(u*Math.PI)*4,z);d.rotation.set(-Math.cos(u*Math.PI)*.9,Math.atan2(p.tx,p.tz),0)}})}}
+  // arrivée : arche néon, public, feux d'artifice, confettis
+  const fin=ROUTE.len-25;if(fin>=s0&&fin<s1+10){const p=advAt(fin),A=spArch(p.x,p.y,p.z,Math.atan2(p.tx,p.tz),'end','ARRIVÉE','Île tropicale');G.add(A);
+   const Cw=[];for(let d=-30;d<5;d+=1.1)for(const sd of[-1,1]){const q=advAt(clamp(fin+d,0,ROUTE.len)),o=sd*advRR(5.2,7);Cw.push({x:q.x-q.tz*o,y:q.y,z:q.z+q.tx*o,c:advPick([0xff4fd8,0x7fe7ff,0xffd23f,0xffffff,0xff7a3c]),sy:advRR(.9,1.1)})}
+   const crowd=inst(Gm.person,M.person,Cw,false);if(crowd)anim.push({o:crowd,p:{x:p.x,z:p.z},f:t=>{crowd.position.y=Math.abs(Math.sin(t*6))*.12}});
+   for(const[dx,dy,dz,c]of[[-40,70,-120,0xff4fd8],[30,90,-180,0x7fe7ff],[-5,110,-240,0xffd23f],[70,75,-140,0x8bff6a]]){const x=p.x+p.tx*-dz*.5-p.tz*dx,z=p.z+p.tz*-dz*.5+p.tx*dx,ph=advR();
+    G.add(advPts(cnt(260),(i,P,A)=>{P[i*3]=x;P[i*3+1]=p.y+dy;P[i*3+2]=z;const a=advRR(0,6.28),u=advRR(-1,1),r=advRR(18,24);A.set([Math.cos(a)*r*Math.sqrt(1-u*u),u*r,Math.sin(a)*r*Math.sqrt(1-u*u),ph],i*4)},c,1.4,2))}
+   anim.push({o:G,p:{x:p.x,z:p.z},f:(t,dt,d)=>{if(d<600)advPop(t)}})}}
+ for(const a of anim)a.cell=k;return{G,anim}}
+// ---- volcan géant (repère visible de loin) : cône, cratère qui rougeoie, éruption, panache ----
+function advLandmark(){const G=new T.Group(),Z=ADVC.zb;if(!Z)return G;const lowQ=QK==='tab'||QK==='low';
+ const top=advAt(Z[2]),bot=advAt(Z[1]),f=advAt(Math.min(ROUTE.len,Z[2]+500)),dx=f.x-top.x,dz=f.z-top.z,dl=Math.hypot(dx,dz)||1,cx=top.x+dx/dl*650,cz=top.z+dz/dl*650,base=Math.min(top.y,bot.y)-80,h=Math.max(450,top.y-base+380);
+ const cone=new T.Mesh(new T.ConeGeometry(900,h+120,48,6,true),advStd(0x0d0908,{fog:false,flatShading:true,emissive:0x1a0402}));{const p=cone.geometry.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i);if(y<(h+120)/2-5){p.setX(i,p.getX(i)*(1+advN(i*.37,y*.02)*.18));p.setZ(i,p.getZ(i)*(1+advN(i*.21,y*.03)*.18))}}cone.geometry.computeVertexNormals()}
+ cone.position.set(cx,base+(h+120)/2,cz);G.add(cone);const ty=base+h;
+ spGlow(G,cx,ty+10,cz,520,0xff5a12,.95);spGlow(G,cx,ty+40,cz,240,0xffd27a,.9);
+ const er=advPts(lowQ?700:1600,(i,P,A)=>{P[i*3]=cx;P[i*3+1]=ty;P[i*3+2]=cz;const a=advRR(0,6.28),v=advRR(15,55);A.set([Math.cos(a)*v,advRR(55,95),Math.sin(a)*v,advR()],i*4)},0xffa24a,10,1);G.add(er);
+ {const smk=advPts(lowQ?200:420,(i,P,A)=>{P[i*3]=cx+advRR(-40,40);P[i*3+1]=ty+20;P[i*3+2]=cz+advRR(-40,40);A.set([advRR(10,40),advRR(6,12),advRR(10,40),advR()],i*4)},0x3a2b26,60,0,600);smk.material.blending=T.NormalBlending;G.add(smk)}
+ // coulées de lave sur les flancs
+ for(let k=0;k<7;k++){const a=k*.9;for(let i=0;i<14;i++){const r=60+i*70,x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;spGlow(G,x,ty-r*(h/1100)+6,z,advRR(40,70),0xff4a0a,.75)}}
+ for(const m of G.children)if(m.material&&m.material.fog!==undefined)m.material.fog=false;return G}
+// ---- ciel (dégradé), lumière, brouillard : mélange des deux zones voisines ----
+function advParams(s){const[i,j,w]=advZoneW(s),A=ADVZ[i],B=ADVZ[j],c=(a,b)=>new T.Color(a).lerp(new T.Color(b),w);
+ return{A,B,w,fog:c(A.fog,B.fog),fd:A.fd+(B.fd-A.fd)*w,hc:c(A.hc,B.hc),hg:c(A.hg,B.hg),hi:A.hi+(B.hi-A.hi)*w,sc:c(A.sc,B.sc),si:A.si+(B.si-A.si)*w,edge:c(A.edge,B.edge),far:c(A.far,B.far),
+  sky:[0,1,2].map(k=>c(A.sky[k],B.sky[k])),ld:A.ld.map((v,k)=>v+(B.ld[k]-v)*w)}}
+function advSky(P){const key=P.sky.map(c=>c.getHexString()).join('');if(key===ADVC.skyC&&ADVC.sky)return ADVC.sky;ADVC.skyC=key;
+ const k=ADVC.skyK||(ADVC.skyK=mkCanvas(4,256)),g=k.getContext('2d'),r=g.createLinearGradient(0,0,0,256);r.addColorStop(0,'#'+P.sky[0].getHexString());r.addColorStop(.55,'#'+P.sky[1].getHexString());r.addColorStop(1,'#'+P.sky[2].getHexString());g.fillStyle=r;g.fillRect(0,0,4,256);
+ if(!ADVC.sky)ADVC.sky=new T.CanvasTexture(k);else ADVC.sky.needsUpdate=true;return ADVC.sky}
+function advLight(){const P=ADVC.mix;if(!P)return;LD.set(...P.ld).normalize();SUNL.intensity=P.si;SUNL.color.copy(P.sc);HL.intensity=P.hi;HL.color.copy(P.hc);HL.groundColor.copy(P.hg);NIGHT=0;DAYF=1}
+// ---- chaussée : asphalte, lignes blanches, liseré lumineux de la couleur de la zone ----
+function advRoadMat(){if(ADVC.road)return ADVC.road;const u=T.UniformsUtils.merge([T.UniformsLib.fog,{uE:{value:new T.Color(0x8bff6a)},uL:{value:new T.Color(1,1,1)}}]);
+ return ADVC.road=new T.ShaderMaterial({uniforms:u,fog:true,side:T.DoubleSide,
+  vertexShader:'#include <fog_pars_vertex>\nvarying vec2 vU;void main(){vU=uv;vec4 mvPosition=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mvPosition;\n#include <fog_vertex>\n}',
+  fragmentShader:`#include <fog_pars_fragment>
+varying vec2 vU;uniform vec3 uE,uL;float hs(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+void main(){float ax=abs(vU.x);float n=hs(floor(vU*9.))*.05+hs(floor(vU*37.))*.05;vec3 c=vec3(.19,.19,.2)+n;if(ax>3.4)c=vec3(.13,.12,.11)+n*.6;
+ c=mix(c,vec3(.9),1.-smoothstep(.05,.1,abs(ax-3.1)));c=mix(c,vec3(.95,.9,.6),(1.-smoothstep(.06,.1,ax))*step(.5,fract(vU.y/9.)));c*=uL;
+ c+=uE*(1.-smoothstep(0.,.14,abs(ax-3.45)))*1.1;gl_FragColor=vec4(c,1.);
+#include <fog_fragment>
+}`})}
+// ---- sons : rugissement, chant de baleine, feux d'artifice ----
+function advNoise(d){const b=AC.createBuffer(1,AC.sampleRate*d,AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1;const s=AC.createBufferSource();s.buffer=b;return s}
+function advRoar(d){if(!AC||MUTE)return;const t=AC.currentTime,v=clamp(1-d/60,.2,1)*.5*(SET.natV==null?1:SET.natV),n=advNoise(2.2),f=AC.createBiquadFilter(),g=AC.createGain(),o=AC.createOscillator(),og=AC.createGain();
+ f.type='lowpass';f.frequency.setValueAtTime(300,t);f.frequency.linearRampToValueAtTime(1200,t+.4);f.frequency.exponentialRampToValueAtTime(160,t+2);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.25);g.gain.exponentialRampToValueAtTime(.001,t+2.1);
+ o.type='sawtooth';o.frequency.setValueAtTime(75,t);o.frequency.linearRampToValueAtTime(110,t+.4);o.frequency.exponentialRampToValueAtTime(45,t+2);og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime(v*.5,t+.3);og.gain.exponentialRampToValueAtTime(.001,t+2);
+ n.connect(f);f.connect(g);g.connect(AC.destination);o.connect(og);og.connect(AC.destination);n.start(t);o.start(t);n.stop(t+2.2);o.stop(t+2.1)}
+function advWhale(){if(!AC||MUTE)return;const t=AC.currentTime,o=AC.createOscillator(),l=AC.createOscillator(),lg=AC.createGain(),g=AC.createGain(),v=.18*(SET.natV==null?1:SET.natV);
+ o.type='sine';o.frequency.setValueAtTime(180,t);o.frequency.linearRampToValueAtTime(320,t+1.5);o.frequency.linearRampToValueAtTime(140,t+3.6);l.frequency.value=5;lg.gain.value=9;l.connect(lg);lg.connect(o.frequency);
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.6);g.gain.linearRampToValueAtTime(v*.7,t+3);g.gain.linearRampToValueAtTime(0,t+3.8);o.connect(g);g.connect(AC.destination);o.start(t);l.start(t);o.stop(t+3.9);l.stop(t+3.9)}
+function advPop(t){if(!AC||MUTE)return;if(t<(ADVC.popT||0))return;ADVC.popT=t+.4+Math.random()*1.1;const a=AC.currentTime,n=advNoise(.5),f=AC.createBiquadFilter(),g=AC.createGain();f.type='bandpass';f.frequency.value=600+Math.random()*900;
+ g.gain.setValueAtTime(.22*(SET.natV==null?1:SET.natV),a);g.gain.exponentialRampToValueAtTime(.001,a+.45);n.connect(f);f.connect(g);g.connect(AC.destination);n.start(a);n.stop(a+.5)}
+// ---- boucle : tronçons autour du cycliste, ambiance, animations ----
+function advDispose(G){const G2=ADVC.geo?Object.values(ADVC.geo):[],M2=ADVC.mat?Object.values(ADVC.mat).flat():[];G.traverse(o=>{if(o.geometry&&!G2.includes(o.geometry))o.geometry.dispose();if(o.material&&!M2.includes(o.material)&&(o.isSprite||o.isPoints||o.material.isShaderMaterial))o.material.dispose()})}
+function advReset(){for(const c of ADVC.cells.values())if(c&&c.G){ADVG.remove(c.G);advDispose(c.G)}
+ ADVC.cells.clear();ADVC.anim=[];if(ADVC.land){ADVG.remove(ADVC.land);advDispose(ADVC.land);ADVC.land=null}if(ADVC.far){ADVG.remove(ADVC.far);ADVC.far=null}ADVC.zb=null;ADVC.zkey='';ADVG.visible=false}
+function advTick(now,hm,dt){ADVG.visible=!hm&&!VEL.on;if(!ROUTE||!COURSE)return;
+ const zk=WID+'/'+(COURSE.climbs?COURSE.climbs.length:0)+'/'+(DEMOK?1:0)+'/'+Math.round(ROUTE.len);if(zk!==ADVC.zkey){advReset();ADVC.zkey=zk;ADVC.zb=advZones();ADVG.visible=!hm&&!VEL.on;
+  job(()=>{ADVC.land=advLandmark();ADVG.add(ADVC.land);return true},4000,'advland'+zk);
+  const far=new T.Mesh(new T.CircleGeometry(9000,48),new T.MeshBasicMaterial({color:0x335533}));far.rotation.x=-Math.PI/2;ADVC.far=far;ADVG.add(far)}
+ const s=ROUTE.cum[Math.min(ROUTE.k,ROUTE.cum.length-1)]||0;ADVC.lastS=s;
+ // tronçons : 600 m derrière, 2,6 km devant (1,6 km en Tablette)
+ const ka=Math.floor(Math.max(0,s-600)/ADV_CL),kb=Math.floor((s+(QK==='tab'?1600:QK==='low'?2000:2600))/ADV_CL),loop=COURSE.loop,nk=Math.ceil(ROUTE.len/ADV_CL);
+ const want=new Set();for(let k=ka;k<=kb;k++)want.add(loop?((k%nk)+nk)%nk:k);if(loop&&s<600)for(let k=nk-3;k<nk;k++)want.add(k);
+ for(const k of want){if(k<0||k>=nk||ADVC.cells.has(k))continue;ADVC.cells.set(k,null);const zz=ADVC.zkey;
+  job(()=>{if(ADVC.zkey!==zz)return true;const c=advCell(k);if(c){ADVG.add(c.G);ADVC.cells.set(k,c);ADVC.anim.push(...c.anim)}return true},()=>Math.abs(k*ADV_CL-s),'adv'+zz+'/'+k)}
+ for(const[k,c]of ADVC.cells){if(want.has(k)||!c)continue;ADVG.remove(c.G);advDispose(c.G);ADVC.cells.delete(k);ADVC.anim=ADVC.anim.filter(a=>a.cell!==k)}
+ if(hm||VEL.on)return;
+ // ambiance de la zone (fondu aux limites)
+ const P=ADVC.mix=advParams(s);sc.background=advSky(P);sc.fog.color.copy(P.fog);sc.fog.density=P.fd;advLight();
+ if(ADVC.far){ADVC.far.position.set(RW.x,(advAt(s).y)-(P.A.k==='plage'?2.2:30.5),RW.z);ADVC.far.material.color.copy(P.far)}
+ const u=advRoadMat().uniforms;u.uE.value.copy(P.edge).multiplyScalar(.75);u.uL.value.copy(P.hc).multiplyScalar(P.hi*.55).add(new T.Color().copy(P.sc).multiplyScalar(P.si*.45));
+ // éruption plus forte quand tu sprintes ; lave qui coule
+ ADVU.uK.value+=((SP||P3>FTP*1.2?1:0)-ADVU.uK.value)*Math.min(1,dt*1.5);if(ADVLT){ADVLT.offset.y-=dt*.05;ADVLT.offset.x+=dt*.012}
+ if(ADVC.mat&&ADVC.mat.cry)ADVC.mat.cry.emissiveIntensity=.75+Math.sin(now/600)*.25;if(ADVC.mat&&ADVC.mat.wf&&ADVC.mat.wf.map)ADVC.mat.wf.map.offset.y+=dt*.6;
+ const t=now/1000;for(const a of ADVC.anim){const o=a.o;if(!o.parent)continue;const q=a.p||o.position,d=Math.hypot(q.x-RW.x,q.z-RW.z);if(d>700)continue;a.f(t,dt,d)}}
+
 
 // résolution de rendu × 0,8 pour toutes les qualités (le sol, qui coûte le plus, se colorie pixel par pixel)
 const DPRS={lo:0,hi:0,t:0},RES_K=.8,PRMAX=()=>Math.min(devicePixelRatio||1,QP.dpr)*RES_K;let PR=PRMAX();ren.setPixelRatio(PR);
@@ -1016,13 +1315,53 @@ async function snapRoads(ll,prog){if(ll.length<3)return{ll,st:null};const la0=ll
  for(let i=0;i<n;i++){while(b<n&&cd[b]-cd[i]<=30){if(M[b]){sx+=OX[b];sy+=OY[b];sw++}b++}while(cd[i]-cd[a]>30){if(M[a]){sx-=OX[a];sy-=OY[a];sw--}a++}
   const ox=sw?sx/sw:0,oy=sw?sy/sw:0;dsum+=Math.hypot(ox,oy);out.push([la0+(XY[i][1]+oy)/ky,lo0+(XY[i][0]+ox)/kx,ll[i][2]])}
  return{ll:out,st:{ok:nm/n,dm:dsum/n,src,segs:segs.length}}}
-function crsUse(id){try{localStorage.v3cur=id}catch(e){}say('Préparation du parcours…');setTimeout(()=>location.reload(),400)}
+function crsUse(id){try{localStorage.v3cur=id}catch(e){}{const c=CRS.list.find(q=>q.id===id);if(c&&c.gen&&(WORLDK==='real'||WORLDK==='mont')){SET.world='adv';ssave()}}say('Préparation du parcours…');setTimeout(()=>location.reload(),400)}
 function crsDelete(id){CRS.list=CRS.list.filter(c=>c.id!==id);try{localStorage.v3crs=JSON.stringify(CRS.list);if(localStorage.v3cur===id){delete localStorage.v3cur;setTimeout(()=>location.reload(),400)}}catch(e){}}
 // mes parcours : choisir, rouler, supprimer
-function crsMenu(){if(!CRS.list.length)return mod('Aucun parcours pour l\'instant<br><small>Importe un fichier GPX : il devient ton parcours en 3D.</small>',[['📂 Importer un GPX',()=>$('gf').click()],['Fermer',()=>{}]]);
- mod('Mes parcours<br><small>Touche un parcours pour le choisir ou le supprimer.</small>',[...CRS.list.slice().reverse().map(c=>[(CRS.cur&&CRS.cur.id===c.id?'✓ ':'')+c.name+' · '+nf(c.km,1)+' km'+(c.dp?' · '+c.dp+' m D+':''),()=>
+function crsMenu(){if(!CRS.list.length)return mod('Aucun parcours pour l\'instant<br><small>Importe un fichier GPX : il devient ton parcours en 3D. Ou crée un parcours imaginaire à ta mesure.</small>',[['📂 Importer un GPX',()=>$('gf').click()],['✨ Créer un parcours',genCourseOpen],['Fermer',()=>{}]]);
+ mod('Mes parcours<br><small>Touche un parcours pour le choisir ou le supprimer.</small>',[...CRS.list.slice().reverse().map(c=>[(CRS.cur&&CRS.cur.id===c.id?'✓ ':'')+(c.gen?'✨ ':'')+c.name+' · '+nf(c.km,1)+' km'+(c.dp?' · '+c.dp+' m D+':''),()=>
    mod(esc(c.name)+'<br><small>'+nf(c.km,1)+' km'+(c.dp?' · '+c.dp+' m D+':'')+'</small>',[...(CRS.cur&&CRS.cur.id===c.id?[['▶ Rouler',()=>nav('ride')]]:[['✓ Choisir ce parcours',()=>crsUse(c.id)]]),['🗑️ Supprimer',()=>mod('Supprimer « '+esc(c.name)+' » ?',[['Supprimer',()=>{crsDelete(c.id);say('Parcours supprimé')}],['Annuler',()=>{}]])],['Retour',crsMenu]])]),
-  ['📂 Importer un GPX',()=>$('gf').click()],['Fermer',()=>{}]])}
+  ['📂 Importer un GPX',()=>$('gf').click()],['✨ Créer un parcours',genCourseOpen],['Fermer',()=>{}]])}
+// ====================== parcours imaginaires : tracé inventé selon la distance et le dénivelé voulus ======================
+// placé en plein Atlantique (aucune vraie route, aucune donnée à télécharger) ; se roule dans les mondes Aventure, Space ou Tron
+const GEN_LL=[14.5,-38];
+function crsGenerate(o){let sd=o.seed||((Date.now()%2147483000)+1);const r=()=>{sd=(sd*16807)%2147483647;return(sd-1)/2147483646};
+ const L=o.km*1000,N=Math.max(60,Math.round(L/20)),xy=[];
+ if(o.loop){// boucle : courbe fermée en étoile douce (jamais de croisement), longueur ajustée
+  const K=[[2,.06+r()*.08,r()*6.28],[3,.04+r()*.07,r()*6.28],[5,r()*.05,r()*6.28],[8,r()*.025,r()*6.28]];let R=L/(2*Math.PI);
+  for(let it=0;it<4;it++){xy.length=0;let len=0;for(let i=0;i<=N;i++){const a=i/N*2*Math.PI;let f=1;for(const[k,amp,ph]of K)f+=amp*Math.sin(k*a+ph);xy.push([Math.cos(a)*R*f,Math.sin(a)*R*f*.78]);if(i)len+=Math.hypot(xy[i][0]-xy[i-1][0],xy[i][1]-xy[i-1][1])}R*=L/len}
+  xy[N]=xy[0].slice()}
+ else{// aller simple : le cap ondule (±70° au plus) sans jamais revenir en arrière
+  const K=[[L/2.5,.25+r()*.3,r()*6.28],[L/8,.15+r()*.2,r()*6.28],[L/21,r()*.15,r()*6.28]],h0=r()*6.28;let x=0,y=0;xy.push([0,0]);
+  for(let i=1;i<=N;i++){const s=i*L/N;let h=h0;for(const[w,a,ph]of K)h+=a*Math.sin(2*Math.PI*s/w+ph);x+=Math.cos(h)*L/N;y+=Math.sin(h)*L/N;xy.push([x,y])}}
+ // profil : une grande montée (le volcan, 14 → 42 % du parcours, descente 52 → 80 %), jusqu'à deux montées de plus si le D+ est élevé, des collines ;
+ // montées en pente régulière (rampes adoucies), mises à l'échelle pour obtenir le D+ demandé (pente maxi sur 100 m limitée à 14 %)
+ const lin=(x,a,b)=>clamp((x-a)/(b-a),0,1),rate=o.dp/Math.max(1,L),CL=[[.14,.42,.52,.80,1]];
+ if(rate>.01)CL.push([.02,.075,.08,.135,.2]);if(rate>.02)CL.push([.82,.875,.88,.935,.2]);
+ const hills=[Math.max(2,Math.round(L/2600)),Math.max(3,Math.round(L/1100)),Math.max(5,Math.round(L/520))].map(k=>[k,r()*6.28]);
+ const W=hills.map(([k])=>1/(6*k)*(1+r()*.4)),shape=x=>{let h=0;for(const[a,b,c,d,w]of CL)h+=w*(lin(x,a,b)-lin(x,c,d));let hh=0;hills.forEach(([k,ph],j)=>hh+=(Math.sin(2*Math.PI*k*x+ph)-Math.sin(ph))*W[j]);return h+hh*.6*clamp((.05-rate)/.025,.15,1)};
+ let Z=Float64Array.from(xy.map((_,i)=>shape(i/N)));boxSmooth(Z,Math.max(2,Math.round(150/(L/N))),2);{const z0=Z[0],dz=Z[N]-Z[0];for(let i=0;i<=N;i++)Z[i]-=z0+(o.loop?dz*i/N:0)}
+ const dpOf=A=>{let d=0;for(let i=1;i<A.length;i++)if(A[i]>A[i-1])d+=A[i]-A[i-1];return d};
+ let k=Math.max(0,o.dp)/Math.max(1e-6,dpOf(Z)),lim=false;
+ const st=Math.max(1,Math.round(100/(L/N)));let gm=0;for(let i=st;i<Z.length;i++)gm=Math.max(gm,Math.abs(Z[i]-Z[i-st])/(st*L/N));if(gm*k>.14){k=.14/gm;lim=true}
+ const pts=xy.map((p,i)=>[GEN_LL[0]+p[1]/110574,GEN_LL[1]+p[0]/(111320*Math.cos(GEN_LL[0]*Math.PI/180)),Z[i]*k]);
+ const mn=Math.min(...pts.map(p=>p[2]));for(const p of pts)p[2]+=120-mn;
+ const dp=Math.round(dpOf(pts.map(p=>p[2])));
+ return{lim,c:{id:'g'+Date.now().toString(36),name:o.name||'Parcours imaginaire',pts:pts.map(p=>p[0].toFixed(6)+','+p[1].toFixed(6)+','+p[2].toFixed(1)).join(';'),km:+(L/1000).toFixed(1),dp,date:Date.now(),gen:1}}}
+function genCourseOpen(){const n=CRS.list.filter(c=>c.gen).length+1;
+ mod('<h3>✨ Créer un parcours imaginaire</h3><div class="gnf" style="text-align:left;display:grid;gap:9px;margin:6px 0 4px">'+
+  '<label style="display:flex;gap:8px;align-items:center">Nom <input id="gnN" maxlength="40" value="Aventure '+n+'" style="flex:1;min-width:0"></label>'+
+  '<label>Distance <input id="gnK" type="number" min="3" max="200" step="1" value="30" style="width:80px"> km</label>'+
+  '<label>Dénivelé positif <input id="gnD" type="number" min="0" max="5000" step="50" value="500" style="width:90px"> m</label>'+
+  '<label>Type <select id="gnL"><option value="1">🔁 Boucle</option><option value="0">➡️ Aller simple</option></select></label>'+
+  '<small style="color:var(--mut);line-height:1.4">Le tracé est inventé (en plein océan : aucune vraie route) et se roule dans le monde 🦖 Aventure (ou Space, Tron). La plus grande montée devient le volcan. Pente maxi : 14 % sur 100 m.</small></div>',
+  [['✨ Créer et rouler',()=>{const km=clamp(+$('gnK').value||30,3,200),dp=clamp(+$('gnD').value||0,0,5000),loop=$('gnL').value==='1',name=($('gnN').value||'').trim().slice(0,40)||'Aventure '+n;
+    const{c,lim}=crsGenerate({km,dp,loop,name});CRS.list.push(c);
+    try{localStorage.v3crs=JSON.stringify(CRS.list);localStorage.v3cur=c.id}catch(e){CRS.list.pop();return say('Stockage plein : supprime un parcours dans « Mes parcours ».')}
+    if(WORLDK==='real'||WORLDK==='mont'){SET.world='adv';ssave()}
+    mod('✨ « '+esc(name)+' » créé<br><small>'+nf(km,1)+' km · '+c.dp+' m D+ · '+(loop?'boucle':'aller simple')+(lim?'<br>⚠️ D+ ramené à '+c.dp+' m pour ne pas dépasser 14 % de pente (distance trop courte pour '+dp+' m).':'')+'<br>Préparation du monde Aventure…</small>',[]);
+    setTimeout(()=>location.reload(),lim?2600:1100)}],['Annuler',()=>{}]]);
+ document.querySelectorAll('.gnf input,.gnf select').forEach(i=>i.onkeydown=e=>e.stopPropagation())}
 function initNetwork(){
  const src=netSrc(),per=[];let tot=0;NETD.E=src;
  for(const e of src){const P=e.P,zs=e.zs;
@@ -2990,7 +3329,7 @@ function npcBike(frameHex){const bk=buildBike(),fc=new T.Color(frameHex);
  collapse(bk.G,[bk.crank,bk.wf,bk.wr],rec);bk.ctex={offset:{x:0}};return bk}
 function npcHead(helmetHex){const G=headParts();const hc=new T.Color(helmetHex);collapse(G,null,o=>o.material&&o.material.color&&o.material.color.getHex()===0xf4f5f7?hc:null);return G}
 function makeRiderInst(o){o=o||{};const R=new T.Group();R.rotation.order='YXZ';
- const bike=o.simple?npcBike(o.frame||0x15171b):buildBike(true);if(SPACE.on)o.simple?spaceNpcBike(bike):spaceBike(bike);R.add(bike.G);
+ const bike=o.simple?npcBike(o.frame||0x15171b):buildBike(true);if(SPACE.on&&!ADV)o.simple?spaceNpcBike(bike):spaceBike(bike);R.add(bike.G);
  const bones=BN.map(n=>{const b=new T.Bone();b.name=n;return b});const root=bones[0];for(let k=1;k<bones.length;k++)root.add(bones[k]);
  const inv=[new T.Matrix4()],q=new T.Quaternion();
  for(let k=1;k<bones.length;k++){const[p,y]=BIND[BN[k]];basisQ(y,XREF,q);bones[k].position.copy(p);bones[k].quaternion.copy(q);inv.push(new T.Matrix4().compose(p,q,V(1,1,1)).invert())}
@@ -3767,6 +4106,7 @@ function roulRender(){const box=document.querySelector('#s-roul .cards');box.inn
  if(COURSE)hcard(box,'🧭 Vue 3D du parcours','Relief coloré selon la pente, montées, cols, sprints, temps estimé',c3dOpen);
  hcard(box,'🏟️ Vélodrome','Piste UCI 250 m · endurance zone 2 avec lumière de rythme · jeux de lumière',()=>velStart());
  hcard(box,'📂 Importer un GPX','N\'importe quel tracé : il est reproduit en 3D (relief, photos, bâtiments)',()=>$('gf').click());
+ hcard(box,'✨ Créer un parcours','Parcours imaginaire à ta mesure (distance, dénivelé, boucle) à rouler dans le monde 🦖 Aventure',genCourseOpen);
  hcard(box,'📚 Mes parcours',CRS.list.length?CRS.list.length+' parcours importé'+(CRS.list.length>1?'s':''):'Aucun parcours pour l\'instant',crsMenu);
  hcard(box,'🤖 Exploration','Pilote automatique sur le parcours choisi',()=>courseThen(()=>nav('explore'),'exploration'))}
 function regRender(){const box=document.querySelector('#s-reg .cards');box.innerHTML='';
@@ -3849,21 +4189,21 @@ function ldgShow(){if(!COURSE||(typeof VEL!=='undefined'&&VEL.on))return;let el=
  el.style.display='flex';requestAnimationFrame(()=>{el.classList.add('on');heroDraw(el.querySelector('canvas'))});Object.assign(LDG,{on:true,t0:performance.now(),jmax:20,tip:Math.floor(Math.random()*TIPS.length),tt:0,done:0});
  el.querySelector('.tip').textContent='💡 '+TIPS[LDG.tip];el.querySelector('#ldgo').textContent='Démarrer maintenant'}
 function ldgTick(now){const el=$('ldg');if(!el)return ldgHide();const el2=(now-LDG.t0)/1000;LDG.jmax=Math.max(LDG.jmax,JOBS.length);
- const dem=DEMOK||el2>12?1:0,ph=SPACE.on?(SPC.sky?1:0):PHOTO.dead||el2>20?1:Math.min(1,CLIP.imgs.size/Math.max(4,(CLIP.S/256)**2*.6)),dat=SPACE.on?(SPC.dec?1:0):tileReady(RW.x,RW.z)||el2>18?1:0,job=clamp(1-JOBS.length/LDG.jmax,0,1),pr=(dem+ph+dat+job)/4;
+ const dem=DEMOK||el2>12?1:0,ph=ADV?(ADVC.land?1:0):SPACE.on?(SPC.sky?1:0):PHOTO.dead||el2>20?1:Math.min(1,CLIP.imgs.size/Math.max(4,(CLIP.S/256)**2*.6)),dat=ADV?([...ADVC.cells.values()].filter(Boolean).length>=4||el2>15?1:0):SPACE.on?(SPC.dec?1:0):tileReady(RW.x,RW.z)||el2>18?1:0,job=clamp(1-JOBS.length/LDG.jmax,0,1),pr=(dem+ph+dat+job)/4;
  el.querySelector('.pb i').style.width=(pr*100).toFixed(0)+'%';
- el.querySelector('.st').innerHTML=(SPACE.on?[[dem,'Altitudes du parcours'],[ph,'Nébuleuse'],[dat,'Astéroïdes'],[job>.9?1:0,'Route néon']]:[[dem,'Relief'],[ph,'Photos aériennes'],[dat,'Bâtiments et routes'],[job>.9?1:0,'Paysage']]).map(([v,t])=>'<span class="'+(v>=1?'ok':'')+'">'+(v>=1?'✓ ':'⏳ ')+t+'</span>').join('');
+ el.querySelector('.st').innerHTML=(ADV?[[dem,'Altitudes du parcours'],[ph,'Volcan'],[dat,'Dinosaures et décors'],[job>.9?1:0,'Route']]:SPACE.on?[[dem,'Altitudes du parcours'],[ph,'Nébuleuse'],[dat,'Astéroïdes'],[job>.9?1:0,'Route néon']]:[[dem,'Relief'],[ph,'Photos aériennes'],[dat,'Bâtiments et routes'],[job>.9?1:0,'Paysage']]).map(([v,t])=>'<span class="'+(v>=1?'ok':'')+'">'+(v>=1?'✓ ':'⏳ ')+t+'</span>').join('');
  if(now-LDG.tt>4500){LDG.tt=now;LDG.tip=(LDG.tip+1)%TIPS.length;el.querySelector('.tip').textContent='💡 '+TIPS[LDG.tip]}
  if(pr>.97){if(!LDG.done)LDG.done=now;else if(now-LDG.done>600)ldgHide()}else LDG.done=0;if(el2>30)ldgHide()}
 function ldgHide(){LDG.on=false;const el=$('ldg');if(!el)return;el.classList.remove('on');setTimeout(()=>{if(!LDG.on)el.style.display='none'},460)}
 // changer de monde : sans recharger (worldSwitch)
-function worldSet(w){if(w===WORLDK)return;worldSwitch(w);say({real:'🌍 Mode réaliste',mont:'🏔️ Montagne stylisée',space:'🚀 Mode Space',tron:'🟦 Mode Tron'}[w]+' : monde en préparation…');homeRender()}
+function worldSet(w){if(w===WORLDK)return;if(CRS.cur&&CRS.cur.gen&&(w==='real'||w==='mont'))return say('✨ Parcours imaginaire : il n\'existe pas sur une vraie carte. Choisis Aventure, Space ou Tron.');worldSwitch(w);say({real:'🌍 Mode réaliste',mont:'🏔️ Montagne stylisée',adv:'🦖 Monde Aventure',space:'🚀 Mode Space',tron:'🟦 Mode Tron'}[w]+' : monde en préparation…');homeRender()}
 function homeRender(){homeHeader();const sm=$('s-main'),c=CRS.cur,w=weekStats(),wp=Math.min(100,w.km/(GS.goal.km||1)*100);
- const hero=c?'<div class="hero"><div class="k">PROCHAINE SORTIE</div><div class="t">'+esc(c.name)+'</div><div class="s"><span>📏 '+nf(c.km,1)+' km</span><span id="hdp">⛰️ '+nf(c.dp||0)+' m D+</span><span>'+(COURSE&&COURSE.loop?'🔁 Boucle':'➡️ Aller simple')+'</span></div><canvas id="hpf"></canvas><div class="chips wsel" id="hwd">'+[['real','🌍 Réaliste'],['mont','🏔️ Montagne'],['space','🚀 Space'],['tron','🟦 Tron']].map(([k,t])=>'<button data-w="'+k+'"'+(WORLDK===k?' class="on"':'')+'>'+t+'</button>').join('')+'</div>'+(SPACE.on&&!TRON?'<div class="chips wsel" id="hamb">'+Object.entries(SPAMB).filter(([k])=>k!=='tron').map(([k,a])=>'<button data-a="'+k+'"'+((SET.spAmb||'neb')===k?' class="on"':'')+'>'+a.n+'</button>').join('')+'</div>':'')+'<div class="b"><button class="cta" id="hgo">▶ ROULER</button><button class="ghost" id="h3d" title="Vue 3D du parcours">🧭 3D</button><button class="ghost" id="hch" title="Changer de parcours">⇄</button></div></div>'
-  :'<div class="hero"><div class="k">BIENVENUE</div><div class="t">Roule sur tes propres routes</div><span style="color:#c9d3de;font-size:13px;line-height:1.4">Importe un fichier GPX de n\'importe quel endroit du monde : l\'appli le reproduit en 3D, avec le relief, les photos aériennes et les bâtiments.</span><div class="b"><button class="cta" id="himp">📂 IMPORTER UN GPX</button><button class="ghost" id="hvel" title="Vélodrome">🏟️</button></div></div>';
+ const hero=c?'<div class="hero"><div class="k">PROCHAINE SORTIE</div><div class="t">'+esc(c.name)+'</div><div class="s"><span>📏 '+nf(c.km,1)+' km</span><span id="hdp">⛰️ '+nf(c.dp||0)+' m D+</span><span>'+(COURSE&&COURSE.loop?'🔁 Boucle':'➡️ Aller simple')+'</span></div><canvas id="hpf"></canvas><div class="chips wsel" id="hwd">'+[['real','🌍 Réaliste'],['mont','🏔️ Montagne'],['adv','🦖 Aventure'],['space','🚀 Space'],['tron','🟦 Tron']].map(([k,t])=>'<button data-w="'+k+'"'+(WORLDK===k?' class="on"':'')+'>'+t+'</button>').join('')+'</div>'+(SPACE.on&&!TRON&&!ADV?'<div class="chips wsel" id="hamb">'+Object.entries(SPAMB).filter(([k])=>k!=='tron').map(([k,a])=>'<button data-a="'+k+'"'+((SET.spAmb||'neb')===k?' class="on"':'')+'>'+a.n+'</button>').join('')+'</div>':'')+'<div class="b"><button class="cta" id="hgo">▶ ROULER</button><button class="ghost" id="h3d" title="Vue 3D du parcours">🧭 3D</button><button class="ghost" id="hch" title="Changer de parcours">⇄</button></div></div>'
+  :'<div class="hero"><div class="k">BIENVENUE</div><div class="t">Roule sur tes propres routes</div><span style="color:#c9d3de;font-size:13px;line-height:1.4">Importe un fichier GPX de n\'importe quel endroit du monde : l\'appli le reproduit en 3D, avec le relief, les photos aériennes et les bâtiments.</span><div class="b"><button class="cta" id="himp">📂 IMPORTER UN GPX</button><button class="ghost" id="hgen" title="Créer un parcours imaginaire">✨ Créer</button><button class="ghost" id="hvel" title="Vélodrome">🏟️</button></div></div>';
  const sub={crs:CRS.list.length?CRS.list.length+' parcours importé'+(CRS.list.length>1?'s':''):'Aucun parcours pour l\'instant',sui:'Cette semaine : '+nf(w.km,1)+' / '+nf(GS.goal.km)+' km'};
  sm.innerHTML='<div class="hm">'+hero+'<div class="tiles">'+HTILES.map((t,i)=>{const cc=CCOL[t[4]];return '<button class="card" data-h="'+t[0]+'" style="--i:'+i+';--cc:'+cc[0]+';--cc2:'+cc[1]+'"><i class="ic">'+t[1]+'</i><b>'+t[2]+'</b><span>'+(t[3]||sub[t[0]])+'</span>'+(t[0]==='sui'?'<div class="prog"><i style="width:'+wp.toFixed(0)+'%"></i></div>':'')+'</button>'}).join('')+'</div></div>';
  const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};
- on('hgo',()=>nav('ride'));sm.querySelectorAll('#hwd [data-w]').forEach(b=>b.onclick=()=>worldSet(b.dataset.w));sm.querySelectorAll('#hamb [data-a]').forEach(b=>b.onclick=()=>{spAmbSet(b.dataset.a);homeRender()});on('h3d',c3dOpen);on('hch',crsMenu);on('himp',()=>$('gf').click());on('hvel',()=>velStart());
+ on('hgo',()=>nav('ride'));sm.querySelectorAll('#hwd [data-w]').forEach(b=>b.onclick=()=>worldSet(b.dataset.w));sm.querySelectorAll('#hamb [data-a]').forEach(b=>b.onclick=()=>{spAmbSet(b.dataset.a);homeRender()});on('h3d',c3dOpen);on('hch',crsMenu);on('himp',()=>$('gf').click());on('hgen',genCourseOpen);on('hvel',()=>velStart());
  sm.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{const h=b.dataset.h;if(h==='roul'){roulRender();showScr('s-roul')}else if(h==='wk'){listWk();showScr('s-wk')}else if(h==='sui'){suiviRender();showScr('s-sui')}
   else if(h==='vel')velStart();else if(h==='crs')crsMenu();else{regRender();showScr('s-reg')}});
  requestAnimationFrame(()=>{const cv=$('hpf');if(cv){const dp=heroDraw(cv);if(dp&&!c.dp){const e=$('hdp');if(e)e.textContent='⛰️ '+nf(dp)+' m D+'}}})}
@@ -4559,7 +4899,7 @@ function velMerge(gs){const P=[],N=[],I=[];let o=0;for(const g of gs){const gg=g
 // ---------- entrée / sortie ----------
 // vélodrome habillé selon le monde : Space (piste de verre, ouvert sur la nébuleuse), Tron (piste noire, néons cyan / orange, grille),
 // Montagne (en plein air au milieu de montagnes stylisées) ; lignes, chrono, lumière de rythme et records inchangés
-function velTheme(){if(!VEL.built)return;const th=SPACE.on?(TRON?'tron':'space'):MONT?'mont':'real';if(VEL.th===th)return;VEL.th=th;
+function velTheme(){if(!VEL.built)return;const th=SPACE.on?(TRON?'tron':ADV?'mont':'space'):MONT?'mont':'real';if(VEL.th===th)return;VEL.th=th;
  if(!VEL.vth){VEL.vth=new T.Group();VELG.add(VEL.vth)}const G=VEL.vth;for(const o of[...G.children]){G.remove(o);o.traverse(m=>{if(m.geometry)m.geometry.dispose()})}VEL.vsky=null;
  const L={};VELG.traverse(o=>{const k=o.userData.vk;if(!k||!o.material)return;(L[k]=L[k]||[]).push(o);
   if(!o.userData.v0){const m=o.material;o.userData.v0={mat:m,c:m.color&&m.color.getHex(),e:m.emissive&&m.emissive.getHex(),map:m.map,tr:m.transparent,op:m.opacity}}
@@ -4733,7 +5073,7 @@ function audio(){if(AC){if(AC.state==='suspended')AC.resume();return}try{AC=new(
 let nearWater=0;
 function audioTick(P){if(!AC||AC.state!=='running'||performance.now()-aT<120)return;aT=performance.now();const t=AC.currentTime,on=!MUTE&&mode!=='home',ni=ELEV<-3,vv=Math.min(1,Math.max(0,v+WX.head)/14),co=on&&(mode==='ride'||mode==='wk')&&P<=5&&v>1.5;
  const out=!VEL.on,nat=out&&!SPACE.on;AU.leaf.gain.setTargetAtTime(on&&nat&&!ni?.008+.02*vv:0,t,.3);AU.river.gain.setTargetAtTime(on&&nat?.012+.08*nearWater:0,t,.5);AU.cri.gain.setTargetAtTime(on&&nat&&ni?.012:0,t,.5);
- if(AU.space){AU.space.gain.setTargetAtTime(on&&out&&SPACE.on?.05+.03*Math.sin(performance.now()/2300):0,t,.6);AU.space.f.frequency.setTargetAtTime(110+40*Math.sin(performance.now()/3700),t,.5)}
+ if(AU.space){AU.space.gain.setTargetAtTime(on&&out&&SPACE.on&&!ADV?.05+.03*Math.sin(performance.now()/2300):0,t,.6);AU.space.f.frequency.setTargetAtTime(110+40*Math.sin(performance.now()/3700),t,.5)}
  AU.fw.frequency.setTargetAtTime(40+v*14,t,.1);AU.fg.gain.setTargetAtTime(co?Math.min(.03,v*.004):0,t,.1);
  AU.nat.gain.setTargetAtTime(SET.natV,t,.3);AU.rain.gain.setTargetAtTime(on&&WX.rain?.06:0,t,.6);
  // vent : plus aigu et plus fort avec la vitesse, rafales ; grondement grave au-delà de 40 km/h
@@ -5416,10 +5756,11 @@ async function startWorld(){const id=++WID;resetWorld();if(!NOVEG&&!TREEG.b)init
  ldSet('dem','Relief SRTM…',0);ldSet('ph','Photos aériennes IGN…',0);ldSet('dat','Bâtiments & forêts…',0);
  // relief : z12 sur la zone moyenne, puis z10 (lointain) et z8 (horizon, jusqu'au Mont-Blanc)
  const dz=async(z,Rg,maxT)=>{const[s2,w,n,e]=llOf(Rg);return loadDEMLevel(z,s2,w,n,e,maxT,(ok,tot)=>{if(id===WID&&z===12)ldSet('dem','Relief '+Math.round(ok/tot*100)+' %',0)})};
+ if(CRS.cur&&CRS.cur.gen){DEMOK=true;courseClimbs();ldSet('dem','Parcours imaginaire : altitudes du tracé',1);ldSet('vil','Monde '+(ADV?'Aventure':TRON?'Tron':'Space'),1);const at=$('att');if(at)at.textContent='Parcours imaginaire · '+(ADV?'Monde Aventure':TRON?'Mode Tron':'Mode Space');return}
  let ok12=false;try{const L=await dz(12,{x0:REG.mid.x0-1500,x1:REG.mid.x1+1500,z0:REG.mid.z0-1500,z1:REG.mid.z1+1500},160);if(id!==WID)return;DEMS.push(L);ok12=true}catch(e){console.warn('MNT z12',e)}
  if(ok12){finishTrack(groundDem);buildCoarse();DEMOK=true;waterInvalidate();courseClimbs();ldSet('dem','Relief réel (SRTM 30 m)',0)}else ldSet('dem','Relief simulé (hors ligne)',-1);
  terrInvalidate();roadInvalidate();bldInvalidate();vegInvalidate();
- if(SPACE.on){ldSet('vil',TRON?'Mode Tron':'Mode Space',1);const at=$('att');if(at)at.textContent='Parcours : ton GPX · Altitudes © AWS Terrain Tiles (SRTM) · '+(TRON?'Mode Tron':'Mode Space');return}
+ if(SPACE.on){ldSet('vil',ADV?'Monde Aventure':TRON?'Mode Tron':'Mode Space',1);const at=$('att');if(at)at.textContent='Parcours : ton GPX · Altitudes © AWS Terrain Tiles (SRTM) · '+(ADV?'Monde Aventure':TRON?'Mode Tron':'Mode Space');return}
  PHOTO.dead=MONT;if(!MONT){PHOTO.fail=0;PHOTO.ok=0}{const at=$('att');if(at)at.textContent=MONT?'Parcours : ton GPX · Relief © AWS Terrain Tiles (SRTM) · Montagne stylisée':ATT0}
  job(procMosaic(MOS_RING,4),9000,'pr');job(procMosaic(MOS_FAR,4),8500,'pf');job(procMosaic(MOS_MID,4),8000,'pm');
  loadMosaicPhotos(MOS_MID,'ph');loadMosaicPhotos(MOS_FAR,null);loadMosaicPhotos(MOS_RING,null);
