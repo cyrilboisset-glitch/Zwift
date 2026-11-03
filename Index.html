@@ -32,7 +32,13 @@ body.wkc #bot{height:86px}body.wkc #spz,body.wkc #kmz{bottom:calc(98px + var(--s
 #wi .wbig{display:flex;gap:18px;align-items:baseline;justify-content:center}#wi .wt{font:800 42px/1 var(--num)}#wi .w3{font:800 34px/1 var(--num)}#wi small{font:700 12px system-ui;opacity:.8;margin-left:4px}#wi .wsub{font:600 13px system-ui;color:var(--mut);margin-top:3px}#wi .wnx{font:600 13px system-ui;color:var(--ac)}#wi2{font-size:12px}
 @media(max-width:1000px){#wkb{left:auto;right:calc(128px + var(--sr));transform:none}}
 #wi{font:700 20px var(--num)}#ixv{font:700 22px var(--num);min-width:56px;text-align:center}
-#wkb .row{align-items:center;justify-content:center}#wkb .row button{flex:0 0 auto;min-width:44px}
+#wkb .row{align-items:center;justify-content:center}
+/* séance : consigne intégrée en tête du HUD, sans doublons (puissance 3 s, cadence, cardio restent dans la ligne du HUD) */
+#hud #wkb{position:static!important;transform:none!important;left:auto!important;right:auto!important;top:auto!important;min-width:0;padding:0 0 6px;margin:0 0 6px;background:none!important;border:0!important;border-bottom:1px solid rgba(255,255,255,.14)!important;border-radius:0;box-shadow:none!important;backdrop-filter:none!important;pointer-events:auto;align-items:stretch;text-align:left}
+#hud #wkb #wi .wbig{justify-content:flex-start}#hud #wkb .row{justify-content:flex-start;gap:6px}#hud #wkb .row button{min-width:38px;padding:5px 9px}#hud #wkb #ixv{min-width:48px;font-size:18px}
+body.wkm #hud [data-f=p3],body.wkm #wi2{display:none!important}
+@media(max-width:600px){#hud{max-width:calc(100% - 140px - var(--sl) - var(--sr))}#hud #wkb .row{flex-wrap:wrap}}
+@media(max-height:500px){#hud #wkb{padding-bottom:4px;margin-bottom:4px}#hud #wkb .row button{padding:3px 8px;min-width:34px}}#wkb .row button{flex:0 0 auto;min-width:44px}
 @media(max-height:760px){#home.sub #hh .sub,#home.sub #hh .ftp,#home.sub #zn{display:none}#home.sub #hh h1{font-size:26px;margin:0 0 4px}}
 .stk{position:sticky;bottom:0;z-index:2;padding:8px 0 2px;background:linear-gradient(180deg,rgba(8,12,18,0),rgba(8,12,18,.92) 30%)}
 @media(max-height:500px){#wkb{gap:2px;padding:4px 10px}#wi .wt{font-size:32px}#wi .w3{font-size:27px}#wi .wsub{font-size:12px}#zn{display:none}#cch{top:calc(96px + var(--sa))}}
@@ -3444,7 +3450,7 @@ async function connect(){if(!navigator.bluetooth)return noBT();
   await setupTrainer(d);say('✅ Home trainer connecté : '+(d.name||'')+(cp?'':' (puissance seule)'));
  }catch(e){$('h1').textContent='Échec : '+e.message;if(!/cancel|annul/i.test(e.message+''))mod('<h3>⚠️ Home trainer non connecté</h3><p style="text-align:left;line-height:1.45">'+esc(e.message)+'<br><br>Vérifie que :<br>• le home trainer est allumé (pédale quelques tours pour le réveiller) ;<br>• il n\'est <b>pas déjà connecté à une autre appli</b> (Zwift, MyWhoosh, appli du fabricant, téléphone…) : ferme-la ;<br>• le Bluetooth et la localisation de la tablette sont activés.<br><br>Sans home trainer, l\'appli roule en <b>mode démo</b> avec la puissance du curseur « Watts démo ».</p>',[['OK',()=>{}]])}}
 // mode démo : bandeau visible et avertissement au départ si aucun home trainer n'est connecté ; alerte si le home trainer n'envoie plus rien
-function demoBar(){let b=$('demob');if(!b){b=document.createElement('div');b.id='demob';b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);top:6px;z-index:60;background:#b45309;color:#fff;font:600 13px system-ui;padding:5px 12px;border-radius:14px;cursor:pointer;box-shadow:0 2px 8px #0006;display:none';b.onclick=connect;document.body.appendChild(b)}
+function demoBar(){let b=$('demob');if(!b){b=document.createElement('div');b.id='demob';b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom,0px));z-index:60;background:#b45309;color:#fff;font:600 13px system-ui;padding:5px 12px;border-radius:14px;cursor:pointer;box-shadow:0 2px 8px #0006;display:none';b.onclick=connect;document.body.appendChild(b)}
  const on=!conn&&(mode==='ride'||mode==='wk');b.style.display=on?'block':'none';if(on)b.textContent='⚠️ Mode démo · '+(+$('dem').value)+' W — touche ici pour appairer le home trainer'}
 function demoCheck(m){demoBar();if(conn||(m!=='ride'&&m!=='wk')||demoCheck.done)return;demoCheck.done=1;
  mod('<h3>⚠️ Home trainer non connecté</h3><p style="text-align:left;line-height:1.45">L\'appli roule en <b>mode démo</b> à '+(+$('dem').value)+' W (curseur « Watts démo »).<br>La connexion Bluetooth se perd quand la page se recharge (import d\'un GPX, changement de parcours) : il faut alors réappairer.</p>',[['Appairer le home trainer',connect],['Rouler en démo',()=>{}]])}
@@ -3509,7 +3515,7 @@ function endRamp(){if(wk.over)return;wk.over=1;doneWk();if(stepI>=0&&sT>55)best=
 function nav(m){const pm=mode,wkn=wk&&wk.n,wkp=wk&&wk.plan!=null&&WT&&wt>=.8*WT?wk.plan:null;let R2=null,S2=null;if((pm==='ride'||pm==='wk')&&m!==pm){R2=recStop();S2=sesStop(wkn)}
  // analyse de la sortie : NP, TSS, courbe de puissance, records, série de jours, plan
  if(S2&&R2){const A=analyzeRide(R2.pts);Object.assign(S2,{np:A.np,tss:A.tss,ifv:A.ifv,pc:A.pc});LASTR=Object.assign(R2,{n:S2.n,h:S2});lastSave(R2,S2);rideStore(R2,S2.n);prCheck(A);gsave()}
- if(S2)streakTick(S2);if(wkp!=null&&wk&&!wk.over)tplanDone(wkp);mode=m;demoCheck(m);if(BIGM.on)bigMapToggle(false);wakeLock(true);if(m!=='wk')wk=null;document.body.classList.toggle('hm',m==='home');
+ if(S2)streakTick(S2);if(wkp!=null&&wk&&!wk.over)tplanDone(wkp);mode=m;demoCheck(m);if(BIGM.on)bigMapToggle(false);wakeLock(true);if(m!=='wk')wk=null;document.body.classList.toggle('hm',m==='home');document.body.classList.toggle('wkm',m==='wk');
  document.querySelectorAll('.r').forEach(e=>e.style.display=m==='ride'?'flex':'none');
  document.querySelectorAll('.e').forEach(e=>e.style.display=m==='explore'?'flex':'none');
  $('pad').style.display=m==='explore'?'flex':'none';$('wkb').style.display=m==='wk'?'flex':'none';$('home').style.display=m==='home'?'flex':'none';
@@ -4558,6 +4564,7 @@ function wkCoach(dt,B,Pt,P){if(!SET.coach||wk.over||wpz)return;const bl=wk.bl[B[
  if(msg){speak(msg);WC.warn=25}}
 // ---- HUD personnalisable ----
 const HUDF=[['spd','Vitesse'],['pw','Puissance'],['p3','Puissance 3 s'],['wkg','W/kg'],['cad','Cadence'],['grd','Pente'],['hr','Cardio'],['np','NP'],['dist','Distance'],['avg','Vitesse moyenne (sortie)'],['rest','Reste / carrefour'],['alt','Altitude'],['dp','D+'],['time','Temps'],['kcal','kcal'],['zone','Jauge des zones']];
+(()=>{const h=$('hud'),w=$('wkb');if(h&&w)h.insertBefore(w,h.firstChild)})();
 function hudApply(){document.querySelectorAll('#hud [data-f]').forEach(e=>e.style.display=SET.hud.includes(e.dataset.f)?'':'none');$('hud').classList.toggle('big',!!SET.hudBig)}
 // jauge des zones de puissance (puissance 3 s) : 7 segments, zone actuelle en lumière, curseur, % FTP, temps passé dans la zone pendant la sortie
 const ZG={t:0,z:-1,tz:new Float32Array(7),lt:0};
@@ -5800,7 +5807,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
    const z=ZN[zi(B[2])],cb=wk.bl[B[0]],nb=wk.bl[B[0]+1],rem=Math.ceil(B[1]);if(nb&&rem>=1&&rem<=3&&rem!==loop.bp&&!wpz){loop.bp=rem;sfx('tick')}
    // en haut : puissance cible en gros, puissance 3 s à côté (verte si dans ±5 %, orange au-dessus, bleue en dessous)
    const p3=Math.round(P3),dv=p3-Pt,dc=Math.abs(dv)<=Math.max(8,Pt*.05)?'#5cff8a':dv>0?'#ff9f43':'#4aa3df';
-   const wh='<div class="wbig"><span class="wt" style="color:'+z[1]+'">'+Pt+'<small>W cible</small></span><span class="w3" style="color:'+dc+'">'+p3+'<small>W · 3 s</small></span></div><div class="wsub">'+z[2]+' · reste '+fmt(B[1])+(cb&&cb[3]?' · '+cb[3]:'')+'</div>'+
+   const wh='<div class="wbig"><span class="wt" style="color:'+z[1]+'">'+Pt+'<small>W cible</small></span><span class="w3" style="color:'+dc+'">'+p3+'<small>W · 3 s</small></span></div><div class="wsub">Bloc '+z[2]+' · reste '+fmt(B[1])+(conn&&cp?' · ERG':'')+(cb&&cb[3]?' · '+cb[3]:'')+'</div>'+
     (nb&&B[1]<=20?'<div class="wnx">Ensuite : '+fmt(nb[0])+' à '+Math.round(nb[1]*FTP*(wk.ramp?1:ix))+' W</div>':'');if(wh!==loop.wh){loop.wh=wh;$('wi').innerHTML=wh}
    if(!wk.ramp)wkCoach(dt,B,Pt,P);loop.Pt=Pt}}
  if(VEL.on&&!hm){velFrame(now,dt,P);return}// vélodrome : piste plate, monde extérieur caché
