@@ -1040,6 +1040,7 @@ const cloudMat=new T.ShaderMaterial({uniforms:CLU,transparent:true,depthWrite:fa
   vec2 q=p+uSun.xz*.004;float fl=n(q)*.5+n(q*2.07+.3)*.27+n(q*4.3+.7)*.15+n(q*9.1+.1)*.08;
   float lit=clamp(.55+(f-fl)*6.,0.,1.);
   vec3 c=mix(uShade,uLit,lit*(1.-th*.45));
+  {vec3 vd=normalize(vW-uCam);float fs=pow(max(dot(vd,normalize(uSun)),0.),10.);c+=uLit*fs*(1.-th)*1.1+uLit*pow(max(dot(vd,normalize(uSun)),0.),3.)*.12;}
   float dist=length(vW.xz-uCam.xz);float fa=1.-smoothstep(9000.,26000.,dist);
   c=mix(uHor,c,fa*.85+.15);
   gl_FragColor=vec4(c,a*fa*.92);
@@ -1069,6 +1070,8 @@ const TODS=[['real','🕒 Heure réelle'],['dawn','🌄 Aube'],['sunrise','🌅 
 const TODE={dawn:[-4.5,-1],sunrise:[1.5,-1],morning:[22,-1],afternoon:[28,1],sunset:[1.5,1],dusk:[-4.5,1]};
 function todHA(la,dec){let k='real';try{k=SET.tod}catch(e){}if(k==='day')return 0;if(k==='night')return Math.PI;const t=TODE[k];if(!t)return null;
  const c=(Math.sin(t[0]*Math.PI/180)-Math.sin(la)*Math.sin(dec))/(Math.cos(la)*Math.cos(dec));return t[1]*Math.acos(clamp(c,-1,1))}
+const FOG0=new T.Color(0xc9d9e8),FOGS=new T.Color(0xffe0b0),_fd=new T.Vector3();
+function fogSun(){if(SPACE.on||VEL.on||mode==='home')return;cam.getWorldDirection(_fd);const k=Math.pow(Math.max(0,_fd.dot(SUN)),5)*clamp(DAYF,0,1)*.55;sc.fog.color.copy(FOG0).lerp(FOGS,k)}
 function skyUpdate(lat,lon){const d=new Date(),D=Math.PI/180,doy=(d-new Date(d.getFullYear(),0,0))/864e5,dec=23.44*D*Math.sin(6.283*(doy-81)/365),B=6.283*(doy-81)/364,
  eq=9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B),la=(lat||45.43)*D,lo=lon||6.02,ut=d.getUTCHours()+d.getUTCMinutes()/60+d.getUTCSeconds()/3600,haT=todHA(la,dec),ha=haT!==null?haT:(ut+lo/15+eq/60-12)*15*D,
  pos=(h,dc,o)=>{const e=Math.asin(Math.sin(la)*Math.sin(dc)+Math.cos(la)*Math.cos(dc)*Math.cos(h)),az=Math.atan2(Math.sin(h),Math.cos(h)*Math.sin(la)-Math.tan(dc)*Math.cos(la))+Math.PI;o.set(Math.cos(e)*Math.sin(az),Math.sin(e),-Math.cos(e)*Math.cos(az));return e};
@@ -1077,7 +1080,7 @@ function skyUpdate(lat,lon){const d=new Date(),D=Math.PI/180,doy=(d-new Date(d.g
  ELEV=Math.asin(clamp(SUN.y,-1,1))/D;const t1=sm(-14,-2,ELEV),t2=sm(-2,14,ELEV);DAYF=t1*.35+t2*.65;NIGHT=1-sm(-8,2,ELEV);
  const top=CNT[0].clone().lerp(CNT[1],t1).lerp(CNT[2],t2),hz=CHZ[0].clone().lerp(CHZ[1],t1).lerp(CHZ[2],t2),gl=t1*(1-t2);
  SKYU.uTop.value.copy(top);SKYU.uHor.value.copy(hz);SKYU.uGlow.value.copy(GLW).lerp(COL(0xfff1d0),t2*.7).multiplyScalar(sm(-11,-1,ELEV));SKYU.uSunI.value=sm(-3,1,ELEV);SKYU.uNight.value=NIGHT;
- sc.fog.color.copy(hz).multiplyScalar(.96);
+ sc.fog.color.copy(hz).multiplyScalar(.96);FOG0.copy(sc.fog.color);FOGS.copy(GLW).lerp(COL(0xfff4e0),t2*.6);
  const nl=ELEV<1&&MD.y>0;LD.copy(nl?MD:SUN);LD.y=Math.max(.12,LD.y);LD.normalize();
  HL.intensity=.12+.55*DAYF;HL.color.copy(hz).lerp(COL(0xd8e8ff),.55);
  SUNL.intensity=nl?.22*sm(0,.15,MD.y):1.7*t2+.35*t1*(1-t2);SUNL.color.setHex(nl?0x8fa8ff:0xfff0d8).lerp(GLW,gl*.7);
@@ -1135,7 +1138,7 @@ function fxPost(hm){const lv=fxLevel();if(!lv)return;
   VFX.q.material=VFX.m.comp;ren.setRenderTarget(null);ren.render(VFX.sc,VFX.cam)}
  catch(err){VFX.fail=true;console.warn('effets visuels désactivés',err);ren.setRenderTarget(null)}}
 function fxSet(v){SET.fx=v;ssave();say('Effets visuels : '+['aucun','doux','max'][fxLevel()])}
-function renderScene(){const n0=cam.near,f0=cam.far;ren.autoClear=false;ren.clear();
+function renderScene(){fogSun();TU.uDetQ.value=QK==='ultra'?1:QK==='high'?.8:0;const n0=cam.near,f0=cam.far;ren.autoClear=false;ren.clear();
  cam.near=SPLIT*.985;cam.far=160000;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=true;ren.render(sc,cam);
  ren.clearDepth();const sv=sky.visible,cv=clouds.visible,mv=moon.visible,tv=stars.visible;sky.visible=clouds.visible=moon.visible=stars.visible=false;
  cam.near=.25;cam.far=SPLIT;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=false;ren.render(sc,cam);
@@ -1632,14 +1635,16 @@ function buildJunction(n){const J=jcOf(n),nd=NET.ND[n];if(J.arms.length<2)return
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('uv',new T.Float32BufferAttribute(U,2));g.setIndex(idx);g.computeVertexNormals();g.computeBoundingSphere();return g}
 
 // ====================== terrain : grilles monde (proche/moyen/lointain/horizon) + couloir + imagerie ======================
-const TU={tDet:{value:TXR.det},uSnow:{value:2600},uCam:{value:new T.Vector3()},uPhoto:{value:0},uCurv:{value:6.83e-8},
+const TU={uDetQ:{value:0},tDet:{value:TXR.det},uSnow:{value:2600},uCam:{value:new T.Vector3()},uPhoto:{value:0},uCurv:{value:6.83e-8},
  tR:{value:null},uRU:{value:new T.Vector2(0,1e-9)},uRV:{value:new T.Vector3()},
  tF:{value:null},uFU:{value:new T.Vector2(0,1e-9)},uFV:{value:new T.Vector3()},
  tM:{value:null},uMU:{value:new T.Vector2(0,1e-9)},uMV:{value:new T.Vector3()},
  tN:{value:null},uNU:{value:new T.Vector2(0,1e-9)},uNV:{value:new T.Vector3()},uNearOn:{value:0}};
 // courbure terrestre (au-delà de 3 km), appliquée à tout ce qui est lointain
 const CURV_GLSL=`{vec2 cd=transformed.xz-uCam.xz;float cl=max(length(cd)-3000.,0.);transformed.y-=uCurv*cl*cl;}`;
-const TFRAG_PARS=(GL2?'#define TG(t,u,a,b) textureGrad(t,u,a,b)\n':'#define TG(t,u,a,b) texture2D(t,u)\n')+`uniform sampler2D tR,tF,tM,tN,tDet;uniform vec2 uRU,uFU,uMU,uNU;uniform vec3 uRV,uFV,uMV,uNV,uCam;uniform float uNearOn,uSnow,uPhoto;varying vec3 vW;varying vec3 vNw;
+const TFRAG_PARS=(GL2?'#define TG(t,u,a,b) textureGrad(t,u,a,b)\n':'#define TG(t,u,a,b) texture2D(t,u)\n')+`uniform sampler2D tR,tF,tM,tN,tDet;uniform vec2 uRU,uFU,uMU,uNU;uniform vec3 uRV,uFV,uMV,uNV,uCam;uniform float uNearOn,uSnow,uPhoto,uDetQ;varying vec3 vW;varying vec3 vNw;
+float dh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float dn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(dh(i),dh(i+vec2(1,0)),f.x),mix(dh(i+vec2(0,1)),dh(i+vec2(1,1)),f.x),f.y);}
 vec2 tuv(vec2 U,vec3 Vv){return vec2((vW.x-U.x)*U.y,Vv.x+Vv.y*vW.z+Vv.z*vW.z*vW.z);}
 float edg(vec2 t,float k){return smoothstep(0.,k,min(min(t.x,1.-t.x),min(t.y,1.-t.y)));}
 `;
@@ -1655,6 +1660,9 @@ const TFRAG=`{
   if(wm>0.)base=mix(base,TG(tM,mu,mx,my).rgb,wm);}
  // allégé (toutes qualités) : photo aérienne seule, sans textures de détail, rocher ni neige
  float L=dot(base,vec3(.3,.59,.11));base=max(mix(vec3(L),base,1.1),0.)*1.06;
+ // Élevée / Ultra : grain de sol près de la caméra (herbe, cailloux), plus marqué sur le vert, estompé au loin
+ if(uDetQ>0.){float dc=distance(vW.xz,uCam.xz),k=uDetQ*(1.-smoothstep(40.,320.,dc));if(k>0.){float g=dn(vW.xz*1.7)*.55+dn(vW.xz*5.3)*.3+dn(vW.xz*17.)*.15;
+  float veg=clamp((base.g-max(base.r,base.b))*6.,0.,1.);base*=1.+(g-.5)*k*(.34+.26*veg);}}
  diffuseColor.rgb*=base;}`;
 function mkTerrMat(){const m=new T.MeshLambertMaterial({color:0xffffff,side:T.DoubleSide});m.extensions={derivatives:true};
  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,TU);
@@ -2100,6 +2108,7 @@ function waterAt(x,z){if(!DATA.n.w)return 0;const u=x/MS4-.5,v=z/MS4-.5,i=Math.f
 // ====================== route : chaussée, ponts, équipements (balises, bornes, glissières, trottoirs, lampadaires, panneaux) ======================
 const ROAD={ch:[],fur:[],ver:1,fver:1,vil:null};
 const roadMat=new T.MeshLambertMaterial({map:TXR.road,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+if((QK==='high'||QK==='ultra')){roadMat.bumpMap=TXR.road;roadMat.bumpScale=QK==='ultra'?.35:.28}
 const ROADMATS=[roadMat,...[1,2].map(m=>new T.MeshLambertMaterial({map:TXR.roadM[m],polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}))];
 // RDW : largeur de chaussée (m) par échantillon, RMK : marquage (0 complet, 1 médiane, 2 aucun), 0 / 255 = inconnu (route standard 7 m)
 let RDW=null,RMK=null,CHK_OF=null;const RDIRTY=new Set();
@@ -2740,7 +2749,7 @@ function bldUpdate(cp,force){if(!force&&cp.distanceToSquared(BLD.lp)<400)return;
 function bldInvalidate(){BLD.ver++;BLD.lp.set(1e9,0,1e9)}
 
 // ====================== eau : Isère, lacs, plans d'eau (surfaces IGN/OSM) ======================
-const waterMat=addCurv(new T.MeshStandardMaterial({color:0x3e5a55,roughness:.07,metalness:0,normalMap:TXR.waterN,normalScale:new T.Vector2(.55,.55),envMapIntensity:1.15}),'w');
+const waterMat=addCurv(new T.MeshStandardMaterial({color:0x3e5a55,roughness:.07,metalness:0,normalMap:TXR.waterN,normalScale:new T.Vector2(.55,.55),envMapIntensity:(QK==='high'||QK==='ultra')?1.6:1.15}),'w');
 TXR.waterN.repeat.set(1,1);
 const WAT={cells:new Map(),lp:V(1e9,0,1e9),ver:1};
 // niveau de l'eau : relief SRTM moyenné (≈ 30 m de précision, souvent trop haut au bord des rivières), puis gardé SOUS les routes proches :
