@@ -1101,11 +1101,46 @@ function skyFollow(){sky.position.copy(cam.position);stars.position.copy(cam.pos
 let CLOUD_Y=2800;
 
 const SPLIT=260;
+// ====================== effets visuels après le rendu : halo lumineux (bloom), rayons de soleil, couleurs plus riches, vignette ======================
+// l'image est rendue à l'écran comme avant, copiée dans une texture (copyFramebufferToTexture), puis retravaillée en quelques passes à 1/4 et 1/8 de la résolution ;
+// niveaux (SET.fx) : 0 = aucun, 1 = doux (couleurs + léger halo), 2 = max (halo fort, rayons du soleil) ; par défaut selon la qualité (Tablette / Basse : aucun)
+const VFX={tex:null,w:0,h:0,rt:[],sc:null,cam:null,m:{},v2:new T.Vector2(),z:new T.Vector2(0,0),p:new T.Vector3(),fail:false};
+function fxLevel(){if(VFX.fail)return 0;const v=SET.fx;return v==null||v===-1?(QK==='high'||QK==='ultra'?2:QK==='med'?1:0):v}
+function fxInit(){VFX.cam=new T.OrthographicCamera(-1,1,1,-1,0,1);VFX.sc=new T.Scene();VFX.q=new T.Mesh(new T.PlaneGeometry(2,2));VFX.q.frustumCulled=false;VFX.sc.add(VFX.q);
+ const V='varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy,0.,1.);}',sm=(f,u)=>new T.ShaderMaterial({vertexShader:V,fragmentShader:f,uniforms:u,depthTest:false,depthWrite:false});
+ // parties lumineuses (seuil progressif) : ciel près du soleil, lave, néons, cristaux, feux d'artifice…
+ VFX.m.bright=sm('varying vec2 vU;uniform sampler2D tS;uniform float uThr;void main(){vec3 c=texture2D(tS,vU).rgb;float l=max(c.r,max(c.g,c.b));gl_FragColor=vec4(c*smoothstep(uThr,uThr+.22,l),1.);}',{tS:{value:null},uThr:{value:.74}});
+ VFX.m.blur=sm('varying vec2 vU;uniform sampler2D tS;uniform vec2 uD;void main(){vec3 c=texture2D(tS,vU).rgb*.227;c+=(texture2D(tS,vU+uD*1.385).rgb+texture2D(tS,vU-uD*1.385).rgb)*.316;c+=(texture2D(tS,vU+uD*3.23).rgb+texture2D(tS,vU-uD*3.23).rgb)*.07;gl_FragColor=vec4(c,1.);}',{tS:{value:null},uD:{value:new T.Vector2()}});
+ // rayons : flou radial des parties lumineuses vers le soleil
+ VFX.m.rays=sm('varying vec2 vU;uniform sampler2D tS;uniform vec2 uSun;uniform float uK;void main(){vec2 d=(vU-uSun)/28.;vec2 p=vU;vec3 c=vec3(0.);float w=1.;for(int i=0;i<28;i++){p-=d;c+=texture2D(tS,p).rgb*w;w*=.94;}gl_FragColor=vec4(c*uK/9.,1.);}',{tS:{value:null},uSun:{value:new T.Vector2()},uK:{value:0}});
+ VFX.m.comp=sm(`varying vec2 vU;uniform sampler2D tS,tB1,tB2,tR;uniform float uB,uSat,uCon,uVig,uR;uniform vec3 uTint;
+void main(){vec3 c=texture2D(tS,vU).rgb;vec3 b=texture2D(tB1,vU).rgb*.65+texture2D(tB2,vU).rgb;c+=b*uB*(1.-c*.5)+texture2D(tR,vU).rgb*uR;
+ float l=dot(c,vec3(.299,.587,.114));c=mix(vec3(l),c,uSat);c=(c-.5)*uCon+.5;c*=uTint;vec2 q=vU-.5;c*=1.-uVig*dot(q,q)*1.5;gl_FragColor=vec4(clamp(c,0.,1.),1.);}`,
+  {tS:{value:null},tB1:{value:null},tB2:{value:null},tR:{value:null},uB:{value:.5},uSat:{value:1.08},uCon:{value:1.04},uVig:{value:.3},uR:{value:0},uTint:{value:new T.Vector3(1,1,1)}})}
+function fxPost(hm){const lv=fxLevel();if(!lv)return;
+ try{if(!VFX.sc)fxInit();const db=ren.getDrawingBufferSize(VFX.v2),W=db.x|0,H=db.y|0;
+  if(VFX.w!==W||VFX.h!==H){VFX.w=W;VFX.h=H;if(VFX.tex)VFX.tex.dispose();VFX.tex=new T.FramebufferTexture(W,H,T.RGBAFormat);VFX.tex.minFilter=VFX.tex.magFilter=T.LinearFilter;
+   for(const r of VFX.rt)r.dispose();const mk=d=>new T.WebGLRenderTarget(Math.max(1,W>>d),Math.max(1,H>>d),{depthBuffer:false});VFX.rt=[mk(2),mk(2),mk(3),mk(3),mk(3)]}
+  ren.copyFramebufferToTexture(VFX.z,VFX.tex);
+  const pass=(m,src,dst)=>{VFX.q.material=m;m.uniforms.tS.value=src;ren.setRenderTarget(dst);ren.render(VFX.sc,VFX.cam)},[a,b,c,d,e]=VFX.rt,bl=VFX.m.blur.uniforms.uD.value;
+  VFX.m.bright.uniforms.uThr.value=SPACE.on?.6:.74;pass(VFX.m.bright,VFX.tex,a);
+  bl.set(1/a.width,0);pass(VFX.m.blur,a.texture,b);bl.set(0,1/a.height);pass(VFX.m.blur,b.texture,a);
+  bl.set(2/c.width,0);pass(VFX.m.blur,a.texture,c);bl.set(0,2/c.height);pass(VFX.m.blur,c.texture,d);
+  // rayons du soleil : niveau max, monde réel ou montagne, de jour, soleil dans le champ ou juste à côté
+  let rk=0;if(lv>1&&!hm&&!SPACE.on&&!VEL.on&&DAYF>.25){VFX.p.copy(SUN).multiplyScalar(5000).add(cam.position).project(cam);const x=VFX.p.x,y=VFX.p.y;
+   if(VFX.p.z<1&&Math.abs(x)<1.4&&Math.abs(y)<1.4){rk=(1-Math.min(1,Math.hypot(x,y)/1.6))*clamp(DAYF,0,1)*.9;VFX.m.rays.uniforms.uSun.value.set((x+1)/2,(y+1)/2);VFX.m.rays.uniforms.uK.value=1;pass(VFX.m.rays,d.texture,e)}}
+  const u=VFX.m.comp.uniforms;u.tS.value=VFX.tex;u.tB1.value=a.texture;u.tB2.value=d.texture;u.tR.value=e.texture;u.uR.value=rk;
+  u.uB.value=lv>1?(SPACE.on?1.05:.8):.45;u.uSat.value=lv>1?(SPACE.on?1.15:1.1):1.06;u.uCon.value=lv>1?1.06:1.03;u.uVig.value=lv>1?.42:.28;
+  u.uTint.value.set(...(SPACE.on||VEL.on?[1,1,1]:NIGHT>.5?[.97,.99,1.04]:[1.025,1.005,.975]));
+  VFX.q.material=VFX.m.comp;ren.setRenderTarget(null);ren.render(VFX.sc,VFX.cam)}
+ catch(err){VFX.fail=true;console.warn('effets visuels désactivés',err);ren.setRenderTarget(null)}}
+function fxSet(v){SET.fx=v;ssave();say('Effets visuels : '+['aucun','doux','max'][fxLevel()])}
 function renderScene(){const n0=cam.near,f0=cam.far;ren.autoClear=false;ren.clear();
  cam.near=SPLIT*.985;cam.far=160000;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=true;ren.render(sc,cam);
  ren.clearDepth();const sv=sky.visible,cv=clouds.visible,mv=moon.visible,tv=stars.visible;sky.visible=clouds.visible=moon.visible=stars.visible=false;
  cam.near=.25;cam.far=SPLIT;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=false;ren.render(sc,cam);
- sky.visible=sv;clouds.visible=cv;moon.visible=mv;stars.visible=tv;cam.near=n0;cam.far=f0;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=true}
+ sky.visible=sv;clouds.visible=cv;moon.visible=mv;stars.visible=tv;cam.near=n0;cam.far=f0;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=true;
+ fxPost(mode==='home')}
 
 // ====================== textures procédurales ======================
 function mkCanvas(w,h){const k=document.createElement('canvas');k.width=w;k.height=h;return k}
@@ -4123,7 +4158,7 @@ function regRender(){const box=document.querySelector('#s-reg .cards');box.inner
  hcard(box,'🩺 Diagnostic des blocages','Mesure ce qui ralentit l\'appli pendant une sortie, puis rapport à copier',diagPanel);
  hcard(box,'🎛️ Préférences','Sprints, voix, musique, météo, nuit, affichage, FC max',()=>{prefRender();showScr('s-pref')});
  hcard(box,'🖥️ Graphismes','Qualité actuelle : '+QPRE[QK].n,()=>mod('Qualité graphique<br><small>Actuelle : '+QPRE[QK].n+'. Changement immédiat, sans recharger.</small>',
-  ['tab','low','med','high','ultra'].map(k=>[QPRE[k].n,()=>{qualitySet(k);regRender()}]).concat([['Annuler',()=>{}]])))}
+  ['tab','low','med','high','ultra'].map(k=>[QPRE[k].n,()=>{qualitySet(k);regRender()}]).concat([['✨ Effets visuels : '+['aucun','doux','max'][fxLevel()],()=>mod('Effets visuels<br><small>Halo lumineux autour des lumières, rayons du soleil, couleurs plus riches, vignette. Coûte un peu de fluidité : déconseillé sur la tablette.</small>',[['Automatique (selon la qualité)',()=>{fxSet(-1);regRender()}],['Aucun',()=>{fxSet(0);regRender()}],['Doux',()=>{fxSet(1);regRender()}],['Max',()=>{fxSet(2);regRender()}],['Annuler',()=>{}]])],['Annuler',()=>{}]])))}
 // ---- accueil façon applis du commerce : carte « prochaine sortie » (profil coloré, gros bouton) + tuiles colorées + niveau ----
 const HTILES=[['wk','🏋️','S\'entraîner','Séances ERG guidées, créateur, test FTP',1],['vel','🏟️','Vélodrome','Piste UCI 250 m, lumière de rythme',4],['crs','📚','Mes parcours','',2],
  ['roul','🚴','Rouler','Importer, exploration, options',0],['sui','📈','Mon suivi','',3],['reg','⚙️','Réglages','Matériel, Strava, vestiaire, graphismes',5]];
@@ -5911,7 +5946,8 @@ function drawMap(){const c=$('map');if(!c||!N)return;const W=c.width,g=c.getCont
 // ---- menu : qualité, vues, itinéraires, Strava, sons ----
 {const t=$('top'),h=document.createElement('h4');h.textContent='Graphismes';t.appendChild(h);const sel=document.createElement('select');
  for(const k of['ultra','high','med','low','tab']){const o=document.createElement('option');o.value=k;o.textContent=QPRE[k].n+(k==='tab'?' (Redmi Pad)':'')+(k===QK?' (actuelle)':'');if(k===QK)o.selected=true;sel.appendChild(o)}
- const lab=document.createElement('label');lab.textContent='Qualité ';lab.appendChild(sel);t.appendChild(lab);sel.onchange=()=>{qualitySet(sel.value);for(const o of sel.options)o.textContent=QPRE[o.value].n+(o.value==='tab'?' (Redmi Pad)':'')+(o.value===QK?' (actuelle)':'')};
+ const lab=document.createElement('label');lab.textContent='Qualité ';lab.appendChild(sel);t.appendChild(lab);
+ {const fs=document.createElement('select');[[-1,'Auto'],[0,'Aucun'],[1,'Doux'],[2,'Max']].forEach(([v,n])=>{const o=document.createElement('option');o.value=v;o.textContent=n;if((SET.fx==null?-1:SET.fx)===v)o.selected=true;fs.appendChild(o)});fs.onchange=()=>fxSet(+fs.value);const l2=document.createElement('label');l2.textContent='Effets ';l2.appendChild(fs);t.appendChild(l2)}sel.onchange=()=>{qualitySet(sel.value);for(const o of sel.options)o.textContent=QPRE[o.value].n+(o.value==='tab'?' (Redmi Pad)':'')+(o.value===QK?' (actuelle)':'')};
  const vb2=document.createElement('button');vb2.textContent='🎥 Changer de vue';vb2.onclick=nextView;t.appendChild(vb2);
  const ts=document.createElement('select');ts.id='todsel';for(const[k,n]of TODS){const o=document.createElement('option');o.value=k;o.textContent=n;ts.appendChild(o)}ts.value=SET.tod||'real';
  const tl=document.createElement('label');tl.textContent='Moment ';tl.appendChild(ts);t.appendChild(tl);ts.onchange=()=>{SET.tod=ts.value;ssave();todApply()};
