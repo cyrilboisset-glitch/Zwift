@@ -4584,7 +4584,7 @@ function prefRender(){const ch=(key,L)=>'<div class="chips" data-p="'+key+'">'+L
  $('pfb').innerHTML='<div class="gq">Sprints aux pancartes : longueur</div>'+ch('sprLen',[100,150,200,250,300,400,500].map(x=>[x,x+' m']))+
   '<div class="gq">Import des GPX : recaler le tracé sur les vraies routes</div>'+ch('snap',[[1,'Oui'],[0,'Non']])+
   '<div class="gq">Arches de sprint et de côte</div>'+ch('arch',[['neon','✨ Néon'],['led','Classiques (LED)']])+'<div class="gq">Sprints : écart minimal entre deux sprints</div>'+ch('sprGap',[[-1,'Aucun sprint'],[0,'Tous les villages'],[2,'2 km'],[5,'5 km'],[10,'10 km'],[20,'20 km'],[40,'40 km']])+
-  '<div class="gq">Commentateur vocal</div>'+ch('voice',[[1,'🔊 Activé'],[0,'Coupé']])+'<div class="gq">Coach pendant les séances</div>'+ch('coach',[[1,'Activé'],[0,'Coupé']])+'<div class="gq">Séances sur un parcours : vitesse à l\'écran</div>'+ch('wkRel',[[1,'Selon le relief (résistance ERG)'],[0,'Comme sur le plat']])+'<button id="pvt">▶ Tester la voix</button>'+
+  '<div class="gq">Commentateur vocal</div>'+ch('voice',[[1,'🔊 Activé'],[0,'Coupé']])+'<div class="gq">Coach pendant les séances</div>'+ch('coach',[[1,'Activé'],[0,'Coupé']])+'<div class="gq">Séances sur un parcours : vitesse à l\'écran</div>'+ch('wkRel',[[1,'Relief adouci (conseillé)'],[2,'Relief réel'],[0,'Comme sur le plat']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">En ERG la puissance est imposée : avec le relief réel, une montée à 10–15 % fait tomber la vitesse sous 5 km/h. Adouci : pente des montées divisée par 3 et au moins 12 km/h quand tu pédales.</div>'+'<button id="pvt">▶ Tester la voix</button>'+
   '<div class="gq">Musique d\'ambiance</div>'+ch('mus',[[0,'Aucune'],[1,'Calme'],[2,'Motivation'],[3,'Adaptée à l\'effort']])+'<label>Volume musique <input id="pmv" type="range" min="0" max="1" step=".05" value="'+SET.musV+'"></label>'+
   '<label>Sons de la nature <input id="pnv" type="range" min="0" max="1.5" step=".05" value="'+SET.natV+'"></label>'+
   '<div class="gq">Moment de la journée</div>'+ch('tod',TODS)+
@@ -5811,7 +5811,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
     (nb&&B[1]<=20?'<div class="wnx">Ensuite : '+fmt(nb[0])+' à '+Math.round(nb[1]*FTP*(wk.ramp?1:ix))+' W</div>':'');if(wh!==loop.wh){loop.wh=wh;$('wi').innerHTML=wh}
    if(!wk.ramp)wkCoach(dt,B,Pt,P);loop.Pt=Pt}}
  if(VEL.on&&!hm){velFrame(now,dt,P);return}// vélodrome : piste plate, monde extérieur caché
- const pos=posAt(RID.e,RID.u,RID.dir,_PS),g=pos.g,gP=mode==='wk'&&!SET.wkRel?0:g;// séance : résistance toujours en ERG ; vitesse, danseuse et posture selon le relief (SET.wkRel) ou comme sur le plat
+ const pos=posAt(RID.e,RID.u,RID.dir,_PS),g=pos.g,wkA=mode==='wk'&&SET.wkRel===1,gP=mode==='wk'&&!SET.wkRel?0:wkA&&g>0?g/3:g;// séance : relief adouci (montées /3), réel ou plat// séance : résistance toujours en ERG ; vitesse, danseuse et posture selon le relief (SET.wkRel) ou comme sur le plat
  const tuck=v>13.2&&P<FTP*.45&&gP<-.015,sprinting=P>FTP*1.45&&v<16,surge=riding?standLogic(dt,P,gP,v):false;
  if(gP>.06&&(riding||mode==='explore')){standT+=dt;if(standT>75)standT=0}else standT=0;
  const stand=(sprinting||surge||(gP>.075&&P>FTP*.95)||(standT>60))&&v>1.2;
@@ -5819,9 +5819,9 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  WX.head=hm?0:wxHead(pos.tx,pos.tz);
  if(riding&&LDG.on){v=0;ldgTick(now)}
  else if(riding){const m=Math.max(40,(+$('kg').value||80)-EQ.mass),a=Math.atan(gP),cda=EQ.cda*(tuck?.82:stand?1.12:1)*(1-RDRAFT),va=v+WX.head,// vitesse de l'air (vent de face > 0)
-  F=EQ.eff*P/Math.max(v,1.2)-m*9.81*Math.sin(a)-.004*EQ.crr*m*9.81*Math.cos(a)-.5*1.2*.32*cda*va*Math.abs(va),
+  F=EQ.eff*P/Math.max(v,.6)-m*9.81*Math.sin(a)-.004*EQ.crr*m*9.81*Math.cos(a)-.5*1.2*.32*cda*va*Math.abs(va),
   gW=clamp(.5*1.2*.32*cda*(va*Math.abs(va)-v*v)/(m*9.81),-.08,.08);// le vent envoyé au home trainer sous forme de pente équivalente
-  v=Math.max(0,Math.min(25,v+F/(m+1.5)*dt));if(P<5&&v<.25&&gP>-.015)v=0;
+  v=Math.max(0,Math.min(25,v+F/(m+1.5)*dt));if(wkA&&P>30&&v<3.33)v=Math.min(3.33,v+dt*1.5);if(P<5&&v<.25&&gP>-.015)v=0;// séance adoucie : au moins 12 km/h quand on pédale
   const ah=riderAhead();if(ah&&ah.d<.6&&RLAT>1&&v>ah.o.v)v=ah.o.v;// on ne rentre pas dans la roue de devant
   const ds=v*dt;advance(RID,ds,riderChoose);histTick();s+=ds;PEMA=PEMA?PEMA+(P-PEMA)*Math.min(1,dt/180):P;
   if(mode==='ride'){if(v>.1)tt+=dt;if(conn&&now-lastSim>1500&&(Math.abs(g+gW-lastG)>.002||Math.abs(RDRAFT-lastDr)>.06)){sim(g+gW,RDRAFT);lastG=g+gW;lastDr=RDRAFT;lastSim=now}}
@@ -5865,7 +5865,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  runJobs((hm?14:(fA>26?3.5:fA>20?5:7))+JOB_BOOST);
  dprTick(now);
  if(!hm&&now-hudT>100){hudT=now;$('vs').textContent=(v*3.6).toFixed(0);$('vp').textContent=mode==='explore'?'–':Math.round(P);$('vc').textContent=mode==='explore'?'–':Math.round(CADR?cad:pedal?cadS:0);$('vh').textContent=hr||'–';
-  $('vg').textContent=(gP*100).toFixed(1);$('vd').textContent=(s/1000).toFixed(1);$('va').textContent=Math.round(y);
+  $('vg').textContent=(g*100).toFixed(1);$('vd').textContent=(s/1000).toFixed(1);$('va').textContent=Math.round(y);
   if(ROUTE){$('vrl').textContent=ROUTE.off>40?'hors itinéraire ·':'reste';$('vr').textContent=Math.max(0,(ROUTE.len-ROUTE.cum[ROUTE.k])/1000).toFixed(1);$('vru').textContent='km'}
   else{const dn=distToNode(RID);$('vrl').textContent=optionsAt(RID).length>=2?'carrefour dans':'route';$('vr').textContent=dn>=1000?(dn/1000).toFixed(1):Math.round(dn);$('vru').textContent=dn>=1000?'km':'m'}
   $('vdrf').textContent=RDRAFT>.04?' · aspiration −'+Math.round(RDRAFT*100)+' %':'';
