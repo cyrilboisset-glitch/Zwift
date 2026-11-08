@@ -3452,20 +3452,23 @@ function riderAnim(dt,st,Rd){// st: {cad, P, v, g, coast, stand, tuck, home, t, 
  else{const tgt=Math.round((Rd.th-Math.PI/2)/Math.PI)*Math.PI+Math.PI/2;Rd.th+=(tgt-Rd.th)*Math.min(1,dt*3);Rd.coast=Math.min(1,Rd.coast+dt*2)}
  const th=Rd.th;bk.crank.rotation.x=th;
  Rd.sf+=((st.stand?1:0)-Rd.sf)*Math.min(1,dt*2.2);Rd.tf+=((st.tuck?1:0)-Rd.tf)*Math.min(1,dt*1.5);const sf=Rd.sf,tf=Rd.tf*(1-sf);
- // roulis du vélo en danseuse
- const roll=sf*.11*Math.sin(th)*(pedaling?1:0);Rd.roll+=(roll-Rd.roll)*Math.min(1,dt*10);bk.G.rotation.z=Rd.roll;
+ // danseuse (8 novembre 2026) : le vélo se balance du côté opposé à la pédale qui descend (on tire sur la cocotte du même côté),
+ // le corps reste au-dessus et descend sur chaque pédale ; assis : petit roulis du bassin, appui plus marqué quand l'effort monte
+ const pk=pedaling?1:0,pw=clamp((st.P||0)/(typeof FTP==='number'&&FTP>0?FTP:200),0,2),hard=sm(.8,1.3,pw)*(1-sf)*(1-tf),climb=clamp(((st.g||0)-.03)/.06,0,1)*(1-sf)*(1-tf);
+ const roll=-sf*.12*Math.sin(th-.25)*pk;Rd.roll+=(roll-Rd.roll)*Math.min(1,dt*10);bk.G.rotation.z=Rd.roll;
  _rollM.makeRotationZ(Rd.roll);
  // pédales (repère vélo -> repère cycliste)
  const L=.1725,BB=BK.BB;
  _ped[1].set(-.135,BB.y+Math.cos(th)*L,BB.z+Math.sin(th)*L).applyMatrix4(_rollM);// droite
  _ped[0].set(.135,BB.y+Math.cos(th+Math.PI)*L,BB.z+Math.sin(th+Math.PI)*L).applyMatrix4(_rollM);// gauche
  bk.armR.userData.ped.rotation.x=-th;bk.armL.userData.ped.rotation.x=-th;
- // bassin
- const sway=sf*.045*Math.sin(th+.3),bob=Math.sin(2*th)*.004*(1-sf);
- const hip=_tmp.set(sway-Rd.roll*.9,lerp(1.035,1.2,sf)-tf*.02+bob,lerp(-.175,.0,sf)-tf*.02);
+ // bassin : assis sur la selle (un peu plus en avant quand on force, en arrière en montée) ; en danseuse au-dessus du pédalier,
+ // il descend sur chaque coup de pédale (point bas vers 4 h 30) et se décale vers la jambe qui pousse
+ const ph2=2*(th-2.4),sway=pk*(-sf*.035*Math.sin(th-.2)-(1-sf)*(.005+.006*hard)*Math.sin(th)),bob=pk*(-Math.cos(ph2)*.022*sf+Math.sin(2*th)*(.004+.003*hard)*(1-sf));
+ const hip=_tmp.set(sway,lerp(1.035-.008*hard,1.075,sf)-tf*.02+bob,lerp(-.175+.022*hard-.022*climb,-.03,sf)-tf*.02+pk*sf*.012*Math.cos(ph2));
  // dos : angle et position des épaules
- const beta=lerp(lerp(.66,.4,tf),.92,sf)+Math.sin(th*2)*.012,d=V(0,Math.sin(beta),Math.cos(beta)),nrm=V(0,Math.cos(beta),-Math.sin(beta));
- const rockA=(sf*.07+.018)*Math.sin(th)*(pedaling?1:0);_lat.set(Math.cos(rockA),Math.sin(rockA)*.6,0).normalize();
+ const beta=lerp(lerp(.66-.07*hard+.08*climb,.4,tf),.64,sf)+Math.sin(th*2)*(.012+.01*hard)*pk,d=V(0,Math.sin(beta),Math.cos(beta)),nrm=V(0,Math.cos(beta),-Math.sin(beta));
+ const rockA=-(sf*.1+.016+.03*hard)*Math.sin(th-.15)*pk;_lat.set(Math.cos(rockA),Math.sin(rockA)*.6,0).normalize();
  const segL=[0,.17,.34,.53,.61];for(let k=0;k<5;k++){const s2=Math.min(segL[k],.55),b=.045*Math.sin(Math.PI*Math.min(1,s2/.53));_spn[k].copy(hip).addScaledVector(d,s2).addScaledVector(nrm,b).addScaledVector(_lat,0)}
  _spn[4].copy(_spn[3]).add(V(0,.07,.03).applyAxisAngle(V(1,0,0),0));
  setBone(BI.pelvis,_spn[0],_t1.copy(_spn[1]).sub(_spn[0]),_lat);setBone(BI.spine,_spn[1],_t1.copy(_spn[2]).sub(_spn[1]),_lat);setBone(BI.chest,_spn[2],_t1.copy(_spn[3]).sub(_spn[2]),_lat);
@@ -3482,7 +3485,7 @@ function riderAnim(dt,st,Rd){// st: {cad, P, v, g, coast, stand, tuck, home, t, 
   _pole.set(s2*.8,-.5,-.35);const el=ik2(_sh[k],wrist,.3,.26,_pole,_el);
   setBone(BI['ua'+sd],_sh[k],_t1.copy(el).sub(_sh[k]));setBone(BI['fa'+sd],el,_t1.copy(wrist).sub(el));setBone(BI['hd'+sd],wrist,_t1.copy(hand).sub(wrist).add(V(0,-.02,0)))}
  // jambes : cheville au-dessus de la pédale, angle du pied qui varie (talon qui descend à 3 h)
- for(let k=0;k<2;k++){const s2=k?-1:1,sd=k?'R':'L',a=th+(k?0:Math.PI),phi=.32+.13*Math.sin(a+2.1)-sf*.08;
+ for(let k=0;k<2;k++){const s2=k?-1:1,sd=k?'R':'L',a=th+(k?0:Math.PI),phi=.32+.14*Math.sin(a+2.1)+sf*.1;
   const P=_ped[k];const ank=_ank[k].set(P.x,P.y+.12*Math.sin(phi)+.095*Math.cos(phi),P.z-.12*Math.cos(phi)+.095*Math.sin(phi));
   const H=_H.copy(hip).addScaledVector(_lat,s2*.09);_pole.set(s2*.12,.15,1);const K=ik2(H,ank,.435,.435,_pole,_kn);
   setBone(BI['th'+sd],H,_t1.copy(K).sub(H));setBone(BI['sh'+sd],K,_t1.copy(ank).sub(K));
