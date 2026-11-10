@@ -262,7 +262,7 @@ button.back{width:40px;height:40px;padding:0;border-radius:50%;font-size:18px;di
  <div id="hs">
   <div id="s-main" class="scr on"><div class="cards">
    <button class="card" data-go="ride" style="--i:0"><b>Sortie libre</b><span>Tout ton réseau (949 km) · tu choisis ta route aux carrefours · la pente et l'aspiration se ressentent sur le home trainer</span></button>
-   <button class="card" data-go="wk" style="--i:1"><b>Entraînement</b><span>Créateur de séance automatique (dont régime Dukan) · séances guidées ERG · test FTP</span></button>
+   <button class="card" data-go="wk" style="--i:1"><b>Entraînement</b><span>Créateur de séance automatique (dont régime brûle-graisses) · séances guidées ERG · test FTP</span></button>
    <button class="card" data-go="explore" style="--i:2"><b>Exploration</b><span>Parcours le réseau en pilote automatique</span></button>
    <button class="card" data-go="hw" style="--i:3"><b>Matériel</b><span>Appairer home trainer et ceinture cardio</span></button></div></div>
   <div id="s-wk" class="scr"><div class="bar"><button class="back" data-b="s-main">←</button><b>Entraînement</b></div><div id="wl"></div></div>
@@ -270,7 +270,7 @@ button.back{width:40px;height:40px;padding:0;border-radius:50%;font-size:18px;di
   <div id="s-hw" class="scr"><div class="bar"><button class="back" data-b="s-main">←</button><b>Matériel</b></div>
    <div class="hw"><div><b>Home trainer</b><small id="h1">Non connecté</small></div><button id="bC">Appairer</button></div>
    <div class="hw"><div><b>Ceinture cardio</b><small id="h2">Non connectée</small></div><button id="bHR">Appairer</button></div>
-   <small>Chrome ou Edge requis (Web Bluetooth). Ferme les autres applis (Cycplus, Zwift…) avant d'appairer.</small></div>
+   <small>Chrome ou Edge requis (Web Bluetooth). Ferme les autres applis (appli du fabricant…) avant d'appairer.</small></div>
  </div>
 </div>
 <div id="cd"></div>
@@ -444,14 +444,14 @@ T.ShaderChunk.fog_fragment=`#ifdef USE_FOG
 #endif`;
 sc.fog=new T.FogExp2(0xc9d9e8,1/42000);
 const WORLD=new T.Group();sc.add(WORLD);WORLD.matrixAutoUpdate=false;
-// monde choisi (Réaliste, Montagne, Space ou Tron) : lu dès le lancement ; on en change sans recharger (worldSwitch)
+// monde choisi (Réaliste, Montagne, Space ou Néon) : lu dès le lancement ; on en change sans recharger (worldSwitch)
 let WORLDK=(()=>{try{return JSON.parse(localStorage.v3set||'{}').world||'real'}catch(e){return 'real'}})();
 // parcours imaginaire : pas de vraie carte, il se roule dans un monde stylisé (Aventure par défaut)
 if(CRS.cur&&CRS.cur.gen&&(WORLDK==='real'||WORLDK==='mont'))WORLDK='adv';
 let MONT=WORLDK==='mont';const SPACE={on:WORLDK==='space'||WORLDK==='tron'||WORLDK==='adv',kind:WORLDK==='tron'?'tron':WORLDK==='adv'?'adv':'space'};
-// ====================== mondes Space et Tron : route transparente néon, décor, vaisseaux, anneaux, traînées, vélo futuriste ======================
-// choix du monde (SET.world : real, mont, space, tron) : on en change sans recharger (worldSwitch reconstruit le monde et change les vélos). En Space et en Tron : ni photos, ni bâtiments, ni végétation
-// (rien à télécharger, sauf le relief SRTM du parcours) ; Tron dessine en plus le vrai relief en grille lumineuse et des immeubles en fils de lumière
+// ====================== mondes Space et Néon : route transparente néon, décor, vaisseaux, anneaux, traînées, vélo futuriste ======================
+// choix du monde (SET.world : real, mont, space, tron) : on en change sans recharger (worldSwitch reconstruit le monde et change les vélos). En Space et en Néon : ni photos, ni bâtiments, ni végétation
+// (rien à télécharger, sauf le relief SRTM du parcours) ; Néon dessine en plus le vrai relief en grille lumineuse et des immeubles en fils de lumière
 const SPG=new T.Group();SPG.visible=false;sc.add(SPG);
 const SPC={key:'',ch:[],dec:null,sky:null,vilW:-1,t:0,t0:0,mat:null,ships:[],trails:new Map(),lt:0,cL:new T.Color(),cR:new T.Color(),flr:[]};
 let TRON=SPACE.on&&SPACE.kind==='tron';
@@ -463,7 +463,7 @@ const SPAMB={
  neb:{n:'🟣 Nébuleuse',sky:['#0c0218','#2a0a48','#0a0216'],cl:[[255,90,210],[170,60,255],[255,140,230],[120,70,255],[255,200,240]],band:'255,215,245',deck:[.28,.12,.55],L:0xff4fd8,R:0x3ff0ff,rock:[.74,.2,.2],deb:0xff7aa8,cry:0x8a2be2,sun:0xffe2f2,hc:0x9b7ad8,hg:0x3a1050,pl:['#b8846a',['rgba(120,150,140,.2)','rgba(200,110,90,.22)','rgba(230,190,160,.2)','rgba(90,80,100,.18)']],mo:'#5f7fb8',dens:1},
  gal:{n:'🔵 Galaxie',sky:['#01040f','#0a1f4a','#010610'],cl:[[60,140,255],[90,200,255],[150,110,255],[40,90,200],[200,230,255]],band:'200,225,255',deck:[.08,.22,.6],L:0x6a8bff,R:0x3ff0ff,rock:[.6,.15,.2],deb:0x9fd8ff,cry:0x2b8ae2,sun:0xe6f2ff,hc:0x6a8ad8,hg:0x0a1a40,pl:['#c9a46a',['rgba(240,220,170,.22)','rgba(160,110,70,.22)','rgba(255,250,230,.2)']],mo:'#d8dde8',dens:.8},
  ast:{n:'🔴 Astéroïdes',sky:['#120203','#3e0a0c','#100203'],cl:[[255,90,60],[255,150,80],[200,40,60],[255,200,120],[150,30,40]],band:'255,200,170',deck:[.45,.1,.08],L:0xff5a2a,R:0xffc23f,rock:[.03,.3,.17],deb:0xffa060,cry:0xff4a2a,sun:0xffd8b0,hc:0xd8705a,hg:0x401008,pl:['#d06a3a',['rgba(255,170,90,.22)','rgba(120,30,20,.25)','rgba(255,220,160,.18)']],mo:'#9a8f88',dens:1.7},
- tron:{n:'Tron',deck:[.01,.02,.04],L:0x3ff0ff,R:0xff8a1f,sun:0xd8f4ff,hc:0x3a6a8a,hg:0x050a12,dens:0}};
+ tron:{n:'Néon',deck:[.01,.02,.04],L:0x3ff0ff,R:0xff8a1f,sun:0xd8f4ff,hc:0x3a6a8a,hg:0x050a12,dens:0}};
 function spAmb(){return TRON?SPAMB.tron:SPAMB[SET.spAmb]||SPAMB.neb}
 let SPGLOW=null;function spGlowTex(){if(SPGLOW)return SPGLOW;const k=mkCanvas(64,64),g=k.getContext('2d'),r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.25,'rgba(255,255,255,.45)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);return SPGLOW=new T.CanvasTexture(k)}
 function spGlow(p,x,y,z,s,c,op){const m=new T.Sprite(new T.SpriteMaterial({map:spGlowTex(),color:c,transparent:true,opacity:op==null?1:op,blending:T.AdditiveBlending,depthWrite:false,fog:false}));m.position.set(x,y,z);m.scale.set(s,s,1);p.add(m);return m}
@@ -490,7 +490,7 @@ function spChunkGeo(c){const ch=CHUNKS[c],C=SPO.length,P=[],U=[],idx=[];let r=0;
   for(let k=0;k<C;k++){let o=SPO[k];if(o*DA[i]<0&&Math.abs(o)>lim)o=Math.sign(o)*lim;P.push(X[i]-TZ[i]*o,H[i]+SPY[k]+.02,Z[i]+TX[i]*o);U.push(SPO[k],SD[i])}
   if(r)for(let k=0;k<C-1;k++){const a=(r-1)*C+k,b=a+C;idx.push(a,b,a+1,a+1,b,b+1)}r++}
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('uv',new T.Float32BufferAttribute(U,2));g.setIndex(idx);g.computeBoundingSphere();return g}
-// Tron : le vrai relief de part et d'autre de la route (1,2 km), noir avec une grille cyan tous les 20 m
+// Néon : le vrai relief de part et d'autre de la route (1,2 km), noir avec une grille cyan tous les 20 m
 let SPFM=null;function spFloorMat(){return SPFM||(SPFM=new T.ShaderMaterial({uniforms:{uCam:TU.uCam},
  vertexShader:'varying vec3 vW;varying float vD;uniform vec3 uCam;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;vD=distance(w.xyz,uCam);gl_Position=projectionMatrix*viewMatrix*w;}',
  fragmentShader:`varying vec3 vW;varying float vD;void main(){vec2 f=abs(fract(vW.xz/20.)-.5)*20.;float w=.08+vD*.0012,l=1.-smoothstep(w,w*2.2,min(f.x,f.y));
@@ -536,7 +536,7 @@ function spSkyBuild(full){const S=new T.Group(),A=spAmb();
 function spRockGeo(seed,det){let sd=seed;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;const g=new T.IcosahedronGeometry(1,det),p=g.attributes.position,v=new T.Vector3(),a=rnd()*9,b=rnd()*9;
  for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const k=1+.28*Math.sin(v.x*3+a)*Math.cos(v.y*2.6+b)+.12*Math.sin(v.z*7+a*2);v.multiplyScalar(k);v.y*=.75;p.setXYZ(i,v.x,v.y,v.z)}
  const g2=g.toNonIndexed();g2.computeVertexNormals();return g2}
-// décor le long du parcours : astéroïdes, cristaux, débris (Space) ou immeubles en fils lumineux (Tron) ; anneaux dans les montées et les descentes ; plots au bord
+// décor le long du parcours : astéroïdes, cristaux, débris (Space) ou immeubles en fils lumineux (Néon) ; anneaux dans les montées et les descentes ; plots au bord
 function spDecorBuild(){const G=new T.Group(),A=spAmb();let sd=12345;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
  const rocks=[[],[],[]],crys=[],deb=[],plots=[],pcol=[],rings=[],blds=[],low=QK==='tab'||QK==='low',D=A.dens||0,cL=new T.Color(A.L),cR=new T.Color(A.R);
  // rien sur la route ni juste à côté : contrôle sur des points de la route tous les 15 m (une boucle peut repasser près d'un rocher)
@@ -621,7 +621,7 @@ function spaceTick(now,hm){SPG.visible=!hm&&!VEL.on;if(!NET.ready||!COURSE)retur
  if(SPC.vilW!==WID){SPC.vilW=WID;spaceVillages()}
  if(!ADV){if(!SPC.sky){SPC.sky=spSkyBuild();SPG.add(SPC.sky)}SPC.sky.position.copy(cam.position)}
  if(!SPC.t0)SPC.t0=performance.now();
- // route (et relief Tron) reconstruite quand le relief réel arrive (les altitudes changent)
+ // route (et relief Néon) reconstruite quand le relief réel arrive (les altitudes changent)
  const key=WID+'/'+(DEMOK?1:0);if(SPC.key!==key&&(DEMOK||performance.now()-SPC.t0>9000)){SPC.key=key;
   for(const m of SPC.ch.concat(SPC.flr))if(m){SPG.remove(m);m.geometry.dispose()}SPC.ch=[];SPC.flr=[];if(SPC.dec){SPG.remove(SPC.dec);SPC.dec.traverse(o=>{if(o.geometry)o.geometry.dispose()})}SPC.dec=null;
   CHUNKS.forEach((ch,c)=>{if(!inWorld(ch.e))return;job(()=>{const m=new T.Mesh(spChunkGeo(c),ADV?advRoadMat():spRoadMat());m.renderOrder=2;SPC.ch[c]=m;SPG.add(m);
@@ -690,7 +690,7 @@ function spaceNpcBike(bk){const S=spNpcGeos(),A=spAmb(),cols=TRON?[0x3ff0ff,0xff
  if(S.frame)put(bk.G,new T.Mesh(S.frame,S.dark));if(S.neon)put(bk.G,new T.Mesh(S.neon,nm));
  for(const W of[bk.wf,bk.wr]){for(const o of[...W.children])spHide(bk,o);if(S.wTire)put(W,new T.Mesh(S.wTire,S.dark));if(S.wNeon)put(W,new T.Mesh(S.wNeon,nm))}
  return bk}
-// changer de monde sans recharger : drapeaux, décor Space/Tron vidé, vélos du joueur et des PNJ changés, monde reconstruit autour du parcours
+// changer de monde sans recharger : drapeaux, décor Space/Néon vidé, vélos du joueur et des PNJ changés, monde reconstruit autour du parcours
 function spReset(){for(const o of[...SPG.children]){SPG.remove(o);o.traverse(m=>{if(m.geometry)m.geometry.dispose()})}
  if(typeof advReset==='function')advReset();Object.assign(SPC,{key:'',ch:[],flr:[],dec:null,sky:null,ships:[],vilW:-1,t0:0});SPC.trails.clear();if(SPC.mat){SPC.mat.dispose();SPC.mat=null}SPNB=null;SPG.visible=false}
 function worldSwitch(w){if(w===WORLDK)return;WORLDK=w;SET.world=w;ssave();
@@ -1376,7 +1376,7 @@ function crsMenu(){if(!CRS.list.length)return mod('Aucun parcours pour l\'instan
    mod(esc(c.name)+'<br><small>'+nf(c.km,1)+' km'+(c.dp?' · '+c.dp+' m D+':'')+'</small>',[...(CRS.cur&&CRS.cur.id===c.id?[['▶ Rouler',()=>nav('ride')]]:[['✓ Choisir ce parcours',()=>crsUse(c.id)]]),['🗑️ Supprimer',()=>mod('Supprimer « '+esc(c.name)+' » ?',[['Supprimer',()=>{crsDelete(c.id);say('Parcours supprimé')}],['Annuler',()=>{}]])],['Retour',crsMenu]])]),
   ['📂 Importer un GPX',()=>$('gf').click()],['✨ Créer un parcours',genCourseOpen],['Fermer',()=>{}]])}
 // ====================== parcours imaginaires : tracé inventé selon la distance et le dénivelé voulus ======================
-// placé en plein Atlantique (aucune vraie route, aucune donnée à télécharger) ; se roule dans les mondes Aventure, Space ou Tron
+// placé en plein Atlantique (aucune vraie route, aucune donnée à télécharger) ; se roule dans les mondes Aventure, Space ou Néon
 const GEN_LL=[14.5,-38];
 function crsGenerate(o){let sd=o.seed||((Date.now()%2147483000)+1);const r=()=>{sd=(sd*16807)%2147483647;return(sd-1)/2147483646};
  const L=o.km*1000,N=Math.max(60,Math.round(L/20)),xy=[];
@@ -1407,7 +1407,7 @@ function genCourseOpen(){const n=CRS.list.filter(c=>c.gen).length+1;
   '<label>Distance <input id="gnK" type="number" min="3" max="200" step="1" value="30" style="width:80px"> km</label>'+
   '<label>Dénivelé positif <input id="gnD" type="number" min="0" max="5000" step="50" value="500" style="width:90px"> m</label>'+
   '<label>Type <select id="gnL"><option value="1">🔁 Boucle</option><option value="0">➡️ Aller simple</option></select></label>'+
-  '<small style="color:var(--mut);line-height:1.4">Le tracé est inventé (en plein océan : aucune vraie route) et se roule dans le monde 🦖 Aventure (ou Space, Tron). La plus grande montée devient le volcan. Pente maxi : 14 % sur 100 m.</small></div>',
+  '<small style="color:var(--mut);line-height:1.4">Le tracé est inventé (en plein océan : aucune vraie route) et se roule dans le monde 🦖 Aventure (ou Space, Néon). La plus grande montée devient le volcan. Pente maxi : 14 % sur 100 m.</small></div>',
   [['✨ Créer et rouler',()=>{const km=clamp(+$('gnK').value||30,3,200),dp=clamp(+$('gnD').value||0,0,5000),loop=$('gnL').value==='1',name=($('gnN').value||'').trim().slice(0,40)||'Aventure '+n;
     const{c,lim}=crsGenerate({km,dp,loop,name});CRS.list.push(c);
     try{localStorage.v3crs=JSON.stringify(CRS.list);localStorage.v3cur=c.id}catch(e){CRS.list.pop();return say('Stockage plein : supprime un parcours dans « Mes parcours ».')}
@@ -3172,7 +3172,7 @@ function hDir(ph,th,T0,o,aero){const dx=Math.sin(ph)*Math.sin(th),dy=Math.cos(ph
  return o.set(HO.x+dx*r,HO.y+dy*r,HO.z+dz*r)}
 const hEdge=c=>c>=0?lerp(.13,.16,Math.pow(c,1.3)):lerp(.13,.098,Math.pow(-c,1.2));
 function hPm(th,T0,aero){const pt=V(),ye=hEdge(Math.cos(th));let a=0,b=2.7;for(let k=0;k<24;k++){const m=(a+b)/2;hDir(m,th,T0,pt,aero);if(pt.y>ye)a=m;else b=m}return a}
-// casque route aéro façon « Abus GameChanger » : coque lisse prolongée vers l'arrière puis tronquée (becquet), bandeau noir sur les côtés,
+// casque route aéro façon casque route aéro : coque lisse prolongée vers l'arrière puis tronquée (becquet), bandeau noir sur les côtés,
 // grandes ouïes latérales en nid d'abeille, entrées d'air avant, sorties d'air arrière à lamelles, logos, sangles en Y
 const hCut=y=>lerp(-.115,-.198,sm(.1,.215,y));// plan arrière : plus loin en haut (becquet qui déborde)
 function hShell(ph,th,T0,o,aero){hDir(ph,th,T0,o,aero);if(aero)return o;const bk=Math.max(0,-Math.cos(th))*Math.sin(ph);
@@ -3209,9 +3209,9 @@ function helmetParts(hm,hb,ha){const G=new T.Group(),T0=.019,NU=112,NJ=30;
     const p=(j*TW+i)*4;D[p]=D[p+1]=D[p+2]=255*c;D[p+3]=255;B[p]=B[p+1]=B[p+2]=b;B[p+3]=255}}
   gx.putImageData(im,0,0);gb2.putImageData(ib,0,0);vt.needsUpdate=true;bt.needsUpdate=true}(),-5,'helmvents');
  const S1=shell(false),S2=shell(true);S2.visible=false;G.add(S1,S2);G.userData.shell=S1;G.userData.tail=S2;G.userData.vtex=vt;
- // logos (décalcomanies) : ovale « ABUS » et « GAMECHANGER » sur les côtés, « ABUS » sur le becquet
+ // logos (décalcomanies) : ovale « VCT » et « AERO » sur les côtés, « VCT » sur le becquet
  const lk=mkCanvas(512,192),lg=lk.getContext('2d');lg.strokeStyle='#111';lg.lineWidth=12;lg.beginPath();lg.ellipse(256,72,210,56,0,0,6.2832);lg.stroke();
- lg.fillStyle='#111';lg.font='900 italic 86px "Arial Black",Arial';lg.textAlign='center';lg.textBaseline='middle';lg.fillText('ABUS',256,76);lg.font='italic 600 40px Arial';lg.fillText('GAMECHANGER',256,160);
+ lg.fillStyle='#111';lg.font='900 italic 86px "Arial Black",Arial';lg.textAlign='center';lg.textBaseline='middle';lg.fillText('VCT',256,76);lg.font='italic 600 40px Arial';lg.fillText('AERO',256,160);
  const lm=new T.MeshStandardMaterial({map:texOf(lk,true,false),transparent:true,roughness:.3,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
  const decal=(ph,th,w,h)=>{const pm=hPm(th,T0,false),a=hShell(pm*ph,th,T0,V(),false),b=hShell(pm*ph,th+.02,T0,V(),false),c=hShell(pm*(ph+.02),th,T0,V(),false),n=b.clone().sub(a).cross(c.clone().sub(a)).normalize();
   if(n.dot(a.clone().sub(HO))<0)n.negate();const m=new T.Mesh(new T.PlaneGeometry(w,h),lm);m.position.copy(a).addScaledVector(n,.0012);m.lookAt(a.clone().add(n));m.renderOrder=3;G.add(m)};
@@ -3541,7 +3541,7 @@ async function connect(){if(!navigator.bluetooth)return noBT();
   // reconnexion automatique (3 essais) si la liaison saute pendant une sortie
   d.addEventListener('gattserverdisconnected',trainerDisc(d));
   await setupTrainer(d);say('✅ Home trainer connecté : '+(d.name||'')+(cp?'':' (puissance seule)'));
- }catch(e){$('h1').textContent='Échec : '+e.message;if(!/cancel|annul/i.test(e.message+''))mod('<h3>⚠️ Home trainer non connecté</h3><p style="text-align:left;line-height:1.45">'+esc(e.message)+'<br><br>Vérifie que :<br>• le home trainer est allumé (pédale quelques tours pour le réveiller) ;<br>• il n\'est <b>pas déjà connecté à une autre appli</b> (Zwift, MyWhoosh, appli du fabricant, téléphone…) : ferme-la ;<br>• le Bluetooth et la localisation de la tablette sont activés.<br><br>Sans home trainer, l\'appli roule en <b>mode démo</b> avec la puissance du curseur « Watts démo ».</p>',[['OK',()=>{}]])}}
+ }catch(e){$('h1').textContent='Échec : '+e.message;if(!/cancel|annul/i.test(e.message+''))mod('<h3>⚠️ Home trainer non connecté</h3><p style="text-align:left;line-height:1.45">'+esc(e.message)+'<br><br>Vérifie que :<br>• le home trainer est allumé (pédale quelques tours pour le réveiller) ;<br>• il n\'est <b>pas déjà connecté à une autre appli</b> (autre simulateur, appli du fabricant, téléphone…) : ferme-la ;<br>• le Bluetooth et la localisation de la tablette sont activés.<br><br>Sans home trainer, l\'appli roule en <b>mode démo</b> avec la puissance du curseur « Watts démo ».</p>',[['OK',()=>{}]])}}
 // mode démo : bandeau visible et avertissement au départ si aucun home trainer n'est connecté ; alerte si le home trainer n'envoie plus rien
 function demoBar(){let b=$('demob');if(!b){b=document.createElement('div');b.id='demob';b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom,0px));z-index:60;background:#b45309;color:#fff;font:600 13px system-ui;padding:5px 12px;border-radius:14px;cursor:pointer;box-shadow:0 2px 8px #0006;display:none';b.onclick=connect;document.body.appendChild(b)}
  const on=!conn&&(mode==='ride'||mode==='wk');b.style.display=on?'block':'none';if(on)b.textContent='⚠️ Mode démo · '+(+$('dem').value)+' W — touche ici pour appairer le home trainer'}
@@ -3590,7 +3590,7 @@ addEventListener('resize',()=>requestAnimationFrame(fitScr));if(window.visualVie
 // liste : créateur automatique, séances prédéfinies, puis séances gardées (★)
 const WKALL=()=>WK.concat((GS.myw||[]).map(m=>({n:m.n,d:m.d,b:()=>m.bl,my:1})));
 function listWk(){const L=WKALL(),nx=tplanNext(),TP=GS.tplan&&TPLANS.find(t=>t.id===GS.tplan.id);$('wl').innerHTML='<button class="wc" data-i="p" style="--i:0;border-color:#2bd4ff"><b>📅 Plan d\'entraînement</b><em>'+(TP?esc(TP.n):'plusieurs semaines')+'</em><span style="font-size:12px;color:var(--mut)">'+(nx?'Séance suivante : semaine '+(nx.w+1)+' · '+esc(GOALS.find(g=>g[0]===nx.g)[2])+' · '+nx.min+' min':TP?'Plan terminé 🏆':'FTP, fond, perte de poids, sprint, remise en forme')+'</span></button>'+
-  '<button class="wc" data-i="g" style="--i:0;border-color:var(--ac)"><b>✨ Créer ma séance</b><em>automatique</em><span style="font-size:12px;color:var(--mut)">Objectif (dont régime Dukan) + durée : la séance se construit toute seule</span></button>'+
+  '<button class="wc" data-i="g" style="--i:0;border-color:var(--ac)"><b>✨ Créer ma séance</b><em>automatique</em><span style="font-size:12px;color:var(--mut)">Objectif (dont régime brûle-graisses) + durée : la séance se construit toute seule</span></button>'+
   L.map((w,i)=>'<button class="wc" data-i="'+i+'" style="--i:'+(i+1)+'"><b>'+(w.my?'★ ':'')+w.n+'</b><em>'+(w.ramp?'~20':Math.round(w.b().reduce((a,x)=>a+x[0],0)/60))+' min</em>'+bars(w,40)+'</button>').join('');
  $('wl').querySelectorAll('.wc').forEach(el=>el.onclick=()=>el.dataset.i==='g'?genOpen():el.dataset.i==='p'?(tplanRender(),showScr('s-tpl')):pickWk(+el.dataset.i))}
 function pickWk(i){const w=WKALL()[i];document.querySelectorAll('.wc').forEach(e=>e.classList.add(e.dataset.i===String(i)?'pick':'out'));
@@ -3707,7 +3707,7 @@ function profCourse(x,w,h,now){cpfBuild(now);const ps=cpfPos();if(!ps||CPF.n<3)r
 function prof(){const wkc=mode==='wk'&&!!wk&&!!COURSE&&!(typeof VEL!=='undefined'&&VEL.on);if(document.body.classList.contains('wkc')!==wkc){document.body.classList.toggle('wkc',wkc);rs()}
  const x=pf.getContext('2d'),w=pf.width,h=pf.height;if(!w||!h)return;x.clearRect(0,0,w,h);{const z=$('pfz'),lab=SET.profAll?'⤡ Section':'⤢ Entier';z.style.display=mode==='wk'||!COURSE?'none':'';if(z.textContent!==lab)z.textContent=lab}
  if(mode==='wk'&&wk){const mx=Math.max(1.2,...wk.bl.map(b=>Math.max(b[1],b[2])));
-  // séance sur un parcours : profil du parcours en haut, blocs de la séance en bas (comme Rouvy)
+  // séance sur un parcours : profil du parcours en haut, blocs de la séance en bas (style appli de course)
   let h0=0;const dpr=devicePixelRatio;if(COURSE&&COURSE.edges&&!(typeof VEL!=='undefined'&&VEL.on)){const hp=Math.round(h*.56);if(profCourse(x,w,hp,performance.now())){h0=hp+2*dpr;x.fillStyle='rgba(255,255,255,.15)';x.fillRect(0,hp,w,dpr)}}
   const hb=h-h0;for(let p=0;p<w;p+=3){const B=blk(p/w*WT);if(!B)break;const f=B[2],hh=f/mx*(hb-4);x.fillStyle=ZN[zi(f)][1];x.fillRect(p,h-hh,3,hh)}x.fillStyle='#fff';x.fillRect(Math.min(w-4,wt/WT*w),h0,4,hb);
   if(h0){const B=blk(wt);if(B){const i=B[0],nb=wk.bl[i+1],tl=B[1],fm=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');x.font='700 '+(10.5*dpr)+'px system-ui';x.fillStyle='#fff';x.textAlign='left';
@@ -3819,8 +3819,8 @@ function sesStop(wkn){if(!SES.on)return null;progTick();SES.on=false;if(SES.el<6
  GS.hist.push(h);if(GS.hist.length>400)GS.hist.shift();progTick();gsave();return h}
 function sesHTML(h){return '<div style="font-size:13.5px;line-height:1.55;margin:6px 0 10px">'+nf(h.km,1)+' km · '+fmt(h.el)+' · '+h.ap+' W moy. · D+ '+h.asc+' m<br><b style="font:700 20px var(--num);color:#ff9a3c">🔥 '+nf(h.kcal)+' kcal</b>'+
  (h.rew.length?'<div style="font-size:12px;color:var(--mut);margin-top:6px;max-height:30vh;overflow:auto">'+h.rew.join('<br>')+'</div>':'')+'</div>'}
-// ---- « Ride On » des autres cyclistes quand on se double ----
-function rideOn(n){const now=performance.now();if(now-(rideOn.t||0)<40000||Math.random()>.4)return;rideOn.t=now;GS.pts+=5;say('👍 '+n.name+' te fait un « Ride On » ! +5 pts')}
+// ---- « Courage » des autres cyclistes quand on se double ----
+function rideOn(n){const now=performance.now();if(now-(rideOn.t||0)<40000||Math.random()>.4)return;rideOn.t=now;GS.pts+=5;say('👍 '+n.name+' te fait un « Courage » ! +5 pts')}
 // ---- écran Suivi ----
 function weekChart(c){if(!c)return;const W=c.width=c.clientWidth*devicePixelRatio,Hh=c.height=c.clientHeight*devicePixelRatio,g=c.getContext('2d'),wk=[];
  for(let k=7;k>=0;k--){const key=weekKey(Date.now()-k*7*864e5);wk.push(Object.assign({k:key},weekStats(key)))}
@@ -3843,7 +3843,7 @@ function suiviRender(){progTick(true);const L=lvlOf(GS.xp),a=lvlXP(L),b=lvlXP(L+
   '<div class="row" style="margin-top:6px;align-items:center;font-size:12.5px;flex-wrap:wrap"><label>Objectif <input id="gok" type="number" min="10" max="3000" value="'+GS.goal.km+'"> km</label><label><input id="goc" type="number" min="200" max="50000" step="100" value="'+GS.goal.kcal+'"> kcal</label></div></div>';
  o+='<div class="hw" style="display:block"><b>Totaux</b><small>🚴 '+nf(GS.km,1)+' km · 🔥 '+nf(GS.kcal)+' kcal (≈ '+nf(GS.kcal/FAT_KCAL,1)+' kg de graisse en équivalent énergie) · ⛰️ '+nf(GS.asc)+' m D+ · 🏋️ '+GS.wk+' séances · ⚡ '+GS.spr+' sprints réussis</small>'+
   '<canvas id="sgc" style="width:100%;height:120px;display:block;margin-top:8px"></canvas><small>8 dernières semaines : km (jaune), kcal (orange), objectif km (pointillés)</small></div>';
- o+='<div class="hw" style="display:block"><b>⚖️ Suivi du poids (régime Dukan)</b><small>'+(wl.length?'Dernière pesée : '+nf(w1.kg,1)+' kg'+(wl.length>1?' · '+(w1.kg-w0.kg>0?'+':'')+nf(w1.kg-w0.kg,1)+' kg depuis le '+new Date(w0.t).toLocaleDateString('fr-FR'):''):'Note ton poids le matin, à jeun, pour suivre ta perte de poids.')+'</small>'+
+ o+='<div class="hw" style="display:block"><b>⚖️ Suivi du poids (régime brûle-graisses)</b><small>'+(wl.length?'Dernière pesée : '+nf(w1.kg,1)+' kg'+(wl.length>1?' · '+(w1.kg-w0.kg>0?'+':'')+nf(w1.kg-w0.kg,1)+' kg depuis le '+new Date(w0.t).toLocaleDateString('fr-FR'):''):'Note ton poids le matin, à jeun, pour suivre ta perte de poids.')+'</small>'+
   (wl.length>1?'<canvas id="swc" style="width:100%;height:90px;display:block;margin-top:6px"></canvas>':'')+
   '<div class="row" style="margin-top:6px;align-items:center;flex-wrap:wrap"><label>Poids du jour <input id="wkg" type="number" step="0.1" min="35" max="250" value="'+(w1?w1.kg:'')+'"> kg</label><button id="wks" style="flex:0 0 auto">Enregistrer</button></div></div>';
  o+=suiviExtra();
@@ -3872,11 +3872,11 @@ const GOALS=[
  ['velo','🌀','Vélocité','Haute cadence pour un coup de pédale rond et souple.'],
  ['pyr','🔺','Pyramide','Paliers de 1 à 4 min qui montent puis redescendent.'],
  ['recup','🛋️','Récupération','Très facile, pour récupérer activement.'],
- ['dukan','🥩','Régime Dukan','Brûle-graisses : longue zone 2 adaptée à un régime pauvre en glucides, pour accélérer la perte de poids.']];
+ ['dukan','🥩','Régime brûle-graisses','Brûle-graisses : longue zone 2 adaptée à un régime pauvre en glucides, pour accélérer la perte de poids.']];
 const DPH=[['att','Attaque'],['cro','Croisière'],['con','Consolidation'],['sta','Stabilisation']];
 const GEN={g:'ss',g2:'',min:60,lvl:1,seed:1,ph:'cro',w:null};
 // séance = liste de blocs [durée s, % FTP début, % FTP fin, consigne]
-// g2 (facultatif) : second travail combiné ; avec le régime Dukan, il se place au milieu d'une base « brûle-graisses »
+// g2 (facultatif) : second travail combiné ; avec le régime brûle-graisses, il se place au milieu d'une base « brûle-graisses »
 function genWorkout(g,min,lvl,seed,ph,g2){if(g2===g)g2='';if(g2==='dukan'){g2=g;g='dukan'}if(g==='dukan'&&ph==='att')min=Math.min(min,45);
  const r=rng(seed*7919+min*31+lvl*7+g.length*131+(g2||'').length*17),T=min*60,L0=[.95,1,1.04][lvl],B=[],tx=[],pc=x=>Math.round(x*100)+' %',W=x=>Math.round(x*FTP)+' W',pk=a=>a[Math.min(a.length-1,Math.floor(r()*a.length))];
  let L=L0;const add=(d,a,b,h)=>{d=Math.round(d);if(d>=5)B.push([d,+a.toFixed(3),+(b==null?a:b).toFixed(3),h||''])};
@@ -3952,7 +3952,7 @@ const KITS=[
  {id:'gre',n:'Vallée',c1:'#2e7d32',c2:'#f4f5f7',ac:'#ffd23f',st:2,t1:'VALLEY',t2:'VCT'},
  {id:'cha',n:'Sommet',c1:'#6d1f8f',c2:'#e9ddf5',ac:'#ff7043',st:3,t1:'SUMMIT',t2:'VCT'},
  {id:'nui',n:'Nuit néon',c1:'#16171b',c2:'#ff3d7f',ac:'#2bd4ff',st:4,t1:'NIGHT RIDE',t2:'VCT'},
- {id:'feu',n:'Brûleur',c1:'#ff6a00',c2:'#3a0d00',ac:'#ffd23f',st:1,t1:'BRÛLEUR',t2:'TEAM DUKAN',lock:['kcal',10000]},
+ {id:'feu',n:'Brûleur',c1:'#ff6a00',c2:'#3a0d00',ac:'#ffd23f',st:1,t1:'BRÛLEUR',t2:'TEAM MINCEUR',lock:['kcal',10000]},
  {id:'poi',n:'Grimpeur à pois',c1:'#ffffff',c2:'#d7263d',ac:'#d7263d',st:5,t1:'GRIMPEUR',t2:'BELLEDONNE',lock:['asc',5000]},
  {id:'ver',n:'Maillot vert',c1:'#2fa84f',c2:'#0f3d1d',ac:'#ffffff',st:6,t1:'SPRINTEUR',t2:'PANCARTES',lock:['spr',10]},
  {id:'jau',n:'Maillot jaune',c1:'#ffd200',c2:'#ffd200',ac:'#111114',st:6,t1:'LEADER',t2:'VCT',lock:['km',1000]},
@@ -4295,9 +4295,9 @@ function ldgTick(now){const el=$('ldg');if(!el)return ldgHide();const el2=(now-L
  if(pr>.97){if(!LDG.done)LDG.done=now;else if(now-LDG.done>600)ldgHide()}else LDG.done=0;if(el2>30)ldgHide()}
 function ldgHide(){LDG.on=false;const el=$('ldg');if(!el)return;el.classList.remove('on');setTimeout(()=>{if(!LDG.on)el.style.display='none'},460)}
 // changer de monde : sans recharger (worldSwitch)
-function worldSet(w){if(w===WORLDK)return;if(CRS.cur&&CRS.cur.gen&&(w==='real'||w==='mont'))return say('✨ Parcours imaginaire : il n\'existe pas sur une vraie carte. Choisis Aventure, Space ou Tron.');worldSwitch(w);say({real:'🌍 Mode réaliste',mont:'🏔️ Montagne stylisée',adv:'🦖 Monde Aventure',space:'🚀 Mode Space',tron:'🟦 Mode Tron'}[w]+' : monde en préparation…');homeRender()}
+function worldSet(w){if(w===WORLDK)return;if(CRS.cur&&CRS.cur.gen&&(w==='real'||w==='mont'))return say('✨ Parcours imaginaire : il n\'existe pas sur une vraie carte. Choisis Aventure, Space ou Néon.');worldSwitch(w);say({real:'🌍 Mode réaliste',mont:'🏔️ Montagne stylisée',adv:'🦖 Monde Aventure',space:'🚀 Mode Space',tron:'🟦 Mode Néon'}[w]+' : monde en préparation…');homeRender()}
 function homeRender(){homeHeader();const sm=$('s-main'),c=CRS.cur,w=weekStats(),wp=Math.min(100,w.km/(GS.goal.km||1)*100);
- const hero=c?'<div class="hero"><div class="k">PROCHAINE SORTIE</div><div class="t">'+esc(c.name)+'</div><div class="s"><span>📏 '+nf(c.km,1)+' km</span><span id="hdp">⛰️ '+nf(c.dp||0)+' m D+</span><span>'+(COURSE&&COURSE.loop?'🔁 Boucle':'➡️ Aller simple')+'</span></div><canvas id="hpf"></canvas><div class="chips wsel" id="hwd">'+[['real','🌍 Réaliste'],['mont','🏔️ Montagne'],['adv','🦖 Aventure'],['space','🚀 Space'],['tron','🟦 Tron']].map(([k,t])=>'<button data-w="'+k+'"'+(WORLDK===k?' class="on"':'')+'>'+t+'</button>').join('')+'</div>'+(SPACE.on&&!TRON&&!ADV?'<div class="chips wsel" id="hamb">'+Object.entries(SPAMB).filter(([k])=>k!=='tron').map(([k,a])=>'<button data-a="'+k+'"'+((SET.spAmb||'neb')===k?' class="on"':'')+'>'+a.n+'</button>').join('')+'</div>':'')+'<div class="b"><button class="cta" id="hgo">▶ ROULER</button><button class="ghost" id="h3d" title="Vue 3D du parcours">🧭 3D</button><button class="ghost" id="hch" title="Changer de parcours">⇄</button></div></div>'
+ const hero=c?'<div class="hero"><div class="k">PROCHAINE SORTIE</div><div class="t">'+esc(c.name)+'</div><div class="s"><span>📏 '+nf(c.km,1)+' km</span><span id="hdp">⛰️ '+nf(c.dp||0)+' m D+</span><span>'+(COURSE&&COURSE.loop?'🔁 Boucle':'➡️ Aller simple')+'</span></div><canvas id="hpf"></canvas><div class="chips wsel" id="hwd">'+[['real','🌍 Réaliste'],['mont','🏔️ Montagne'],['adv','🦖 Aventure'],['space','🚀 Space'],['tron','🟦 Néon']].map(([k,t])=>'<button data-w="'+k+'"'+(WORLDK===k?' class="on"':'')+'>'+t+'</button>').join('')+'</div>'+(SPACE.on&&!TRON&&!ADV?'<div class="chips wsel" id="hamb">'+Object.entries(SPAMB).filter(([k])=>k!=='tron').map(([k,a])=>'<button data-a="'+k+'"'+((SET.spAmb||'neb')===k?' class="on"':'')+'>'+a.n+'</button>').join('')+'</div>':'')+'<div class="b"><button class="cta" id="hgo">▶ ROULER</button><button class="ghost" id="h3d" title="Vue 3D du parcours">🧭 3D</button><button class="ghost" id="hch" title="Changer de parcours">⇄</button></div></div>'
   :'<div class="hero"><div class="k">BIENVENUE</div><div class="t">Roule sur tes propres routes</div><span style="color:#c9d3de;font-size:13px;line-height:1.4">Importe un fichier GPX de n\'importe quel endroit du monde : l\'appli le reproduit en 3D, avec le relief, les photos aériennes et les bâtiments.</span><div class="b"><button class="cta" id="himp">📂 IMPORTER UN GPX</button><button class="ghost" id="hgen" title="Créer un parcours imaginaire">✨ Créer</button><button class="ghost" id="hvel" title="Vélodrome">🏟️</button></div></div>';
  const sub={crs:CRS.list.length?CRS.list.length+' parcours importé'+(CRS.list.length>1?'s':''):'Aucun parcours pour l\'instant',sui:'Cette semaine : '+nf(w.km,1)+' / '+nf(GS.goal.km)+' km'};
  sm.innerHTML='<div class="hm">'+hero+'<div class="tiles">'+HTILES.map((t,i)=>{const cc=CCOL[t[4]];return '<button class="card" data-h="'+t[0]+'" style="--i:'+i+';--cc:'+cc[0]+';--cc2:'+cc[1]+'"><i class="ic">'+t[1]+'</i><b>'+t[2]+'</b><span>'+(t[3]||sub[t[0]])+'</span>'+(t[0]==='sui'?'<div class="prog"><i style="width:'+wp.toFixed(0)+'%"></i></div>':'')+'</button>'}).join('')+'</div></div>';
@@ -4397,7 +4397,7 @@ function todApply(){skT=-1e9;const el=$('todsel');if(el)el.value=SET.tod||'real'
 const LEDTX=(()=>{const k=mkCanvas(128,16),g=k.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,128,16);for(let i=0;i<8;i++){const gr=g.createRadialGradient(i*16+8,8,0,i*16+8,8,8);gr.addColorStop(0,'#fff');gr.addColorStop(.4,i%2?'#ffd23f':'#ffffff');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(i*16,0,16,16)}
  const t=texOf(k,true,true);t.repeat.set(8,1);return t})();
 // arche lumineuse : piliers et bandeau qui brillent (matériaux non éclairés), guirlandes de LED animées
-// arches néon dans tous les mondes (Préférences : « classiques » pour revenir aux piliers et bandeaux LED hors Space / Tron)
+// arches néon dans tous les mondes (Préférences : « classiques » pour revenir aux piliers et bandeaux LED hors Space / Néon)
 function lightArch(x,y,z,yaw,kind,title,sub){if(SPACE.on||SET.arch!=='led')return spArch(x,y,z,yaw,kind,title,sub);const G=new T.Group();G.position.set(x,y,z);G.rotation.y=yaw;
  const C={start:['#0d7a3a','#22c55e','#eaffef'],end:['#8a1020','#e11d48','#fff1f2'],kom:['#ffffff','#d7263d','#d7263d'],komEnd:['#ffffff','#d7263d','#d7263d']}[kind];
  const k=mkCanvas(1024,160),g=k.getContext('2d');
@@ -4601,7 +4601,7 @@ const TPLANS=[
   wk:i=>i<3?[['ss',i?1:0,1],['end',1,1.2],['tempo',1,1],['ss',1,.9],['end',0,1]]:i<7?[['seuil',1,1],['end',1,1.2],['vo2',i>5?2:1,.9],['ss',2,1],['end',0,1]]:[['seuil',1,.9],['end',0,1],['vo2',1,.8],['recup',0,.7],['end',0,.8]]},
  {id:'fond',n:'Endurance et fond',w:6,d:'Construire l\'endurance : longues sorties en zone 2, un peu de tempo et de vélocité.',
   wk:i=>[['end',1,1.3],['tempo',1,1],['velo',1,.8],['end',1,1.1],['end',0,1]]},
- {id:'dukan',n:'Perte de poids (régime Dukan)',w:8,d:'Beaucoup de brûle-graisses, de la force pour garder le muscle, intensité modérée adaptée au régime.',
+ {id:'dukan',n:'Perte de poids (régime brûle-graisses)',w:8,d:'Beaucoup de brûle-graisses, de la force pour garder le muscle, intensité modérée adaptée au régime.',
   wk:i=>[['dukan',1,1.1],['dukan',1,1,'force'],['dukan',1,1.2],['end',0,1],['dukan',0,1,'velo']]},
  {id:'sprint',n:'Puissance et sprint',w:6,d:'Sprints, 30/30 et force pour gagner en explosivité, sur une base d\'endurance.',
   wk:i=>[['spr',1,.9],['end',1,1.1],['ana',i>2?2:1,.9],['force',1,1],['end',0,1]]},
@@ -4997,7 +4997,7 @@ function velMerge(gs){const P=[],N=[],I=[];let o=0;for(const g of gs){const gg=g
   const ix=gg.index.array;for(let i=0;i<ix.length;i++)I.push(ix[i]+o);o+=p.count}
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('normal',new T.Float32BufferAttribute(N,3));g.setIndex(I);return g}
 // ---------- entrée / sortie ----------
-// vélodrome habillé selon le monde : Space (piste de verre, ouvert sur la nébuleuse), Tron (piste noire, néons cyan / orange, grille),
+// vélodrome habillé selon le monde : Space (piste de verre, ouvert sur la nébuleuse), Néon (piste noire, néons cyan / orange, grille),
 // Montagne (en plein air au milieu de montagnes stylisées) ; lignes, chrono, lumière de rythme et records inchangés
 function velTheme(){if(!VEL.built)return;const th=SPACE.on?(TRON?'tron':ADV?'mont':'space'):MONT?'mont':'real';if(VEL.th===th)return;VEL.th=th;
  if(!VEL.vth){VEL.vth=new T.Group();VELG.add(VEL.vth)}const G=VEL.vth;for(const o of[...G.children]){G.remove(o);o.traverse(m=>{if(m.geometry)m.geometry.dispose()})}VEL.vsky=null;
@@ -5432,7 +5432,7 @@ function npcTick(dt,now,riderSprinting){if(!NET.ready||!NPCS.length)return;
   if(ah&&ah.d<.7&&Math.abs(n.tlat-1.3)<.2&&n.v>(ah.o===RW?RW.v:ah.o.v))n.v=ah.o===RW?RW.v:ah.o.v;
   n.P=P0;n.lat+=(n.tlat-n.lat)*Math.min(1,dt*1.4);
   advance(n.st,n.v*dt,(s2,o)=>npcChoose(n,s2,o));
-  // « Ride On » quand on se double
+  // « Courage » quand on se double
   if(mode==='ride'||mode==='wk'){const al=(n.x-RW.x)*RW.tx+(n.z-RW.z)*RW.tz,lt=Math.abs((n.x-RW.x)*-RW.tz+(n.z-RW.z)*RW.tx);if(lt<3.5&&n.al!=null&&(al>0)!==(n.al>0)&&!n.onc&&RW.v>2)rideOn(n);n.al=lt<12?al:null}
   // rendu
   const d=Math.hypot(n.x-cam.position.x,n.z-cam.position.z),vis=d<450;n.R.visible=vis;if(!vis)continue;
@@ -5856,11 +5856,11 @@ async function startWorld(){const id=++WID;resetWorld();if(!NOVEG&&!TREEG.b)init
  ldSet('dem','Relief SRTM…',0);ldSet('ph','Photos aériennes IGN…',0);ldSet('dat','Bâtiments & forêts…',0);
  // relief : z12 sur la zone moyenne, puis z10 (lointain) et z8 (horizon, jusqu'au Mont-Blanc)
  const dz=async(z,Rg,maxT)=>{const[s2,w,n,e]=llOf(Rg);return loadDEMLevel(z,s2,w,n,e,maxT,(ok,tot)=>{if(id===WID&&z===12)ldSet('dem','Relief '+Math.round(ok/tot*100)+' %',0)})};
- if(CRS.cur&&CRS.cur.gen){DEMOK=true;courseClimbs();ldSet('dem','Parcours imaginaire : altitudes du tracé',1);ldSet('vil','Monde '+(ADV?'Aventure':TRON?'Tron':'Space'),1);const at=$('att');if(at)at.textContent='Parcours imaginaire · '+(ADV?'Monde Aventure':TRON?'Mode Tron':'Mode Space');return}
+ if(CRS.cur&&CRS.cur.gen){DEMOK=true;courseClimbs();ldSet('dem','Parcours imaginaire : altitudes du tracé',1);ldSet('vil','Monde '+(ADV?'Aventure':TRON?'Néon':'Space'),1);const at=$('att');if(at)at.textContent='Parcours imaginaire · '+(ADV?'Monde Aventure':TRON?'Mode Néon':'Mode Space');return}
  let ok12=false;try{const L=await dz(12,{x0:REG.mid.x0-1500,x1:REG.mid.x1+1500,z0:REG.mid.z0-1500,z1:REG.mid.z1+1500},160);if(id!==WID)return;DEMS.push(L);ok12=true}catch(e){console.warn('MNT z12',e)}
  if(ok12){finishTrack(groundDem);buildCoarse();DEMOK=true;waterInvalidate();courseClimbs();ldSet('dem','Relief réel (SRTM 30 m)',0)}else ldSet('dem','Relief simulé (hors ligne)',-1);
  terrInvalidate();roadInvalidate();bldInvalidate();vegInvalidate();
- if(SPACE.on){ldSet('vil',ADV?'Monde Aventure':TRON?'Mode Tron':'Mode Space',1);const at=$('att');if(at)at.textContent='Parcours : ton GPX · Altitudes © AWS Terrain Tiles (SRTM) · '+(ADV?'Monde Aventure':TRON?'Mode Tron':'Mode Space');return}
+ if(SPACE.on){ldSet('vil',ADV?'Monde Aventure':TRON?'Mode Néon':'Mode Space',1);const at=$('att');if(at)at.textContent='Parcours : ton GPX · Altitudes © AWS Terrain Tiles (SRTM) · '+(ADV?'Monde Aventure':TRON?'Mode Néon':'Mode Space');return}
  PHOTO.dead=MONT;if(!MONT){PHOTO.fail=0;PHOTO.ok=0}{const at=$('att');if(at)at.textContent=MONT?'Parcours : ton GPX · Relief © AWS Terrain Tiles (SRTM) · Montagne stylisée':ATT0}
  job(procMosaic(MOS_RING,4),9000,'pr');job(procMosaic(MOS_FAR,4),8500,'pf');job(procMosaic(MOS_MID,4),8000,'pm');
  loadMosaicPhotos(MOS_MID,'ph');loadMosaicPhotos(MOS_FAR,null);loadMosaicPhotos(MOS_RING,null);

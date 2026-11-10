@@ -526,3 +526,9 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 - Il teste dans **Chrome** (Web Bluetooth). Le rendu doit fonctionner sur ordinateur et sur smartphone, en portrait comme en paysage.
 - Prévenir clairement de ce qui n'a pas pu être testé.
 - **Modifier `Index.html` par remplacements ciblés.** Ne jamais lire ni réécrire en entier les lignes de three.js, `TRK` et `NETD`. Utiliser la recherche (grep) sur les en-têtes de section.
+
+---
+
+## 7. Marques retirées (10 novembre 2026, demande de Cyril : éviter tout blocage)
+
+Textes visibles renommés dans `Index.html` (les identifiants du code, comme `TRON`, `'tron'`, `'dukan'`, restent) : monde **Tron → Néon** ; **régime Dukan → régime brûle-graisses** (maillot « TEAM MINCEUR ») ; **« Ride On » → « Courage »** ; logos du casque **ABUS / GAMECHANGER → VCT / AERO** ; plus aucun Zwift, MyWhoosh ni Rouvy dans l'appli. Gardés car fonctionnels ou obligatoires : **Strava** (envoi des sorties), filtres Bluetooth **CYCPLUS** (reconnaissance du home trainer), crédits IGN / OpenStreetMap / ArcGIS / EOX / AWS / Quaternius. Copie publiable : dossier `vct-app` (appli installable PWA : `index.html`, `manifest.webmanifest`, `sw.js`, icônes) ; le dépôt Zwift lui-même doit rester privé et garder un autre nom que celui de la copie publique.
