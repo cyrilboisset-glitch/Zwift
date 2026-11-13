@@ -95,7 +95,7 @@ body.hm #map{display:none}
 #gm{max-width:calc(100% - 140px)}
 @media(max-width:480px){.m b{font-size:19px}.m i{margin:0 6px 0 2px;font-size:10px}#hud{padding:5px 9px}#gm{top:calc(70px + var(--sa))}}
 
-#res{max-width:94vw;z-index:30}
+#res{max-width:94vw;z-index:30}#toast{z-index:250}
 /* grande carte, bandeau de récompense, écrans Suivi / Créateur / Vestiaire */
 #map{pointer-events:auto;cursor:pointer;z-index:6}
 #bmap{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(96vw,96vh);height:min(96vw,96vh);display:none;z-index:14;cursor:pointer;touch-action:none}
@@ -270,6 +270,7 @@ button.back{width:40px;height:40px;padding:0;border-radius:50%;font-size:18px;di
   <div id="s-hw" class="scr"><div class="bar"><button class="back" data-b="s-main">←</button><b>Matériel</b></div>
    <div class="hw"><div><b>Home trainer</b><small id="h1">Non connecté</small></div><button id="bC">Appairer</button></div>
    <div class="hw"><div><b>Ceinture cardio</b><small id="h2">Non connectée</small></div><button id="bHR">Appairer</button></div>
+   <button id="bHT" class="on" style="width:100%;margin:10px 0 8px">🧪 Tester mon matériel (≈ 3 min)</button>
    <small>Chrome ou Edge requis (Web Bluetooth). Ferme les autres applis (appli du fabricant…) avant d'appairer.</small></div>
  </div>
 </div>
@@ -3570,17 +3571,17 @@ let CADOK=false,CADR=false,cadWarn=0;
 function cadReal(dt,riding,P){CADR=conn&&riding&&CADOK;if(conn&&riding&&!CADOK&&P>30&&cadWarn<1e9&&(cadWarn+=dt)>20){cadWarn=1e9;say("ℹ️ Ton home trainer n'envoie pas la cadence : l'avatar pédale à une cadence estimée.")}return CADR}
 const erg=w=>{if(PRNG)w=clamp(w,Math.max(0,PRNG[0]),PRNG[1]);w=Math.max(0,Math.round(w));ergT=w;wcp([5,w&255,(w>>8)&255])};
 // réponses du point de contrôle : contrôle perdu → on le redemande et on renvoie la dernière consigne
-function onCP(e){const d=e.target.value;if(d.byteLength<3||d.getUint8(0)!==0x80)return;const op=d.getUint8(1),res=d.getUint8(2);if(res===1){CPERR=0;return}
+function onCP(e){const d=e.target.value;if(d.byteLength<3||d.getUint8(0)!==0x80)return;const op=d.getUint8(1),res=d.getUint8(2);CPR[op]=res;if(res===1){CPERR=0;return}
  if(res===5&&CPERR<3){CPERR++;wcp([0]);setTimeout(()=>{if(op===5&&ergT)erg(ergT);else if(op===17)sim(lastG===9?0:lastG,RDRAFT)},400);return}
  if(op===5||op===17)say('Home trainer : commande '+(op===5?'ERG':'de pente')+' refusée (code '+res+')')}
 // données du home trainer (Indoor Bike Data 0x2AD2) : vitesse, cadence, puissance, et cardio s'il en transmet un
-function onIB(e){IBT=performance.now();const d=e.target.value,f=d.getUint16(0,true);let o=2;
+function onIB(e){IBT=performance.now();IBN++;const d=e.target.value,f=d.getUint16(0,true);let o=2;
  if(!(f&1))o+=2;if(f&2)o+=2;if(f&4){cad=d.getUint16(o,true)/2;CADOK=true;o+=2}if(f&8)o+=2;if(f&16)o+=3;if(f&32)o+=2;if(f&64){pw=Math.max(0,d.getInt16(o,true));o+=2}
- if(f&128)o+=2;if(f&256)o+=5;if(f&512&&o<d.byteLength){const h=d.getUint8(o);if(!HRBELT&&h>0)hr=h}}
+ if(f&128)o+=2;if(f&256)o+=5;if(f&512&&o<d.byteLength){const h=d.getUint8(o);if(!HRBELT&&h>0){hr=h;HRN++}}}
 const noBT=()=>{say('Web Bluetooth indisponible : ouvre ce fichier dans Chrome ou Edge (ordinateur) ou Chrome Android.')};
 // liaison au home trainer : FTMS (puissance, cadence et commande de résistance) ; sinon service « Cycling Power » 0x1818 (puissance et cadence seules, sans résistance)
-let IBT=0,CPS=null,TRW=0;
-function onCPM(e){IBT=performance.now();const d=e.target.value,f=d.getUint16(0,true);pw=Math.max(0,d.getInt16(2,true));let o=4;if(f&1)o+=1;if(f&4)o+=2;if(f&16)o+=6;
+let IBT=0,CPS=null,TRW=0,IBN=0,HRN=0;const CPR={};// IBN/HRN : messages reçus, CPR : dernière réponse du home trainer par commande (test du matériel)
+function onCPM(e){IBT=performance.now();IBN++;const d=e.target.value,f=d.getUint16(0,true);pw=Math.max(0,d.getInt16(2,true));let o=4;if(f&1)o+=1;if(f&4)o+=2;if(f&16)o+=6;
  if(f&32&&o+4<=d.byteLength){const cr=d.getUint16(o,true),ct=d.getUint16(o+2,true),now=performance.now();
   if(CPS.cr!=null){const dr=(cr-CPS.cr+65536)%65536,dtt=((ct-CPS.ct+65536)%65536)/1024;if(dr>0&&dtt>0){cad=Math.min(200,dr/dtt*60);CADOK=true;CPS.t=now}else if(now-CPS.t>2500)cad=0}
   if(CPS.cr==null||cr!==CPS.cr){CPS.cr=cr;CPS.ct=ct}}}
@@ -3614,9 +3615,93 @@ async function connectHR(){if(!navigator.bluetooth)return noBT();
  try{$('h2').textContent='Recherche…';const d=await navigator.bluetooth.requestDevice({filters:[{services:[0x180d]}]});
   d.addEventListener('gattserverdisconnected',()=>{hr=0;HRBELT=false;$('bHR').classList.remove('on');$('bHR').textContent='Appairer';$('h2').textContent='Déconnectée'});
   const sv=await(await d.gatt.connect()).getPrimaryService(0x180d),ch=await sv.getCharacteristic(0x2a37);
-  ch.addEventListener('characteristicvaluechanged',e=>{const v2=e.target.value;hr=v2.getUint8(0)&1?v2.getUint16(1,true):v2.getUint8(1)});HRBELT=true;
+  ch.addEventListener('characteristicvaluechanged',e=>{const v2=e.target.value;hr=v2.getUint8(0)&1?v2.getUint16(1,true):v2.getUint8(1);HRN++});HRBELT=true;
   await ch.startNotifications();$('bHR').classList.add('on');$('bHR').textContent='Connectée';$('h2').textContent=d.name||'Connectée';
  }catch(e){$('h2').textContent='Échec : '+e.message}}
+// ====================== test du matériel (13 novembre 2026, demande de Cyril) ======================
+// ≈ 3 min, à faire en pédalant : connexion, données reçues, prise de contrôle, ERG à 50 et 75 % de la FTP, pente 0 puis 6 %, cardio, écran allumé ;
+// bilan vert / orange / rouge et rapport texte à copier (gardé dans localStorage.v3hwt). Résistance remise à zéro à la fin ou à l'arrêt.
+const HWT={on:false,stop:false,res:[],log:[]};
+function hwtEl(){let o=$('hwt');if(o)return o;o=document.createElement('div');o.id='hwt';
+ o.style.cssText='position:fixed;inset:0;z-index:200;background:#0b1118;color:#eef3f8;display:none;overflow:auto;font:16px system-ui;padding:max(14px,env(safe-area-inset-top)) 16px 16px';
+ o.innerHTML='<div style="max-width:820px;margin:0 auto"><div style="display:flex;align-items:center;gap:10px"><b style="font-size:20px;flex:1">🧪 Test du matériel</b><button id="hwtX">✕ Arrêter</button></div>'+
+  '<div id="hwtStep" style="margin:14px 0 6px;font:800 26px/1.25 system-ui"></div><div id="hwtHint" style="font:600 17px/1.4 system-ui;color:#c9d6e2"></div>'+
+  '<div id="hwtBar" style="height:10px;background:#1d2733;border-radius:6px;margin:12px 0;overflow:hidden"><div style="height:100%;width:0;background:linear-gradient(90deg,#ff8a1f,#ffb547);transition:width .3s"></div></div>'+
+  '<div id="hwtLive" style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 14px"></div><div id="hwtList"></div><div id="hwtBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"></div></div>';
+ document.body.appendChild(o);$('hwtX').onclick=()=>{if(HWT.on){HWT.stop=true}else hwtClose()};return o}
+const hwtCol={ok:'#2ecc71',warn:'#f39c12',bad:'#e74c3c',info:'#7f8c9a'},hwtIco={ok:'✅',warn:'⚠️',bad:'❌',info:'ℹ️'};
+function hwtList(){$('hwtList').innerHTML=HWT.res.map(r=>'<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin:6px 0;border-radius:12px;background:#141c26;border-left:5px solid '+hwtCol[r.s]+'"><span style="font-size:20px">'+hwtIco[r.s]+'</span><div><b>'+esc(r.t)+'</b><div style="color:#b9c6d3;font-size:14.5px;line-height:1.4">'+esc(r.d)+'</div></div></div>').join('')}
+function hwtAdd(s,t,d){HWT.res.push({s,t,d});hwtList()}
+function hwtLive(){if(!HWT.on)return;const c=(l,v)=>'<div style="background:#141c26;border-radius:10px;padding:6px 12px;min-width:92px"><small style="color:#8fa1b3">'+l+'</small><div style="font:800 24px system-ui">'+v+'</div></div>';
+ $('hwtLive').innerHTML=c('Puissance',Math.round(pw)+' W')+c('Cadence',CADOK?Math.round(cad)+' tr/min':'—')+c('Cardio',hr?hr+' bpm':'—')+(HWT.tgt?c('Consigne',HWT.tgt):'');setTimeout(hwtLive,250)}
+// attend t secondes en relevant puissance / cadence / cardio ; renvoie les moyennes des k dernières secondes
+async function hwtRun(t,label,hint,k){$('hwtStep').textContent=label;$('hwtHint').textContent=hint;const S=[],t0=performance.now(),n0=IBN,h0=HRN;
+ while(performance.now()-t0<t*1000){if(HWT.stop)throw new Error('stop');await new Promise(r=>setTimeout(r,250));S.push([(performance.now()-t0)/1000,pw,CADOK?cad:-1,hr]);
+  $('hwtBar').firstChild.style.width=Math.min(100,(HWT.t0+(performance.now()-t0)/1000)/HWT.tot*100)+'%'}
+ HWT.t0+=t;const L=S.filter(s=>s[0]>t-(k||t)),avg=i=>L.length?L.reduce((a,s)=>a+Math.max(0,s[i]),0)/L.length:0;
+ return{S,P:avg(1),C:avg(2),H:avg(3),rate:(IBN-n0)/t,hrate:(HRN-h0)/t,pmax:Math.max(0,...S.map(s=>s[1]))}}
+const hwtRest=()=>{try{if(conn&&cp)sim(0,0)}catch(e){}HWT.tgt=null};
+async function hwtStart(){const o=hwtEl();o.style.display='block';Object.assign(HWT,{res:[],stop:false,on:false,tgt:null});hwtList();$('hwtBar').firstChild.style.width='0';
+ $('hwtStep').textContent='Prêt ?';$('hwtHint').innerHTML='Monte sur le vélo. Le test dure environ <b>3 minutes</b> : il suffit de <b>pédaler tranquillement</b> et de suivre les consignes. La résistance reste douce (75 % de ta FTP au maximum) et revient à zéro à la fin.';
+ $('hwtLive').innerHTML='';const B=$('hwtBtns');B.innerHTML='';
+ const btn=(t,f,on)=>{const b=document.createElement('button');b.textContent=t;b.onclick=f;if(on)b.className='on';B.append(b);return b};
+ if(!conn)btn('🔌 Appairer le home trainer',async()=>{o.style.display='none';await connect();if($('res').style.display==='block')return;hwtStart()});
+ if(!hr)btn('❤️ Appairer la ceinture cardio',async()=>{o.style.display='none';await connectHR();hwtStart()});
+ btn('▶ Commencer le test',hwtGo,true);btn('Fermer',hwtClose);
+ const last=(()=>{try{return localStorage.v3hwt}catch(e){return null}})();if(last)btn('📄 Dernier rapport',()=>hwtReport(last))}
+function hwtClose(){hwtRest();HWT.on=false;const o=$('hwt');if(o)o.style.display='none';if(typeof regRender==='function')regRender()}
+async function hwtGo(){HWT.on=true;HWT.stop=false;HWT.res=[];HWT.t0=0;HWT.tot=conn&&cp?153:22;$('hwtBtns').innerHTML='';hwtList();hwtLive();wakeLock(true);
+ const name=(()=>{try{return localStorage.v3tr||''}catch(e){return''}})();
+ try{
+  // 1. connexion
+  if(!conn)hwtAdd('bad','Home trainer non connecté','Touche « Appairer le home trainer ». Vérifie qu\'il est allumé et qu\'aucune autre appli (appli du fabricant, autre simulateur) n\'y est connectée.');
+  else hwtAdd(cp?'ok':'warn','Connexion : '+(name||'home trainer'),cp?'Liaison complète (FTMS) : puissance, cadence et réglage de la résistance.':'Liaison limitée (puissance seule, service « Cycling Power ») : l\'appli lit la puissance mais ne peut pas régler la résistance (pas de pente ni de mode ERG).');
+  // 2. données reçues en pédalage libre
+  if(conn&&cp)sim(0,0);
+  const d=await hwtRun(20,'Pédale tranquillement','Environ 80 à 90 tours par minute, sans forcer. Je regarde ce que le home trainer envoie.',20);
+  if(conn){hwtAdd(d.rate>=1.5?'ok':d.rate>=.7?'warn':'bad','Données du home trainer : '+d.rate.toFixed(1).replace('.',',')+' messages par seconde',d.rate>=1.5?'Fréquence normale.':d.rate>=.7?'Un peu lent : l\'affichage peut sembler saccadé.':'Presque rien ne arrive : le home trainer est peut-être en veille ou connecté ailleurs.');
+   hwtAdd(d.P>15&&d.pmax<2500?'ok':'bad','Puissance : '+Math.round(d.P)+' W en moyenne (maxi '+Math.round(d.pmax)+' W)',d.P>15&&d.pmax<2500?'Valeurs plausibles.':d.P<=15?'Puissance nulle : as-tu pédalé ? Sinon le home trainer n\'envoie pas la puissance.':'Valeurs aberrantes : à me signaler.');
+   hwtAdd(!CADOK?'warn':d.C>=40&&d.C<=140?'ok':'warn',CADOK?'Cadence : '+Math.round(d.C)+' tr/min':'Cadence non envoyée',!CADOK?'L\'avatar pédalera à une cadence estimée d\'après la puissance.':d.C>=40&&d.C<=140?'Valeurs plausibles : l\'avatar pédale à ta vraie cadence.':'Valeur inhabituelle : vérifie que tu pédalais à une cadence normale.')}
+  // 3. prise de contrôle
+  if(conn&&cp){$('hwtStep').textContent='Prise de contrôle…';$('hwtHint').textContent='Continue de pédaler.';delete CPR[0];wcp([0]);
+   for(let i=0;i<12&&CPR[0]==null;i++){if(HWT.stop)throw new Error('stop');await new Promise(r=>setTimeout(r,250))}HWT.t0+=3;
+   hwtAdd(CPR[0]===1?'ok':CPR[0]==null?'warn':'bad','Prise de contrôle : '+(CPR[0]===1?'acceptée':CPR[0]==null?'pas de réponse':'refusée (code '+CPR[0]+')'),
+    (CPR[0]===1?'L\'appli peut régler la résistance.':CPR[0]==null?'Certains home trainers ne répondent pas mais obéissent quand même : regarde les tests ERG et pente ci-dessous.':'Une autre appli garde peut-être le contrôle : ferme-la.')+(PRNG?' Plage annoncée : '+PRNG[0]+' à '+PRNG[1]+' W.':''));
+   // 4. ERG : 50 % puis 75 % de la FTP
+   const ergStep=async(f)=>{const w=Math.round(FTP*f),wt=PRNG?clamp(w,Math.max(0,PRNG[0]),PRNG[1]):w;HWT.tgt=wt+' W';delete CPR[5];erg(wt);
+    const r=await hwtRun(25,'Mode ERG : '+wt+' W ('+Math.round(f*100)+' % de ta FTP)','Pédale à cadence normale : c\'est le home trainer qui règle la force. Ne cherche pas à suivre la consigne.',10);
+    let tr=null;for(let i=4;i<r.S.length;i++){const a=r.S.slice(i-4,i+1).reduce((s,x)=>s+x[1],0)/5;if(Math.abs(a-wt)<wt*.1){tr=r.S[i][0];break}}
+    const e=(r.P-wt)/wt;hwtAdd(Math.abs(e)<=.1?'ok':Math.abs(e)<=.2?'warn':'bad','ERG '+wt+' W : '+Math.round(r.P)+' W mesurés ('+(e>=0?'+':'')+Math.round(e*100)+' %)'+(tr!=null?', atteint en '+Math.round(tr)+' s':''),
+     (CPR[5]!=null&&CPR[5]!==1?'Commande refusée (code '+CPR[5]+'). ':'')+(Math.abs(e)<=.1?'Le home trainer suit bien la consigne.':r.P<15?'Puissance nulle : as-tu pédalé ?':Math.abs(e)<=.2?'Écart un peu grand : il se réduit souvent en pédalant plus régulièrement.':'Le home trainer ne suit pas la consigne : les séances ERG ne marcheront pas bien.'))};
+   await ergStep(.5);await ergStep(.75);
+   // 5. pente : plat puis 6 %
+   HWT.tgt='plat';sim(0,0);const p0=await hwtRun(20,'Pente : plat (0 %)','Garde une cadence régulière, sans changer de vitesse sur le vélo.',10);
+   HWT.tgt='6 %';sim(.06,0);const p6=await hwtRun(20,'Pente : 6 %','Garde la même cadence et le même braquet : tu dois sentir la résistance monter.',10);
+   const dP=p6.P-p0.P,k=p0.P>5?p6.P/p0.P:0;
+   hwtAdd(dP>=30&&k>=1.3?'ok':dP>=12?'warn':'bad','Pente : '+Math.round(p0.P)+' W à plat → '+Math.round(p6.P)+' W à 6 %',(dP>=30&&k>=1.3?'La résistance augmente bien avec la pente.':dP>=12?'La résistance augmente un peu : vérifie la cadence (elle doit rester la même).':'Pas de différence : soit la cadence a baissé, soit le home trainer ignore la pente.')+(CADOK?' Cadence : '+Math.round(p0.C)+' puis '+Math.round(p6.C)+' tr/min.':''));
+   hwtRest()}
+  // 6. cardio
+  const hT2=HRN;if(!hr)await new Promise(r=>setTimeout(r,1500));
+  if(hr||HRN>hT2)hwtAdd(hr>=35&&hr<=220?'ok':'warn','Cardio : '+hr+' bpm'+(HRBELT?' (ceinture)':' (transmis par le home trainer)'),hr>=35&&hr<=220?'Valeur plausible.':'Valeur inhabituelle : vérifie que la ceinture est bien humide et en contact.');
+  else hwtAdd('warn','Pas de cardio','Ni ceinture connectée, ni cardio transmis par le home trainer. Mouille les électrodes de la ceinture puis appaire-la.');
+  // 7. écran allumé
+  hwtAdd(WLK?'ok':NSV.on?'ok':'warn','Écran toujours allumé : '+(WLK?'oui (Wake Lock)':NSV.on?'oui (vidéo muette en boucle)':'non garanti'),WLK||NSV.on?'La tablette ne se mettra pas en veille tant que l\'appli est ouverte.':'Chrome refuse de garder l\'écran allumé : touche l\'écran une fois, ou ouvre l\'appli par son adresse https.');
+  $('hwtStep').textContent='Test terminé';$('hwtHint').textContent='Tu peux t\'arrêter de pédaler. La résistance est revenue à zéro.'}
+ catch(e){hwtRest();$('hwtStep').textContent=e.message==='stop'?'Test arrêté':'Erreur pendant le test';$('hwtHint').textContent=e.message==='stop'?'La résistance est revenue à zéro.':String(e.message||e);if(e.message!=='stop')hwtAdd('bad','Erreur',String(e.message||e))}
+ HWT.on=false;HWT.tgt=null;$('hwtLive').innerHTML='';$('hwtBar').firstChild.style.width='100%';
+ const rep=hwtText();try{localStorage.v3hwt=rep}catch(e){}
+ const B=$('hwtBtns');B.innerHTML='';const btn=(t,f,on)=>{const b=document.createElement('button');b.textContent=t;b.onclick=f;if(on)b.className='on';B.append(b)};
+ btn('📋 Copier le rapport',()=>hwtCopy(rep),true);btn('🔁 Refaire le test',hwtStart);btn('Fermer',hwtClose)}
+function hwtText(){const d=new Date(),ua=navigator.userAgent.replace(/\s+/g,' ').slice(0,160);
+ return 'Rapport test du matériel VCT · '+d.toLocaleString('fr-FR')+'\nAppareil : '+ua+'\nGPU : '+(typeof GPU!=='undefined'?GPU:'?')+' · qualité '+QK+' · FTP '+FTP+' W\n'+
+  HWT.res.map(r=>({ok:'[OK]',warn:'[ATTENTION]',bad:'[PROBLÈME]',info:'[INFO]'}[r.s])+' '+r.t+' — '+r.d).join('\n')}
+function hwtCopy(t){const done=()=>say('📋 Rapport copié : colle-le dans la discussion avec Claude.');
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done,()=>hwtReport(t));else hwtReport(t)}
+function hwtReport(t){hwtEl().style.display='block';$('hwtStep').textContent='Rapport du test';$('hwtHint').textContent='Copie-le et colle-le dans la discussion avec Claude.';$('hwtLive').innerHTML='';
+ $('hwtList').innerHTML='<textarea id="hwtTa" readonly style="width:100%;height:50vh;font:12.5px/1.4 ui-monospace,monospace;background:#0e141b;color:#dfe8f0;border:1px solid #2b3846;border-radius:8px;padding:8px;box-sizing:border-box"></textarea>';$('hwtTa').value=t;
+ const B=$('hwtBtns');B.innerHTML='';const b=document.createElement('button');b.className='on';b.textContent='📋 Copier';b.onclick=()=>{const a=$('hwtTa');a.focus();a.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(()=>say('📋 Rapport copié'),()=>{if(!ok)say('Sélectionne le texte et copie-le à la main')});else if(ok)say('📋 Rapport copié')};
+ const c=document.createElement('button');c.textContent='Fermer';c.onclick=hwtClose;B.append(b,c)}
 // ---- zones (Coggan) et séances ----
 const ZN=[[.55,'#9aa5b1','Z1 Récup'],[.75,'#4aa3df','Z2 Endurance'],[.9,'#5cc46a','Z3 Tempo'],[1.05,'#f1c40f','Z4 Seuil'],[1.2,'#f39c12','Z5 VO2max'],[1.5,'#e74c3c','Z6 Anaérobie'],[9,'#9b59b6','Z7 Neuromusc.']];
 const zi=p=>ZN.findIndex(z=>p<z[0]),fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
@@ -3679,7 +3764,7 @@ function nav(m){const pm=mode,wkn=wk&&wk.n,wkp=wk&&wk.plan!=null&&WT&&wt>=.8*WT?
  KOM=null;$('spz').style.display=$('kmz').style.display='none';
  if(R2){R2.wkn=wkn;R2.ses=S2;setTimeout(()=>offerStrava(R2),wk||m==='home'?350:50)}else if(S2)setTimeout(()=>mod('Bravo ! 🎉'+sesHTML(S2),[['OK',()=>{}]]),wk||m==='home'?350:50)}
 // ---- interface ----
-$('bC').onclick=connect;$('bHR').onclick=connectHR;$('bH').onclick=()=>{if(conn)sim(0);nav('home')};
+$('bC').onclick=connect;$('bHR').onclick=connectHR;$('bHT').onclick=hwtStart;$('bH').onclick=()=>{if(conn)sim(0);nav('home')};
 $('dem').oninput=e=>$('dv').textContent=e.target.value;$('sp').oninput=e=>$('sv').textContent=e.target.value;
 $('pl').onclick=()=>{play=!play;$('pl').textContent=play?'⏸ Pause':'▶ Lecture'};
 $('bZ').onclick=()=>{s=0;v=0;tt=0;done=false;goStart()};$('bG').onclick=()=>$('gf').click();
@@ -4093,10 +4178,20 @@ function drawBig(){const c=$('bmap');if(!c||!N||!BIGM.on)return;const W=c.width,
  const sc=Rm>2000?1000:Rm>800?500:200;g.fillStyle='#fff';g.fillRect(W/2-sc*k/2,W*.86,sc*k,4*f);g.font='600 '+(12*f)+'px system-ui';g.fillText(sc>=1000?sc/1000+' km':sc+' m',W/2,W*.86-10*f);
  g.font='700 '+(14*f)+'px system-ui';g.lineWidth=4*f;g.strokeStyle='rgba(0,0,0,.6)';const tt2=jx?'Carrefour dans '+Math.round(distToNode(RID))+' m · touche la carte pour la fermer':'Touche la carte pour la fermer';g.strokeText(tt2,W/2,W*.92);g.fillStyle='#fff';g.fillText(tt2,W/2,W*.92)}
 // ---- veille de l'écran (tablette) et plein écran ----
-let WLK=null;async function wakeLock(on){try{if(on&&!WLK&&navigator.wakeLock){WLK=await navigator.wakeLock.request('screen');WLK.addEventListener('release',()=>WLK=null)}else if(!on&&WLK){await WLK.release();WLK=null}}catch(e){}}
+// 13 novembre 2026 (Cyril : « la tablette se met en veille ») : Wake Lock, et en secours une minuscule vidéo noire muette qui tourne en boucle
+// (Chrome garde l'écran allumé pendant une vidéo) : utile quand Wake Lock est absent (fichier ouvert en local, page non https) ou refusé
+const NSV={on:false,v:null};
+function nsvStart(){try{if(NSV.v&&!NSV.v.paused){NSV.on=true;return}let v=NSV.v;if(!v){v=NSV.v=document.createElement('video');v.muted=true;v.loop=true;v.playsInline=true;v.setAttribute('playsinline','');v.setAttribute('muted','');v.setAttribute('aria-hidden','true');
+   v.style.cssText='position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1';
+   const a=document.createElement('source');a.src='data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAKEEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHYTbuMU6uEElTDZ1OsggEeTbuMU6uEHFO7a1OsggJu7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsirXsYMPQkBNgI1MYXZmNjAuMTYuMTAwV0GNTGF2ZjYwLjE2LjEwMESJiECvQAAAAAAAFlSua8GuAQAAAAAAADjXgQFzxYiWGqoZiQodL5yBACK1nIN1bmSIgQCGhVZfVlA4g4EBI+ODhB3NZQDgibCBELqBEJqBAhJUw2f8c3OgY8CAZ8iaRaOHRU5DT0RFUkSHjUxhdmY2MC4xNi4xMDBzc9ZjwItjxYiWGqoZiQodL2fIoUWjh0VOQ09ERVJEh5RMYXZjNjAuMzEuMTAyIGxpYnZweGfIoUWjiERVUkFUSU9ORIeTMDA6MDA6MDQuMDAwMDAwMDAwAB9DtnVAyeeBAKOjgQAAgBACAJ0BKhAAEAAARwiFhYiFhIgCAgAMDWAA/v+rUICjlYEB9ACxAQABEBAAGAAYWC/0AAgAAKOVgQPoALEBAAEQEAAYABhYL/QACAAAo5WBBdwAsQEAARAQABgAGFgv9AAIAACjlYEH0ACxAQABEBAAGAAYWC/0AAgAAKOVgQnEALEBAAEQEAAYABhYL/QACAAAo5WBC7gAsQEAARAQABgAGFgv9AAIAACjlYENrACxAQABEBAUYABhYL/QACAAABxTu2uRu4+zgQC3iveBAfGCAZ/wgQM=';a.type='video/webm';const b=document.createElement('source');b.src='data:video/mp4;base64,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';b.type='video/mp4';v.append(a,b);v.addEventListener('pause',()=>NSV.on=false);document.body.appendChild(v)}
+  const p=v.play();if(p&&p.then)p.then(()=>{NSV.on=true},()=>{NSV.on=false});}catch(e){}}
+let WLK=null;async function wakeLock(on){try{if(on&&!WLK&&navigator.wakeLock){WLK=await navigator.wakeLock.request('screen');WLK.addEventListener('release',()=>{WLK=null;if(document.visibilityState==='visible')setTimeout(()=>wakeLock(true),500)})}else if(!on&&WLK){await WLK.release();WLK=null}}catch(e){}
+ if(on&&!WLK)nsvStart()}
 // l'écran reste allumé tant que l'appli est ouverte (accueil compris) : demandé au lancement, au premier toucher et au retour au premier plan
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')wakeLock(true)});
-wakeLock(true);addEventListener('pointerdown',()=>{if(!WLK)wakeLock(true)},{capture:true});
+wakeLock(true);addEventListener('pointerdown',()=>{if(!WLK)wakeLock(true);else if(!NSV.on&&!navigator.wakeLock)nsvStart()},{capture:true});
+// contrôle toutes les 20 s : si le verrou a sauté (plein écran, rotation…), on le redemande ; sinon la vidéo de secours reprend
+setInterval(()=>{if(document.visibilityState!=='visible')return;if(!WLK)wakeLock(true);if(!WLK&&NSV.v&&NSV.v.paused)nsvStart()},20000);
 function fsEnter(){if(!document.fullscreenElement)fullScreen()}
 function fullScreen(){try{if(document.fullscreenElement){LANDOFF=true;document.exitFullscreen()}else{LANDOFF=false;document.documentElement.requestFullscreen({navigationUI:'hide'}).then(lockLand).catch(()=>{})}}catch(e){}}
 // paysage dès le lancement (tablette, téléphone) : Chrome ne verrouille l'écran en paysage qu'en plein écran, et n'accepte le plein écran
