@@ -3055,7 +3055,7 @@ const blendW=(s,a,b,ba,bb)=>{const t=sm(a,b,s);return t<=0?[ba,1,bb,0]:t>=1?[bb,
 const PQ=x=>x>0?x*x:0;
 const legBump=sd=>(s,ca,sa)=>{const f=-sa,m=sd==='L'?-ca:ca;
  return .09*Math.exp(-(((s-.2)/.11)**2))*PQ(f)+.11*Math.exp(-(((s-.36)/.04)**2))*Math.pow(PQ(.6*m+.55*f),1.5)+.05*Math.exp(-(((s-.22)/.09)**2))*PQ(-m*.8+f*.3)// quadriceps, vaste interne, vaste externe
-  +.06*Math.exp(-(((s-.18)/.12)**2))*PQ(-f)+.09*Math.exp(-(((s-.445)/.016)**2))*PQ(f)**2-.05*Math.exp(-(((s-.4)/.025)**2))*PQ(-f)// ischio-jambiers, rotule, creux du genou
+  +.045*Math.exp(-(((s-.2)/.11)**2))*PQ(-f)+.09*Math.exp(-(((s-.445)/.016)**2))*PQ(f)**2-.05*Math.exp(-(((s-.4)/.025)**2))*PQ(-f)// ischio-jambiers, rotule, creux du genou
   +.13*Math.exp(-(((s-.58)/.055)**2))*PQ(-f*.8+m*.45)+.09*Math.exp(-(((s-.555)/.045)**2))*PQ(-f*.8-m*.45)// mollets (deux chefs)
   +.035*sm(.47,.5,s)*(1-sm(.74,.78,s))*Math.pow(Math.max(0,f*.75+m*.66),10)};// crête du tibia
 const armBump=sd=>(s,ca,sa)=>{const f=-sa,l=sd==='L'?ca:-ca;
@@ -3063,7 +3063,7 @@ const armBump=sd=>(s,ca,sa)=>{const f=-sa,l=sd==='L'?ca:-ca;
   +.06*Math.exp(-(((s-.3)/.018)**2))*PQ(-f)+.1*Math.exp(-(((s-.37)/.05)**2))*PQ(.7*l+.5*f)+.06*Math.exp(-(((s-.38)/.06)**2))*PQ(-.6*l+.4*f)};// coude, avant-bras
 function buildBody(hi){const sb=new SB();
  // --- torse : coupes elliptiques de y=.86 à 1.64 ---
- const SEC=[[.86,.12,.09,-.03],[.9,.165,.12,-.035],[.96,.185,.13,-.03],[1.02,.183,.125,-.015],[1.08,.168,.112,0],[1.15,.152,.102,.012],[1.22,.158,.108,.018],[1.3,.172,.122,.022],[1.38,.184,.13,.02],[1.44,.205,.122,.008],[1.48,.2,.11,0],[1.515,.13,.088,-.008],[1.55,.068,.062,0],[1.6,.058,.058,.008],[1.645,.056,.056,.012]];
+ const SEC=[[.86,.095,.064,.03],[.9,.132,.084,.022],[.96,.148,.094,.012],[1.02,.154,.1,.005],[1.08,.155,.102,.003],[1.15,.152,.102,.012],[1.22,.158,.108,.018],[1.3,.172,.122,.022],[1.38,.184,.13,.02],[1.44,.205,.122,.008],[1.48,.2,.11,0],[1.515,.13,.088,-.008],[1.55,.068,.062,0],[1.6,.058,.058,.008],[1.645,.056,.056,.012]];
  const SECH=[[1.44,.205,.122,.008],[1.475,.198,.114,.002],[1.5,.172,.102,-.004],[1.522,.135,.092,-.006],[1.545,.095,.076,-.002],[1.565,.066,.064,.002],[1.6,.047,.047,.006],[1.645,.045,.045,.01]];
  const sec=y=>hi&&y>1.44?secT(SECH,y):secT(SEC,y),sec0=y=>secT(SEC,y),secT=(SEC,y)=>{for(let k=0;k<SEC.length-1;k++){const a=SEC[k],b=SEC[k+1];if(y<=b[0]){const t=(y-a[0])/(b[0]-a[0]),s2=t*t*(3-2*t);return[lerp(a[1],b[1],s2),lerp(a[2],b[2],s2),lerp(a[3],b[3],s2)]}}return SEC[SEC.length-1].slice(1)};
  const tw=y=>y<1.06?[BI.pelvis,1,BI.spine,0]:y<1.13?blendW(y,1.06,1.13,BI.pelvis,BI.spine):y<1.27?[BI.spine,1,BI.chest,0]:y<1.34?blendW(y,1.27,1.34,BI.spine,BI.chest):y<1.5?[BI.chest,1,BI.neck,0]:y<1.56?blendW(y,1.5,1.56,BI.chest,BI.neck):[BI.neck,1,BI.chest,0];
@@ -3078,10 +3078,10 @@ function buildBody(hi){const sb=new SB();
    const u=(i/RS)*.75,v=(y-.86)/.785;sb.v(p,n,[u,v],WHITE,b0,w0,b1,w1)}
   if(prev>=0)for(let i=0;i<RS;i++){const a=prev+i,b=prev+i+1,c=base+i,d=base+i+1;sb.i.push(a,b,c,b,d,c)}prev=base}
  // fond (entrejambe)
- {const c=sb.v(V(0,.85,-.03),V(0,-1,0),[.3,0],WHITE,BI.pelvis,1);for(let i=0;i<RS;i++)sb.i.push(i,c,i+1)}
+ {const c=sb.v(V(0,.85,.03),V(0,-1,0),[.3,0],WHITE,BI.pelvis,1);for(let i=0;i<RS;i++)sb.i.push(i,c,i+1)}
  // --- jambes ---
  for(const sd of['L','R']){const B=BIND['th'+sd][0];
-  limb(sb,B,.87,hi?60:40,t=>{const s=t*.87;if(s<.435){const u=s/.435;return[lerp(.088,.052,Math.pow(u,1.2)),lerp(.094,.054,Math.pow(u,1.1)),-.01*Math.sin(u*3.1)]}
+  limb(sb,B,.87,hi?60:40,t=>{const s=t*.87;if(s<.435){const u=s/.435;return[lerp(.076,.052,Math.pow(u,1.05)),lerp(.078,.054,u),.004*Math.sin(u*3.1)]}
     const u=(s-.435)/.435;const calf=Math.exp(-(((u-.3)/.17)**2));return[.03+.02*(1-u)+.012*calf,.031+.021*(1-u)+.024*calf,.016*calf]},
    {cuts:[[.37],[.795]],f:t=>{const s=t*.87;return s<.37?[[.8125,.5-s/.37*.47],WHITE]:s<.795?[UV_WHITE,SKIN]:[[.9375,.745-(s-.795)/.075*.23],WHITE]}},
    s=>s<.07?[BI['th'+sd],.55+.45*s/.07,BI.pelvis,.45-.45*s/.07]:s<.4?[BI['th'+sd],1,BI['sh'+sd],0]:s<.47?blendW(s,.4,.47,BI['th'+sd],BI['sh'+sd]):[BI['sh'+sd],1,BI['th'+sd],0],null,hi?legBump(sd):null)}
