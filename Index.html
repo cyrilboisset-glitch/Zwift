@@ -434,13 +434,30 @@ ren.shadowMap.enabled=true;ren.shadowMap.type=QP.soft===0?T.PCFShadowMap:T.PCFSo
 const GL2=ren.capabilities.isWebGL2,MAXANI=Math.min(QP.ani||16,ren.capabilities.getMaxAnisotropy()),MAXTEX=ren.capabilities.maxTextureSize;
 const sc=new T.Scene(),cam=new T.PerspectiveCamera(60,1,.25,160000);
 // brume atmosphérique exponentielle (perspective aérienne : les montagnes lointaines bleuissent)
+// 13 novembre 2026 (monde réel et Montagne, densité 1/42000) : brume colorée (le rouge s'éteint moins vite que le bleu, les lointains bleuissent),
+// plus légère en altitude (sommets plus nets que les fonds de vallée) ; ailleurs (Aventure…) brume simple comme avant
+T.ShaderChunk.fog_pars_vertex=`#ifdef USE_FOG
+ varying float vFogDepth;varying float vFogY;
+#endif`;
+T.ShaderChunk.fog_vertex=`#ifdef USE_FOG
+ vFogDepth=-mvPosition.z;vFogY=(modelMatrix*vec4(position,1.)).y;
+#endif`;
+T.ShaderChunk.fog_pars_fragment=`#ifdef USE_FOG
+ uniform vec3 fogColor;varying float vFogDepth;varying float vFogY;
+ #ifdef FOG_EXP2
+  uniform float fogDensity;
+ #else
+  uniform float fogNear;uniform float fogFar;
+ #endif
+#endif`;
 T.ShaderChunk.fog_fragment=`#ifdef USE_FOG
  #ifdef FOG_EXP2
-  float fogFactor=1.0-exp(-fogDensity*vFogDepth);
+  if(abs(fogDensity*42000.-1.)<.02){float hk=exp(-max(vFogY-200.,0.)/2600.);vec3 ext=exp(-vec3(.62,.48,.34)*vFogDepth/15000.*(.3+.7*hk));
+   gl_FragColor.rgb=gl_FragColor.rgb*ext+fogColor*vec3(.82,.92,1.08)*(1.-ext);}
+  else{float fogFactor=1.0-exp(-fogDensity*vFogDepth);gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,fogFactor);}
  #else
-  float fogFactor=smoothstep(fogNear,fogFar,vFogDepth);
+  float fogFactor=smoothstep(fogNear,fogFar,vFogDepth);gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,fogFactor);
  #endif
- gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,fogFactor);
 #endif`;
 sc.fog=new T.FogExp2(0xc9d9e8,1/42000);
 const WORLD=new T.Group();sc.add(WORLD);WORLD.matrixAutoUpdate=false;
@@ -1184,6 +1201,33 @@ TXR.roadK=roadTexK(0);
 TXR.road=texOf(TXR.roadK,true,true);TXR.road.anisotropy=Math.min(4,MAXANI);
 // largeur et marquage réels de la route du parcours (lus sur les tronçons IGN / OSM qu'elle suit)
 TXR.roadM=[TXR.road,...[1,2].map(m=>{const t=texOf(roadTexK(m),true,true);t.anisotropy=Math.min(4,MAXANI);return t})];
+// route détaillée (13 novembre 2026, Moyenne / Élevée / Ultra) : grain d'enrobé, gravillons, fissures, joints, rapiéçages, taches d'huile,
+// marquages usés, bords effrités ; carte de relief assortie (fissures en creux) ; 512 × 2048 en Élevée / Ultra, 256 × 1024 en Moyenne
+function roadTexD(mode,W){const H=W*4,k=mkCanvas(W,H),g=k.getContext('2d'),mx=W/8.2,my=H/26,bk=mkCanvas(W,H),gb=bk.getContext('2d'),sc2=W/512;
+ const im=g.createImageData(W,H),d=im.data,ib=gb.createImageData(W,H),db=ib.data;
+ for(let y=0;y<H;y++){const edge=.55+(pvn(y/H*90,1.5,90,17)-.5)*.35,edge2=7.65-(pvn(y/H*90,7.5,90,19)-.5)*.35;
+  for(let x=0;x<W;x++){const um=x/mx,i=(y*W+x)*4,n=pvn(x/W*32,y/H*128,32,11)-.5,n2=pvn(x/W*8,y/H*32,8,13)-.5,f=ih(x,y)-.5,st=ih(x*3+7,y*5+1);let c,b;
+   if(um<edge||um>edge2){const gr=ih(x>>1,y>>1);c=[118+n2*50+gr*30,112+n2*44+gr*26,96+n2*36+gr*22];b=100+gr*120}
+   else{const lane=um<4.1?um-.55:um-4.1,wp=Math.exp(-((lane-.95)**2)/.1)+Math.exp(-((lane-2.6)**2)/.1);
+    let l=74+n*16+n2*14+f*16-wp*9;if(st>.95)l+=12+f*8;else if(st<.04)l-=9;c=[l,l+1.5,l+5];b=128+f*30+(st>.95?28:st<.04?-24:0)}
+   d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2];d[i+3]=255;db[i]=db[i+1]=db[i+2]=clamp(b,0,255);db[i+3]=255}}
+ g.putImageData(im,0,0);gb.putImageData(ib,0,0);const r=rng(77+mode);
+ for(let k2=0;k2<6;k2++){const x=(.9+r()*5.6)*mx,y=r()*H,w=(.8+r()*2)*mx,h=(1+r()*2.5)*my,dk=r()<.5;g.fillStyle=dk?`rgba(30,31,34,${.25+r()*.2})`:`rgba(150,150,150,${.08+r()*.08})`;g.fillRect(x,y,w,h);
+  g.strokeStyle='rgba(20,20,22,.5)';g.lineWidth=2*sc2;g.strokeRect(x,y,w,h);gb.strokeStyle='rgba(0,0,0,.8)';gb.lineWidth=3*sc2;gb.strokeRect(x,y,w,h)}
+ const crack=(x,y,dx,dy,n,wd,dark)=>{g.beginPath();gb.beginPath();g.moveTo(x,y);gb.moveTo(x,y);for(let i=0;i<n;i++){x+=(dx+(r()-.5)*dx*1.6+(r()-.5)*6)*sc2;y+=(dy+(r()-.5)*dy*1.6+(r()-.5)*6)*sc2;g.lineTo(x,y);gb.lineTo(x,y)}
+  g.strokeStyle=dark;g.lineWidth=Math.max(1,wd*sc2);g.stroke();gb.strokeStyle='rgba(0,0,0,.9)';gb.lineWidth=Math.max(1,(wd+1)*sc2);gb.stroke()};
+ for(let k2=0;k2<6;k2++)crack((1+r()*6.2)*mx,r()*H,(r()-.5)*2,14,8+r()*12|0,1.1,'rgba(18,18,20,.45)');
+ for(let k2=0;k2<3;k2++)crack((1+r()*2)*mx,r()*H,10,(r()-.5)*3,6+r()*8|0,1,'rgba(18,18,20,.4)');
+ crack((2+r()*4)*mx,r()*H,(r()-.5)*1,22,10,3,'rgba(12,12,14,.3)');
+ for(let k2=0;k2<6;k2++){const x=(r()<.5?2.3:5.9)*mx+(r()-.5)*.5*mx,y=r()*H,rr=(.15+r()*.3)*mx,gr=g.createRadialGradient(x,y,0,x,y,rr);gr.addColorStop(0,'rgba(10,10,12,.35)');gr.addColorStop(1,'rgba(10,10,12,0)');g.fillStyle=gr;g.beginPath();g.ellipse(x,y,rr,rr*2.5,0,0,6.283);g.fill()}
+ const paint=(u0,wm,v0,lm)=>{const x0=u0*mx|0,w=Math.max(2,wm*mx)|0,y0=v0*my|0,h=lm*my|0;const id=g.getImageData(x0,y0,w,h),pd=id.data;
+  for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){const wear=pvn((x0+xx)/W*90,(y0+yy)/H*360,90,23);if(wear<.28)continue;const a=clamp((wear-.28)*4,0,1)*.92,j=(yy*w+xx)*4;
+   pd[j]=pd[j]*(1-a)+230*a;pd[j+1]=pd[j+1]*(1-a)+228*a;pd[j+2]=pd[j+2]*(1-a)+214*a}g.putImageData(id,x0,y0)};
+ if(mode<2)for(const v0 of[0,13])paint(4.1-.075,.15,v0,3);
+ if(mode===0)for(const v0 of[0,6.5,13,19.5]){paint(.8,.15,v0,3);paint(7.25,.15,v0,3)}
+ return[k,bk]}
+const ROADD=QK==='high'||QK==='ultra'?512:QK==='med'?256:0;
+TXR.roadB=[];if(ROADD){for(let m=0;m<3;m++){const[k,bk]=roadTexD(m,ROADD),t=texOf(k,true,true),b=texOf(bk,false,true);t.anisotropy=b.anisotropy=Math.min(8,MAXANI);TXR.roadM[m]=t;TXR.roadB[m]=b}TXR.road=TXR.roadM[0]}
 
 // atlas des murs 4x2 (256 px) : 0 enduit 1 pierre 2 brique 3 bois 4 parpaing 5 bardage métal 6 uni 7 volets
 TXR.wallK=(()=>{const k=mkCanvas(1024,512),g=k.getContext('2d');
@@ -1672,6 +1716,10 @@ const TFRAG=`{
  // Élevée / Ultra : grain de sol près de la caméra (herbe, cailloux), plus marqué sur le vert, estompé au loin
  if(uDetQ>0.){float dc=distance(vW.xz,uCam.xz),k=uDetQ*(1.-smoothstep(40.,320.,dc));if(k>0.){float g=dn(vW.xz*1.7)*.55+dn(vW.xz*5.3)*.3+dn(vW.xz*17.)*.15;
   float veg=clamp((base.g-max(base.r,base.b))*6.,0.,1.);base*=1.+(g-.5)*k*(.34+.26*veg);}}
+ // neige au-dessus de la limite de la saison (TU.uSnow), seulement sur les pentes douces ; rocher gris dans les pentes raides au-dessus (13 novembre 2026)
+ if(vW.y>uSnow-500.){float sl=uSnow+dn(vW.xz*.004)*260.-130.+dn(vW.xz*.0009)*300.-150.;float up=clamp(vNw.y,0.,1.);
+  float sn=smoothstep(sl-90.,sl+120.,vW.y)*smoothstep(.45,.8,up),rock=smoothstep(.75,.45,up)*smoothstep(sl-400.,sl+300.,vW.y);
+  base=mix(base,vec3(.40,.39,.37)*(.8+.4*dn(vW.xz*.05)),rock*.55);base=mix(base,vec3(.93,.95,1.)*(.92+.08*dn(vW.xz*.2)),sn);}
  diffuseColor.rgb*=base;}`;
 function mkTerrMat(){const m=new T.MeshLambertMaterial({color:0xffffff,side:T.DoubleSide});m.extensions={derivatives:true};
  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,TU);
@@ -2117,8 +2165,8 @@ function waterAt(x,z){if(!DATA.n.w)return 0;const u=x/MS4-.5,v=z/MS4-.5,i=Math.f
 // ====================== route : chaussée, ponts, équipements (balises, bornes, glissières, trottoirs, lampadaires, panneaux) ======================
 const ROAD={ch:[],fur:[],ver:1,fver:1,vil:null};
 const roadMat=new T.MeshLambertMaterial({map:TXR.road,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
-if((QK==='high'||QK==='ultra')){roadMat.bumpMap=TXR.road;roadMat.bumpScale=QK==='ultra'?.35:.28}
-const ROADMATS=[roadMat,...[1,2].map(m=>new T.MeshLambertMaterial({map:TXR.roadM[m],polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}))];
+if((QK==='high'||QK==='ultra')){roadMat.bumpMap=TXR.roadB[0]||TXR.road;roadMat.bumpScale=TXR.roadB[0]?.18:QK==='ultra'?.35:.28}
+const ROADMATS=[roadMat,...[1,2].map(m=>new T.MeshLambertMaterial({map:TXR.roadM[m],bumpMap:TXR.roadB[m]||null,bumpScale:.18,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}))];
 // RDW : largeur de chaussée (m) par échantillon, RMK : marquage (0 complet, 1 médiane, 2 aucun), 0 / 255 = inconnu (route standard 7 m)
 let RDW=null,RMK=null,CHK_OF=null;const RDIRTY=new Set();
 function roadAttr(i,w,mk){if(!RDW){RDW=new Float32Array(N);RMK=new Uint8Array(N).fill(255);CHK_OF=new Int32Array(N).fill(-1);CHUNKS.forEach((c,k)=>{for(let j=c.i0;j<=c.i1;j++)CHK_OF[j]=k})}
@@ -2258,6 +2306,8 @@ function roadInvalidate(furnOnly){ROAD.fver++;if(!furnOnly)ROAD.ver++}
 const DOY=(()=>{const d=new Date();return Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)})();
 const AUT=sm(258,300,DOY)*(1-sm(318,336,DOY)),BARE=sm(316,336,DOY)+(1-sm(85,112,DOY)),SPRING=sm(95,112,DOY)*(1-sm(130,150,DOY));
 TU.uSnow.value=DOY<60||DOY>340?1300:DOY<120?1300+(DOY-60)*12:DOY<200?2020+(DOY-120)*14:DOY<280?3140-(DOY-200)*4:2820-(DOY-280)*25;
+// limite de la neige décalée selon la latitude du parcours (même règle que la limite des arbres : Alpes ≈ référence, plus haut sous les tropiques, plus bas au nord)
+TU.uSnow.value+=clamp(3800-80*Math.max(0,Math.abs(LA)-25),250,3800)-2170;
 const LEAF_SUMMER=[0x5d7a34,0x4f6e2c,0x6b8a3a,0x58773a,0x7a9442,0x4a6630,0x66803c];
 const LEAF_AUT=[0xc9a227,0xd6a21f,0xb8741f,0xa5521c,0x8e3b1a,0xc28a2c,0x9c8a2f,0x7d6a2a,0xd9b53a];
 const CONI=[0x4a6a3e,0x557547,0x46633f,0x5a7a4a,0x4e6c42];
@@ -2795,7 +2845,16 @@ function bldUpdate(cp,force){if(!force&&cp.distanceToSquared(BLD.lp)<400)return;
 function bldInvalidate(){BLD.ver++;BLD.lp.set(1e9,0,1e9)}
 
 // ====================== eau : Isère, lacs, plans d'eau (surfaces IGN/OSM) ======================
-const waterMat=addCurv(new T.MeshStandardMaterial({color:0x3e5a55,roughness:.07,metalness:0,normalMap:TXR.waterN,normalScale:new T.Vector2(.55,.55),envMapIntensity:(QK==='high'||QK==='ultra')?1.6:1.15}),'w');
+// eau (13 novembre 2026) : trois couches de vagues qui défilent à des vitesses et des tailles différentes (lues en coordonnées du monde),
+// bleu profond vu de haut, reflet du ciel plus fort quand on la regarde à jour frisant (Fresnel)
+const waterMat=(()=>{const m=new T.MeshStandardMaterial({color:0x1d3b3c,roughness:.04,metalness:0,normalMap:TXR.waterN,normalScale:new T.Vector2(.6,.6),envMapIntensity:(QK==='high'||QK==='ultra')?1.8:1.3});
+ m.onBeforeCompile=sh=>{sh.uniforms.uT=GU.uTime;sh.vertexShader='varying vec3 vWw;\n'+sh.vertexShader.replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvWw=(modelMatrix*vec4(transformed,1.)).xyz;');
+  sh.fragmentShader='uniform float uT;varying vec3 vWw;\n'+sh.fragmentShader.replace('#include <normal_fragment_maps>',`
+   {vec2 p=vWw.xz;vec3 n1=texture2D(normalMap,p*.045+vec2(uT*.012,uT*.007)).xyz*2.-1.,n2=texture2D(normalMap,p*.11-vec2(uT*.017,-uT*.011)).xyz*2.-1.,n3=texture2D(normalMap,p*.006+vec2(uT*.003,0.)).xyz*2.-1.;
+    vec3 mn=normalize(vec3((n1.xy+n2.xy*.7+n3.xy*.2)*normalScale,1.));normal=normalize(vec3(mn.x,mn.z,-mn.y));normal=normalize((viewMatrix*vec4(normal,0.)).xyz);}`)
+   .replace('#include <output_fragment>',`{vec3 vd=normalize(vViewPosition);float fr=pow(1.-clamp(dot(normal,vd),0.,1.),4.);outgoingLight=mix(outgoingLight*vec3(.75,.95,.95),outgoingLight,fr*.6+.4);}
+   #include <output_fragment>`)};
+ m.customProgramCacheKey=()=>'water2';return addCurv(m,'w2')})();
 TXR.waterN.repeat.set(1,1);
 const WAT={cells:new Map(),lp:V(1e9,0,1e9),ver:1};
 // niveau de l'eau : relief SRTM moyenné (≈ 30 m de précision, souvent trop haut au bord des rivières), puis gardé SOUS les routes proches :
