@@ -3863,7 +3863,7 @@ function buildBody(hi){const sb=new SB();
  const sec=y=>hi&&y>1.44?secT(SECH,y):secT(SEC,y),sec0=y=>secT(SEC,y),secT=(SEC,y)=>{for(let k=0;k<SEC.length-1;k++){const a=SEC[k],b=SEC[k+1];if(y<=b[0]){const t=(y-a[0])/(b[0]-a[0]),s2=t*t*(3-2*t);return[lerp(a[1],b[1],s2),lerp(a[2],b[2],s2),lerp(a[3],b[3],s2)]}}return SEC[SEC.length-1].slice(1)};
  const tw=y=>y<1.06?[BI.pelvis,1,BI.spine,0]:y<1.13?blendW(y,1.06,1.13,BI.pelvis,BI.spine):y<1.27?[BI.spine,1,BI.chest,0]:y<1.34?blendW(y,1.27,1.34,BI.spine,BI.chest):y<1.5?[BI.chest,1,BI.neck,0]:y<1.56?blendW(y,1.5,1.56,BI.chest,BI.neck):[BI.neck,1,BI.chest,0];
  const RS=hi?48:32,ys=[];for(let y=.86;y<=1.6451;y+=hi?.015:.0225)ys.push(y);let prev=-1;
- for(const y of ys){const[rx,rz,cz]=sec(y),base=sb.p.length/3,[b0,w0,b1,w1]=tw(y);
+ for(const y of ys){const[rx,rz0,cz]=sec(y),rz=hi?rz0*(1-.09*sm(1.2,1.3,y)*(1-sm(1.45,1.5,y))):rz0,base=sb.p.length/3,[b0,w0,b1,w1]=tw(y);// buste moins bombé (16 nov. 2026)
   for(let i=0;i<=RS;i++){const a=i/RS*6.2832-Math.PI/2,ca=Math.cos(a),sa=Math.sin(a);// a=-pi/2 : côté droit (x<0)
    // forme « carrée » des épaules et du dos
    const sq=y>1.36&&y<1.5?.18:.08,cx=Math.sign(sa)*Math.pow(Math.abs(sa),1-sq),cz2=Math.sign(ca)*Math.pow(Math.abs(ca),1-sq);
@@ -4101,11 +4101,11 @@ function handFingers(s2){const GL=[],SK=[],q=new T.Quaternion(),sc=V(1,1,1);
 // assemblage de la tête du joueur
 function faceBuild(G,km){const cv=mkCanvas(512,512),bv=mkCanvas(512,512);{const a=cv.getContext('2d'),b=bv.getContext('2d');a.fillStyle='#cf9a78';a.fillRect(0,0,512,512);b.fillStyle='#808080';b.fillRect(0,0,512,512)}const tex=texOf(cv,true,false),btx=texOf(bv,false,false);
  const mat=new T.MeshPhysicalMaterial({map:tex,bumpMap:btx,bumpScale:.0005,roughness:.55,metalness:0,sheen:.45,sheenColor:new T.Color(0xff8a70),sheenRoughness:.55,clearcoat:.04,clearcoatRoughness:.35});
- const mesh=new T.Mesh(faceGeo(),mat);G.add(mesh);
+ skinSSS(mat);skinSSS(KM.skin);skinSSS(KM.skinE);const mesh=new T.Mesh(faceGeo(),mat);G.add(mesh);
  // yeux : globe, iris (calotte peinte), paupières avec cils
  const icv=mkCanvas(128,64),itx=texOf(icv,true,false),irM=new T.MeshStandardMaterial({map:itx,roughness:.12,metalness:0}),scM=stdM(0xf3eee8,.22,0);
  const lk=mkCanvas(4,64),lg=lk.getContext('2d');lg.fillStyle='#fff';lg.fillRect(0,0,4,64);lg.fillStyle='#2a1d17';lg.fillRect(0,0,4,4);lg.fillRect(0,60,4,4);lg.fillStyle='#8a5a4a';lg.fillRect(0,4,4,2);lg.fillRect(0,58,4,2);
- const lidM=new T.MeshStandardMaterial({color:KM.skin.color,map:texOf(lk,true,false),roughness:.5});KM.lid=lidM;
+ const lidM=new T.MeshStandardMaterial({color:KM.skin.color,map:texOf(lk,true,false),roughness:.5});KM.lid=lidM;skinSSS(lidM);
  const ez=hfront(.031,.1235,false)-.005-.0118,eyes=[],lidU=[],lidL=[];
  const sclG=new T.SphereGeometry(.0118,24,16),irG=new T.SphereGeometry(.01195,32,6,0,6.2832,0,.5),luG=new T.SphereGeometry(.0126,28,8,0,6.2832,0,1.25),llG=new T.SphereGeometry(.0126,28,6,0,6.2832,Math.PI-1,1);
  for(const s of[-1,1]){const E=new T.Group();E.position.set(s*.031,.1235,ez);const B=new T.Group();B.add(new T.Mesh(sclG,scM));const ir=new T.Mesh(irG,irM);ir.rotation.x=Math.PI/2;B.add(ir);E.add(B);eyes.push(B);
@@ -4278,6 +4278,59 @@ function npcBike(frameHex){const bk=buildBike(),fc=new T.Color(frameHex);
  for(const W of[bk.wf,bk.wr]){collapse(W);W.userData={spokes:{material:{}},blur:{material:{}}}}
  collapse(bk.G,[bk.crank,bk.wf,bk.wr],rec);bk.ctex={offset:{x:0}};return bk}
 function npcHead(helmetHex){const G=headParts();const hc=new T.Color(helmetHex);collapse(G,null,o=>o.material&&o.material.color&&o.material.color.getHex()===0xf4f5f7?hc:null);return G}
+// ---- matières réalistes du joueur (16 novembre 2026) : peau (grain, rougeurs, bronzage, lumière qui traverse la peau),
+// tissu (maille, coutures, plis du maillot et du cuissard, reflet doux du lycra), ombres dans les creux. Tout est calculé dans le shader
+// à partir de la position du corps au repos (vBP), donc les détails restent collés au corps quand il bouge.
+const GLNOISE=`float h3(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
+float vn3(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z);}
+vec3 pnArb(vec3 sp,vec3 sn,vec2 dH){vec3 sx=dFdx(sp),sy=dFdy(sp),r1=cross(sy,sn),r2=cross(sn,sx);float d=dot(sx,r1);vec3 g=sign(d)*(dH.x*r1+dH.y*r2);return normalize(abs(d)*sn-g);}`;
+// lumière qui traverse la peau : les ombres de la peau restent chaudes (rouge orangé) au lieu de griser
+const SSS_GL=k=>`{float li=dot(reflectedLight.indirectDiffuse,vec3(.3,.59,.11)),ld=dot(reflectedLight.directDiffuse,vec3(.3,.59,.11));reflectedLight.directDiffuse*=vec3(1.,.94,.9);reflectedLight.indirectDiffuse+=${k}*diffuseColor.rgb*vec3(.5,.16,.08)*(li*.9+ld*.12);}`;
+function skinSSS(m){if(!m||m.userData.sss)return m;m.userData.sss=1;const o=m.onBeforeCompile;m.onBeforeCompile=(sh,r)=>{o&&o(sh,r);sh.fragmentShader=sh.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb*=vec3(.86,.78,.72);').replace('#include <aomap_fragment>','#include <aomap_fragment>\n'+SSS_GL('1.'))};m.needsUpdate=true;return m}
+function riderMatHi(tex,geo){
+ // attribut aPS : (partie du corps 0 torse / 1 jambe / 2 bras, peau 0/1)
+ const si=geo.attributes.skinIndex,n=si.count,a=new Float32Array(n*2),sk=new Set(geo.userData.skinIdx||[]);
+ for(let i=0;i<n;i++){const b=si.getX(i);a[i*2]=b>=BI.uaL?2:b>=BI.thL&&b<=BI.ftR?1:0;a[i*2+1]=sk.has(i)?1:0}
+ geo.setAttribute('aPS',new T.BufferAttribute(a,2));
+ const m=new T.MeshPhysicalMaterial({map:tex,vertexColors:true,roughness:.7,metalness:0,sheen:.3,sheenColor:new T.Color(0xa8a8a8),sheenRoughness:.6,specularIntensity:.4});
+ m.extensions={derivatives:true};
+ m.onBeforeCompile=sh=>{
+  sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec2 aPS;varying vec2 vPS;varying vec3 vBP;varying float vU0;')
+   .replace('#include <begin_vertex>','#include <begin_vertex>\nvPS=aPS;vBP=position;vU0=uv.x;');
+  sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vPS;varying vec3 vBP;varying float vU0;\n'+GLNOISE+`
+float AF(float k){return clamp(1.3-length(fwidth(vBP))*k*1.2,0.,1.);}
+float rHeight(){float sk=vPS.y,pt=vPS.x,y=vBP.y;vec3 p=vBP;float h=0.;
+ if(sk>.5){h+=(vn3(p*650.)-.5)*.00012*AF(650.)+(vn3(p*95.)-.5)*.0005+(vn3(p*30.)-.5)*.0012;}
+ else{float nz=vn3(p*22.);
+  h+=sin((p.x+p.z)*1700.)*sin(p.y*1700.)*.00006*AF(1700.);// maille
+  if(pt<.5){float fr=smoothstep(.0,.05,p.z);
+   h+=sin(y*185.+nz*5.+p.x*12.)*.0016*smoothstep(1.06,1.13,y)*(1.-smoothstep(1.25,1.32,y))*fr;// plis du ventre (buste penché)
+   h+=sin((y-abs(p.x)*.9)*215.+nz*4.)*.0011*smoothstep(.88,.93,y)*(1.-smoothstep(1.,1.05,y))*fr;// plis de l'aine (cuissard)
+   h+=sin((y+abs(p.x)*.6)*150.+nz*3.)*.0009*smoothstep(1.2,1.3,y)*(1.-smoothstep(1.4,1.46,y))*smoothstep(.0,-.05,p.z);// dos tendu
+   float u=vU0,du=min(min(abs(u),abs(u-.375)),abs(u-.75));h-=.0007*exp(-pow((du-.068)/.004,2.))*step(1.14,y)*step(y,1.55);// coutures des côtés
+   h-=.0009*exp(-pow((y-1.13)/.004,2.));}// ceinture
+  else if(pt<1.5){h+=sin(y*230.+nz*5.+atan(p.x-sign(p.x)*.09,p.z)*1.5)*.0009*smoothstep(.78,.86,y)*(1.-smoothstep(.95,1.,y));
+   h+=.0012*smoothstep(.645,.63,y)*step(.6,y);}// bord élastique de la jambe
+  else{h+=sin(y*260.+nz*4.+atan(p.x-sign(p.x)*.19,p.z)*2.)*.0008*smoothstep(1.33,1.36,y)*(1.-smoothstep(1.44,1.47,y));}}
+ return h;}`)
+  .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n{float hh=rHeight();normal=pnArb(-vViewPosition,normal,vec2(dFdx(hh),dFdy(hh))*1.);}')
+  .replace('#include <color_fragment>',`#include <color_fragment>
+{float y=vBP.y;vec3 p=vBP;float sk=vPS.y,pt=vPS.x;
+ if(sk>.5){float mt=vn3(p*38.)*.6+vn3(p*140.)*.4;diffuseColor.rgb*=vec3(.84,.76,.7)*(.93+.14*mt);
+  float red=(pt<1.5?exp(-pow((y-.565)/.03,2.))*smoothstep(.0,.04,p.z):exp(-pow((y-1.17)/.035,2.))*smoothstep(.0,-.04,p.z))*.8;
+  diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.08,.86,.82),red);
+  float tan=pt<1.5?smoothstep(.598,.615,y)*step(y,.63):smoothstep(1.3,1.315,y)*step(y,1.33);diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.13,1.12,1.1),tan*.9);
+  if(pt<1.5&&y<.23)diffuseColor.rgb*=1.06;}
+ float ao=1.;ao*=1.-.35*smoothstep(.95,.86,y)*exp(-pow(p.x/.07,2.))*step(pt,.5);// entrejambe
+ ao*=1.-.3*(pt>.5&&pt<1.5?exp(-pow((y-.555)/.035,2.))*smoothstep(.0,-.04,p.z):0.);// creux du genou
+ ao*=1.-.3*(pt<.5?smoothstep(1.32,1.42,y)*(1.-smoothstep(1.45,1.5,y))*smoothstep(.12,.17,abs(p.x)):0.);// aisselles
+ ao*=1.-.25*smoothstep(1.53,1.58,y)*step(pt,.5);// sous le menton
+ diffuseColor.rgb*=ao;}`)
+  .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
+{float y=vBP.y;bool sh2=(vPS.x<.5&&y<1.13)||(vPS.x>.5&&vPS.x<1.5&&y>.62);roughnessFactor=vPS.y>.5?.46+.12*vn3(vBP*120.):sh2?.48:.74;}`)
+  .replace('#include <lights_physical_fragment>','#include <lights_physical_fragment>\nif(vPS.y>.5){material.sheenColor*=.15;material.specularColor*=.75;material.roughness=max(material.roughness,.5);}')
+  .replace('#include <aomap_fragment>','#include <aomap_fragment>\nif(vPS.y>.5)'+SSS_GL('1.')+'\nelse{reflectedLight.directSpecular*=.8;}')};
+ return m}
 function makeRiderInst(o){o=o||{};const R=new T.Group();R.rotation.order='YXZ';
  const bike=o.simple?npcBike(o.frame||0x15171b):buildBike(true);if(SPACE.on&&!ADV)o.simple?spaceNpcBike(bike):spaceBike(bike);R.add(bike.G);
  const bones=BN.map(n=>{const b=new T.Bone();b.name=n;return b});const root=bones[0];for(let k=1;k<bones.length;k++)root.add(bones[k]);
@@ -4285,7 +4338,7 @@ function makeRiderInst(o){o=o||{};const R=new T.Group();R.rotation.order='YXZ';
  for(let k=1;k<bones.length;k++){const[p,y]=BIND[BN[k]];basisQ(y,XREF,q);bones[k].position.copy(p);bones[k].quaternion.copy(q);inv.push(new T.Matrix4().compose(p,q,V(1,1,1)).invert())}
  const mat=new T.MeshStandardMaterial({map:o.tex||RTX,vertexColors:true,roughness:.62,metalness:0});
  mat.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor*=mix(1.,.72,step(.75,vUv.x)*step(vUv.y,.5));')};
- const body=new T.SkinnedMesh(bodyGeo(!o.simple),mat);body.add(root);body.bind(new T.Skeleton(bones,inv));body.castShadow=true;body.receiveShadow=true;body.frustumCulled=false;R.add(body);
+ const bgeo=bodyGeo(!o.simple),body=new T.SkinnedMesh(bgeo,o.simple?mat:riderMatHi(o.tex||RTX,bgeo));body.add(root);body.bind(new T.Skeleton(bones,inv));body.castShadow=true;body.receiveShadow=true;body.frustumCulled=false;R.add(body);
  const head=o.simple?npcHead(o.helmet||0xf4f5f7):headParts(KM);bones[BI.head].add(head);
  const shL=shoe(o.simple?null:KM),shR=shoe(o.simple?null:KM);if(o.simple){collapse(shL);collapse(shR)}bones[BI.ftL].add(shL);bones[BI.ftR].add(shR);
  if(!o.simple){bones[BI.hdL].add(handFingers(1));bones[BI.hdR].add(handFingers(-1))}
