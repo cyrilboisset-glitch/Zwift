@@ -4156,16 +4156,16 @@ function decalTex(txt,bg,fg){const k=mkCanvas(512,64),g=k.getContext('2d');g.fil
 function wheel(rear,pl){const G=new T.Group(),R=BK.r;
  // jantes (profil tourné autour de l'axe X) : carbone 45 mm, carbone 60 mm, alu 25 mm (le joueur les a toutes, une seule est visible)
  const PROF=[[[.288,-.0095],[.302,-.0125],[.312,-.012],[.316,-.0105],[.316,.0105],[.312,.012],[.302,.0125],[.288,.0095],[.27,.006],[.268,0],[.27,-.006],[.288,-.0095]],
-  [[.288,-.0095],[.302,-.0125],[.312,-.012],[.316,-.0105],[.316,.0105],[.312,.012],[.302,.0125],[.288,.0095],[.258,.0068],[.252,0],[.258,-.0068],[.288,-.0095]],
+  [[.286,-.0128],[.3,-.0146],[.311,-.0142],[.316,-.0118],[.316,.0118],[.311,.0142],[.3,.0146],[.286,.0128],[.27,.0105],[.26,.0072],[.2555,.0035],[.2545,0],[.2555,-.0035],[.26,-.0072],[.27,-.0105],[.286,-.0128]],// 60 mm large et arrondi (façon ENVE)
   [[.297,-.0092],[.305,-.0105],[.312,-.0105],[.316,-.0092],[.316,.0092],[.312,.0105],[.305,.0105],[.297,.0092],[.292,.005],[.291,0],[.292,-.005],[.297,-.0092]],
   [[.288,-.0095],[.302,-.0125],[.312,-.012],[.316,-.0105],[.316,.0105],[.312,.012],[.302,.0125],[.288,.0095],[.24,.0072],[.232,0],[.24,-.0072],[.288,-.0095]]];// carbone 80 mm
  const rims=[];
  for(let v=0;v<(pl?4:1);v++){const rimG=new T.LatheGeometry(PROF[v].map(([r,x])=>new T.Vector2(r,x)),sg(64));rimG.rotateZ(Math.PI/2);
-  const rim=new T.Mesh(rimG,v===2?stdM(0xb9bec4,.3,.85):stdM(0x1a1b1f,.38,.25));G.add(rim);rims.push(rim);
+  const rim=new T.Mesh(rimG,v===2?stdM(0xb9bec4,.3,.85):stdM(0xffffff,.46,.2,{map:carbonTex()}));G.add(rim);rims.push(rim);
   if(v!==2){// marquage de jante
    const rk=mkCanvas(2048,64),rg=rk.getContext('2d');rg.fillStyle='#1a1b1f';rg.fillRect(0,0,2048,64);rg.textBaseline='middle';
    for(let k=0;k<3;k++){const x0=k*683+60;rg.fillStyle='#d6d8db';rg.font='900 58px "Arial Black",Arial';rg.fillText('VCT',x0,34);rg.font='700 22px Arial';rg.fillStyle='#9a9ea4';rg.fillText('CARBON '+[45,60,0,80][v],x0+170,36);rg.fillRect(x0+300,30,200,3)}
-   const lab=texOf(rk,true,false),r0=[.278,.26,0,.242][v];for(const s2 of[-1,1]){const ring=new T.Mesh(polarRing(r0+.002,.31,sg(96),s2),stdM(0xffffff,.4,.1,{map:lab,side:T.DoubleSide}));ring.rotation.y=s2*Math.PI/2;ring.position.x=s2*.0126;rim.add(ring)}}}
+   const lab=texOf(rk,true,false),r0=[.278,.26,0,.242][v],lm=stdM(0xffffff,.42,.15,{map:lab,side:T.DoubleSide});LBLM.push(lm);for(const s2 of[-1,1]){const ring=new T.Mesh(polarRing(r0+.002,.31,sg(96),s2,PROF[v]),lm);ring.rotation.y=s2*Math.PI/2;ring.position.x=s2*.0126;rim.add(ring)}}}
  if(pl){// roue lenticulaire (arrière seulement ; à l'avant, la place reste vide et la jante 80 mm s'affiche)
   if(rear){const dg=new T.CylinderGeometry(.302,.302,.026,sg(64),1);dg.rotateZ(Math.PI/2);const disc=new T.Mesh(dg,stdM(0x16171b,.35,.4));
    const dk=mkCanvas(512,64),dg2=dk.getContext('2d');dg2.fillStyle='#16171b';dg2.fillRect(0,0,512,64);dg2.fillStyle='#ffd23f';dg2.font='800 40px Arial';dg2.fillText('VCT · DISC',40,46);
@@ -4193,8 +4193,18 @@ function wheel(rear,pl){const G=new T.Group(),R=BK.r;
   G.add(cs);G.userData.cas=cs}
  return G}
 // anneau à coordonnées de texture polaires (u = tour, v = rayon) : logos de jante lisibles
-function polarRing(r0,r1,seg,sd){const p=[],uv=[],ix=[];for(let i=0;i<=seg;i++){const a=i/seg*6.2832,c=Math.cos(a),s2=Math.sin(a);p.push(r0*c,r0*s2,0,r1*c,r1*s2,0);const u=sd<0?1-i/seg:i/seg;uv.push(u,0,u,1);if(i<seg){const k=i*2;ix.push(k,k+1,k+2,k+1,k+3,k+2)}}
+function polarRing(r0,r1,seg,sd,prof){const p=[],uv=[],ix=[],NR=prof?8:1;
+ // prof : profil de la jante [[r,x]…] → le logo épouse le flanc (décalé de 0,4 mm)
+ let hw=null;if(prof){const q=prof.filter(a=>a[1]>=0).sort((a,b)=>a[0]-b[0]);hw=r=>{for(let k=0;k<q.length-1;k++)if(r<=q[k+1][0]){const t=(r-q[k][0])/((q[k+1][0]-q[k][0])||1);return q[k][1]+(q[k+1][1]-q[k][1])*Math.max(0,Math.min(1,t))}return q[q.length-1][1]}}
+ for(let i=0;i<=seg;i++){const a=i/seg*6.2832,c=Math.cos(a),s2=Math.sin(a),u=1-i/seg;
+  for(let j=0;j<=NR;j++){const r=r0+(r1-r0)*j/NR,z=hw?hw(r)+.0004-.0126:0;p.push(r*c,r*s2,z);uv.push(u,j/NR)}
+  if(i<seg)for(let j=0;j<NR;j++){const k=i*(NR+1)+j,k2=k+NR+1;ix.push(k,k+1,k2,k+1,k2+1,k2)}}
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(ix);g.computeVertexNormals();return g}
+// carbone mat tissé (sergé 2/2) pour les jantes
+let _CBT=null;function carbonTex(){if(_CBT)return _CBT;const k=mkCanvas(128,32),g=k.getContext('2d');g.fillStyle='#17181b';g.fillRect(0,0,128,32);
+ for(let y=0;y<32;y+=4)for(let x=0;x<128;x+=4){const t=((x>>2)+(y>>2))%4<2;g.fillStyle=t?'#202226':'#131416';g.fillRect(x,y,4,4)}
+ const t=texOf(k,true,true);t.repeat.set(90,3);return _CBT=t}
+const LBLM=[];
 // disque de frein ajouré (piste percée, bord festonné, étoile noire), une seule texture partagée
 let _ROT=null;function rotorMat(){if(_ROT)return _ROT;const k=mkCanvas(256,256),g=k.getContext('2d'),c=128,R=127,sc=R/.08;
  g.clearRect(0,0,256,256);g.fillStyle='#b9bec4';g.beginPath();for(let i=0;i<=72;i++){const a=i/72*6.2832,r=(.08-.0025*(1+Math.cos(i*6.2832/6)))*sc;g.lineTo(c+Math.cos(a)*r,c+Math.sin(a)*r)}g.closePath();g.fill();
@@ -4242,6 +4252,11 @@ function buildBike(pl){const G=new T.Group(),{BB,RA,FA,ST,HT,HB}=BK;let decal=nu
   const a=SJ.clone().add(V(s2*.013,0,-.012)),b=RA.clone().add(V(s2*.062,.012,0));add(tubeAB(a,b,.0115,.0078,12,frameMat,.62));
   add(tubeAB(a.clone().lerp(b,.18),a.clone().lerp(b,.5),.0121,.0103,12,accMat,.64))}// touche de couleur sur les haubans
  add(tubeAB(BB.clone().add(V(-.046,0,0)),BB.clone().add(V(.046,0,0)),.025,.025,20,frameMat));// boîtier
+ // filets de couleur d'accent (dorés en « Noir et or ») aux extrémités des tubes, insigne sur la douille
+ {const TT0=V(0,.792,.39),TT1=V(0,.735,-.118),ring=(a,b,t0,t1,r,e)=>add(tubeAB(a.clone().lerp(b,t0),a.clone().lerp(b,t1),r,r,20,accMat,e));
+  ring(TT0,TT1,.05,.058,.0193,.83);ring(TT0,TT1,.94,.948,.0158,.83);ring(BB,HB,.875,.884,.0278,.65);ring(BB,ST,.93,.938,.0196,.61);
+  const hc=HB.clone().lerp(HT,.55),hd=HT.clone().sub(HB).normalize(),fw=V(0,0,1).addScaledVector(hd,-hd.z).normalize(),bd=new T.Mesh(new T.CircleGeometry(.0095,24),accMat);
+  bd.position.copy(hc).addScaledVector(fw,.0262);bd.lookAt(bd.position.clone().add(fw));add(bd)}
  // fourche droite profilée, té de fourche
  for(const s2 of[-1,1])add(tubeAB(HB.clone().add(V(s2*.036,-.03,.006)),FA.clone().add(V(s2*.054,.012,0)),.018,.0115,16,frameMat,.55));
  add(tubeAB(HB.clone().add(V(-.046,-.03,.004)),HB.clone().add(V(.046,-.03,.004)),.024,.022,14,frameMat,1)).rotation.z=Math.PI/2;
@@ -4265,9 +4280,9 @@ function buildBike(pl){const G=new T.Group(),{BB,RA,FA,ST,HT,HB}=BK;let decal=nu
   for(const s2 of[-1,1])add(curveTube([V(s2*.02,.948,-.09),V(s2*.022,.938,-.15),V(s2*.024,.938,-.26),V(s2*.03,.947,-.33)],.0035,alu,12))}
  // pédalier (côté droit -X) : plateaux, manivelles, pédales — groupe tournant
  const crank=new T.Group();crank.position.copy(BB);G.add(crank);
- const r50=44*.0127/(2*Math.PI),r34=34*.0127/(2*Math.PI);
- // un seul plateau (44 dents), étoile à 4 branches
- for(const[t,r,x]of[[44,r50,-.07]]){const m=new T.Mesh(chainringGeo(t,r),dark);m.position.x=x;m.castShadow=true;crank.add(m)}
+ const r50=52*.0127/(2*Math.PI),r34=36*.0127/(2*Math.PI);
+ // double plateau 52/36, étoile à 4 branches
+ for(const[t,r,x]of[[52,r50,-.072],[36,r34,-.0645]]){const m=new T.Mesh(chainringGeo(t,r),dark);m.position.x=x;m.castShadow=true;crank.add(m)}
  for(let k=0;k<4;k++){const a=k/4*6.2832+.4;crank.add(tubeAB(V(-.072,0,0),V(-.072,Math.cos(a)*r50*.82,Math.sin(a)*r50*.82),.0085,.006,6,dark,.5))}
  const arm=(x,dir)=>{const g=new T.Group(),m=tubeAB(V(0,0,0),V(0,.1725*dir,0),.0115,.0085,10,dark,.6);g.add(m);g.position.x=x;
   const ped=new T.Group();ped.position.set(0,.1725*dir,0);const pb=new T.Mesh(new T.BoxGeometry(.06,.016,.09),blkM);pb.position.x=x>0?.042:-.042;ped.add(pb);
@@ -4276,8 +4291,20 @@ function buildBike(pl){const G=new T.Group(),{BB,RA,FA,ST,HT,HB}=BK;let decal=nu
  const armR=arm(-.084,1),armL=arm(.084,-1);// bras droit modélisé vers le haut (angle 0 = point mort haut)
  crank.add(tubeAB(V(-.085,0,0),V(.085,0,0),.011,.011,10,alu));
  // dérailleurs, bidons
- const rdG=new T.Group();rdG.position.copy(RA).add(V(-.058,-.06,-.015));rdG.add(new T.Mesh(new T.BoxGeometry(.018,.07,.03),dark));
- for(const y of[-.02,-.075]){const p=new T.Mesh(new T.CylinderGeometry(.017,.017,.008,16),blkM);p.rotation.z=Math.PI/2;p.position.set(0,y,.01);rdG.add(p)}G.add(rdG);
+ // dérailleur arrière : corps en parallélogramme, chape, deux galets dentés
+ const rdG=new T.Group();rdG.position.copy(RA).add(V(-.058,-.06,-.015));
+ {const bd=new T.Mesh(new T.BoxGeometry(.017,.044,.03),dark);bd.position.set(-.002,.03,.006);bd.rotation.x=.55;rdG.add(bd);
+  const kn=new T.Mesh(new T.BoxGeometry(.02,.022,.022),blkM);kn.position.set(-.002,.004,.012);rdG.add(kn);
+  const cg=new T.Mesh(new T.BoxGeometry(.0025,.078,.026),blkM);cg.position.set(-.0085,-.0475,.012);rdG.add(cg);
+  const cg2=cg.clone();cg2.position.x=.0075;cg2.scale.set(1,.92,.85);rdG.add(cg2);
+  for(const y of[-.02,-.075]){const p=new T.Mesh(chainringGeo(12,.0155),dark);p.position.set(.001,y,.01);rdG.add(p);const c=tubeAB(V(-.01,y,.01),V(.01,y,.01),.004,.004,8,alu);rdG.add(c)}
+  rdG.add(tubeAB(V(-.004,.05,0),V(-.004,.012,.012),.004,.004,8,blkM))}
+ G.add(rdG);
+ // dérailleur avant (sur le tube de selle, au-dessus du grand plateau)
+ {const t=(r50+.022)/(ST.y-BB.y),P=BB.clone().lerp(ST,t);const fd=new T.Group();fd.position.copy(P);
+  const bd=new T.Mesh(new T.BoxGeometry(.022,.03,.024),dark);bd.position.set(-.03,0,0);fd.add(bd);
+  for(const x of[-.08,-.061]){const pl2=new T.Mesh(new T.BoxGeometry(.0022,.022,.07),blkM);pl2.position.set(x,-.006,.022);pl2.rotation.x=-.12;fd.add(pl2)}
+  add(fd)}
   for(const[a,b,c]of[[V(0,.43,.17),V(0,.56,.28),0xffd23f]]){const bo=new T.Mesh(new T.CylinderGeometry(.036,.036,.19,sg(20)),pl&&c===0xffd23f?KM.bot:stdM(c,.4,0));bo.position.copy(a).add(b).multiplyScalar(.5).add(V(0,.0,0));
   bo.quaternion.setFromUnitVectors(UP,b.clone().sub(a).normalize());bo.position.add(b.clone().sub(a).normalize().cross(V(1,0,0)).multiplyScalar(c===0xffd23f?-.042:.042));add(bo)}
  // roues
@@ -4286,7 +4313,7 @@ function buildBike(pl){const G=new T.Group(),{BB,RA,FA,ST,HT,HB}=BK;let decal=nu
  const ck=mkCanvas(64,8),cg=ck.getContext('2d');cg.fillStyle='#2b2c30';cg.fillRect(0,0,64,8);cg.fillStyle='#8d9196';for(let k=0;k<4;k++)cg.fillRect(k*16+2,1,9,6);const ctex=texOf(ck,true,true);
  const chainM=stdM(0xffffff,.35,.8,{map:ctex});
  const rc=17*.0127/(2*Math.PI),pts=[];
- for(let k=0;k<=12;k++){const a=Math.PI/2-k/12*Math.PI;pts.push(V(-.0685,BB.y+Math.sin(a)*r50,BB.z+Math.cos(a)*r50))}
+ for(let k=0;k<=12;k++){const a=Math.PI/2-k/12*Math.PI;pts.push(V(-.0705,BB.y+Math.sin(a)*r50,BB.z+Math.cos(a)*r50))}
  pts.push(V(-.062,rdG.position.y-.075,rdG.position.z+.035));pts.push(V(-.06,rdG.position.y-.075,rdG.position.z-.012));pts.push(V(-.056,rdG.position.y-.02,rdG.position.z-.01));
  for(let k=0;k<=8;k++){const a=-Math.PI/2-k/8*Math.PI;pts.push(V(-.0465,RA.y+Math.sin(a)*rc,RA.z+Math.cos(a)*rc))}
  const chain=new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts,true,'centripetal'),sg(160),.0042,GSEG<1?4:6,true),chainM);chain.castShadow=true;G.add(chain);
@@ -5028,23 +5055,25 @@ const LOCKT={km:'km cumulés',kcal:'kcal cumulées',asc:'m de D+ cumulés',spr:'
 const lockVal=k=>k==='km'?GS.km:k==='kcal'?GS.kcal:k==='asc'?GS.asc:k==='spr'?GS.spr:k==='stk'?(GS.stk?GS.stk.best||0:0):lvlOf(GS.xp);
 const kitOK=k=>!k.lock||lockVal(k.lock[0])>=k.lock[1];
 const PALK=['#f4f5f7','#15171b','#d7263d','#ffd23f','#1e88e5','#2e7d32','#ff7043','#7b1fa2','#00acc1','#ff3d7f','#8d6e63','#9aa0a6','#0d2a4a','#c0ca33'];
-const LENS=[['Fumé','#0c1a2c'],['Rouge miroir','#b3261e'],['Bleu miroir','#1e6fd9'],['Or','#c9a227'],['Irisé','#6a3df0']],FINS=[['Brillant',.32,.35,1],['Mat',.78,.08,0],['Métallisé',.22,.85,1],['Or',.2,1,1,'#c9a227'],['Chrome',.05,1,1,'#e9ecf0'],['Galaxie',.26,.5,1,'#ffffff']],
+const LENS=[['Fumé','#0c1a2c'],['Rouge miroir','#b3261e'],['Bleu miroir','#1e6fd9'],['Or','#c9a227'],['Irisé','#6a3df0']],FINS=[['Brillant',.32,.35,1],['Mat',.78,.08,0],['Métallisé',.22,.85,1],['Or',.2,1,1,'#c9a227'],['Chrome',.05,1,1,'#e9ecf0'],['Galaxie',.26,.5,1,'#ffffff'],['Noir et or',.22,.42,1,'#0a0a0c']],
  RIMS=['Carbone 45 mm','Carbone 60 mm','Alu 25 mm','Carbone 80 mm','Lenticulaire arrière'],TIRES=['Noirs','Flancs beiges'],HELMT=['Route','Aéro (chrono)'];
 // équipements à débloquer : [type de condition, valeur]
 const OLOCK={rim:{3:['km',2000],4:['lvl',15]},fin:{3:['kcal',25000],4:['asc',15000]},lens:{4:['stk',7]},helmT:{1:['lvl',8]}};
 let KIT={kit:'v3d',helm:'#f4f5f7',lens:0,shoe:'#f3f3f1',sock:'#f2f2f0',glove:'#15161a',frame:'#15171b',fin:0,acc:'#ffd23f',tape:'#141416',sad:'#141416',rim:0,tire:0,fsk:1,fhr:0,fbd:1,fey:0,gls:0};
 try{Object.assign(KIT,JSON.parse(localStorage.v3kit||'{}'))}catch(e){}
 if(!KIT.bk2){KIT.fin=5;KIT.acc='#ff5fa2';KIT.bk2=1;try{localStorage.v3kit=JSON.stringify(KIT)}catch(e){}}// 17 nov. 2026 : nouveau vélo aéro « Galaxie »
+if(!KIT.bk3){KIT.fin=6;KIT.acc='#d4af37';KIT.rim=1;KIT.bk3=1;try{localStorage.v3kit=JSON.stringify(KIT)}catch(e){}}// 18 nov. 2026 : cadre noir et or, jantes 60 mm
 const ksave=()=>{try{localStorage.v3kit=JSON.stringify(KIT)}catch(e){}};
 function applyKit(){const k=KITS.find(x=>x.id===KIT.kit&&kitOK(x))||KITS[0];
  RTX.image=jerseyCanvas(k.c1,k.c2,k.t1,k.t2,k.ac,false,{st:k.st,sock:KIT.sock,glove:KIT.glove});RTX.needsUpdate=true;
  KM.helm.color.set(KIT.helm);KM.helmA.color.set(k.ac==='#ffffff'?k.c1:k.ac);KM.lens.color.set((LENS[KIT.lens]||LENS[0])[1]);KM.shoe.color.set(KIT.shoe);KM.boa.color.set(k.ac);
  for(const k in OLOCK)if(!lockOK(OLOCK[k][KIT[k]|0]))KIT[k]=0;// option verrouillée : on revient au choix de base
  const f=FINS[KIT.fin]||FINS[0];frameMat.color.set(f[4]||KIT.frame);frameMat.roughness=f[1];frameMat.metalness=f[2];frameMat.clearcoat=f[3];frameMat.map=f[0]==='Galaxie'?galaxyTex():null;frameMat.needsUpdate=true;
- accMat.color.set(KIT.acc);KM.tape.color.set(KIT.tape);KM.sad.color.set(KIT.sad);KM.bot.color.set((FINS[KIT.fin]||[])[0]==='Galaxie'?'#151619':KIT.acc);
+ const FN=(FINS[KIT.fin]||[])[0],NO=FN==='Noir et or';accMat.color.set(NO?'#d4af37':KIT.acc);accMat.metalness=NO?.95:.2;accMat.roughness=NO?.24:.35;KM.tape.color.set(KIT.tape);KM.sad.color.set(KIT.sad);KM.bot.color.set(FN==='Galaxie'||NO?'#151619':KIT.acc);
+ LBLM.forEach(m=>m.color.set(NO?'#ecc96a':'#ffffff'));
  const hd=RIDER.bones&&RIDER.bones[BI.head].children.find(o=>o.userData.shell);if(hd&&hd.userData.real){const a=KIT.helmT===1;hd.userData.shell.visible=!a;hd.userData.tail.visible=a}else if(hd&&hd.userData.tail){const a=KIT.helmT===1;hd.userData.shell.scale.set(.86,a?.84:.82,a?1.32:1.18);hd.userData.tail.visible=a;(hd.userData.vents||[]).forEach(x=>x.visible=!a)}
  const bk=RIDER.bike;if(bk){for(const W of[bk.wf,bk.wr]){const u=W.userData,sel=W===bk.wf&&KIT.rim===4?3:KIT.rim|0;if(u.rims)u.rims.forEach((m,i)=>m.visible=i===sel||(sel===4&&i===3));if(u.tan)u.tan.visible=KIT.tire===1;if(u.spokes&&u.spokes.isMesh)u.spokes.visible=sel!==4}
-  if(bk.decal){if(bk.decal.map)bk.decal.map.dispose();const gx=(FINS[KIT.fin]||[])[0]==='Galaxie';bk.decal.map=decalTex('V C T',gx?'transparent':KIT.frame,gx?'#f2f4ff':KIT.acc);bk.decal.alphaTest=.5;bk.decal.needsUpdate=true}}
+  if(bk.decal){if(bk.decal.map)bk.decal.map.dispose();const gx=FN==='Galaxie'||NO;bk.decal.map=decalTex('V C T',gx?'transparent':KIT.frame,NO?'#e2bd55':gx?'#f2f4ff':KIT.acc);bk.decal.alphaTest=.5;bk.decal.needsUpdate=true}}
  faceApply()}
 function kitRender(){const sw=(key,pal)=>'<div class="sw" data-k="'+key+'">'+pal.map(c=>'<button data-v="'+c+'" style="background:'+c+'"'+(KIT[key]===c?' class="on"':'')+'></button>').join('')+'</div>';
  const opt=(key,L)=>'<div class="chips" data-k="'+key+'">'+L.map((x,i)=>{const lk=OLOCK[key]&&OLOCK[key][i],ok=lockOK(lk);return '<button data-v="'+i+'"'+((KIT[key]|0)===i?' class="on"':'')+(ok?'':' data-lk="'+esc(lockTxt(lk))+'" style="opacity:.55"')+'>'+(ok?'':'🔒 ')+(Array.isArray(x)?x[0]:x)+'</button>'}).join('')+'</div>';
