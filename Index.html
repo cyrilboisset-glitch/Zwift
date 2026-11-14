@@ -2123,9 +2123,9 @@ function mrEl(){let o=$('mr');if(o)return o;o=document.createElement('div');o.id
  $('mrChips').onclick=e=>{const b=e.target.closest('button');if(!b)return;MR.prof=b.dataset.p;mrChange()};
  return o}
 const MRBASE=[
- {n:'Plan',u:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',o:{subdomains:'abcd',maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>'}},
- {n:'Satellite',u:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',o:{maxZoom:19,attribution:'Imagerie © Esri'}},
- {n:'Rues',u:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',o:{maxZoom:19,attribution:'© Esri, HERE, OpenStreetMap'}}];
+ {n:'Rues',u:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',o:{maxZoom:19,attribution:'© Esri, HERE, OpenStreetMap'}},
+ {n:'Plan IGN (France)',u:'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png',o:{maxZoom:18,attribution:'© IGN'}},
+ {n:'Satellite',u:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',o:{maxZoom:19,attribution:'Imagerie © Esri'}}];
 function mrBase(i){MR.bi=i;try{localStorage.v3mrb=i}catch(e){}
  if(MR.tl)MR.map.removeLayer(MR.tl);const b=MRBASE[i];MR.tl=L.tileLayer(b.u,b.o).addTo(MR.map);MR.tl.bringToBack();
  if(MR.tl)MR.tl.on('tileerror',()=>{MR.terr=(MR.terr|0)+1;if(MR.terr===12){MR.terr=0;MR.msg='Fond de carte injoignable : essaie le bouton 🛰️ pour en changer.';mrDraw()}});
