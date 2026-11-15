@@ -6988,7 +6988,7 @@ function recSave(){if(!REC.on||REC.pts.length<10)return;try{localStorage.v3rec=J
  p:REC.pts.map(q=>[q.t,+q.lat.toFixed(6),+q.lon.toFixed(6),+q.alt.toFixed(1),+q.dist.toFixed(1),+q.spd.toFixed(2),q.pw,q.hr,q.cad])})}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')recSave()});addEventListener('pagehide',recSave);
 // la sortie est gardée dès 30 s et 100 m, même si le parcours n'est pas fini
-function recStop(){if(!REC.on)return null;REC.on=false;try{delete localStorage.v3rec}catch(e){}const p=REC.pts;if(p.length<30||p[p.length-1].dist-p[0].dist<100)return null;return{pts:p.slice(),asc:REC.asc,mode:REC.mode,t0:REC.t0}}
+function recStop(){if(!REC.on)return null;REC.on=false;try{delete localStorage.v3rec}catch(e){}const p=REC.pts;if(p.length<30||p[p.length-1].dist-p[0].dist<100)return null;return{pts:p.slice(),asc:REC.asc,mode:REC.mode,t0:REC.t0,bl:(REC.mode==='wk'&&wk&&wk.bl)?wk.bl.map(b=>b.slice()):null}}
 // au démarrage : une sortie interrompue (appli fermée, écran éteint…) est proposée à l'envoi sur Strava
 function recOfferSaved(){let J=null;try{J=JSON.parse(localStorage.v3rec||'null')}catch(e){}if(!J||!J.p||J.p.length<30){try{delete localStorage.v3rec}catch(e){}return}
  const R={t0:J.t0,mode:J.mode,asc:J.asc||0,wkn:J.wkn,pts:J.p.map(a=>({t:a[0],lat:a[1],lon:a[2],alt:a[3],dist:a[4],spd:a[5],pw:a[6],hr:a[7],cad:a[8]}))},S=rideSummary(R);
@@ -7046,9 +7046,9 @@ const RDB={p:null};
 function rdb(){return RDB.p||(RDB.p=new Promise((ok,ko)=>{try{const q=indexedDB.open('velo3d-rides',1);q.onupgradeneeded=()=>q.result.createObjectStore('r',{keyPath:'t0'});q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)}catch(e){ko(e)}}))}
 async function rdbDo(mode,f){const db=await rdb();return new Promise((ok,ko)=>{const tx=db.transaction('r',mode),r=f(tx.objectStore('r'));tx.oncomplete=()=>ok(r&&r.result);tx.onerror=()=>ko(tx.error)})}
 function rideStore(R,n){if(!R||!R.pts||R.pts.length<10)return;rdbDo('readwrite',st=>st.put({t0:R.t0,mode:R.mode,asc:Math.round(R.asc||0),wkn:R.wkn||'',n:n||R.n||'',
- p:R.pts.map(q=>[q.t,+q.lat.toFixed(6),+q.lon.toFixed(6),+(+q.alt).toFixed(1),+(+q.dist).toFixed(1),+(+q.spd).toFixed(2),q.pw,q.hr,q.cad])})).catch(e=>say('Historique : sortie non gardée ('+e.message+')'))}
+ bl:R.bl||null,p:R.pts.map(q=>[q.t,+q.lat.toFixed(6),+q.lon.toFixed(6),+(+q.alt).toFixed(1),+(+q.dist).toFixed(1),+(+q.spd).toFixed(2),q.pw,q.hr,q.cad])})).catch(e=>say('Historique : sortie non gardée ('+e.message+')'))}
 async function rideGet(t0){const J=await rdbDo('readonly',st=>st.get(t0));if(!J)return null;
- return{t0:J.t0,mode:J.mode,asc:J.asc,wkn:J.wkn,n:J.n,pts:J.p.map(a=>({t:a[0],lat:a[1],lon:a[2],alt:a[3],dist:a[4],spd:a[5],pw:a[6],hr:a[7],cad:a[8]}))}}
+ return{t0:J.t0,mode:J.mode,asc:J.asc,wkn:J.wkn,n:J.n,bl:J.bl||null,pts:J.p.map(a=>({t:a[0],lat:a[1],lon:a[2],alt:a[3],dist:a[4],spd:a[5],pw:a[6],hr:a[7],cad:a[8]}))}}
 async function rideKeys(){try{return new Set(await rdbDo('readonly',st=>st.getAllKeys()))}catch(e){return new Set()}}
 function fitName(R,n){const d=new Date(R.t0),z=x=>String(x).padStart(2,'0');return 'VCT-'+d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'-'+z(d.getHours())+'h'+z(d.getMinutes())+(n?'-'+String(n).normalize('NFD').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40):'')+'.fit'}
 // fiche d'une sortie de l'historique
@@ -7057,7 +7057,7 @@ async function histOpen(h){let R=null;try{R=await rideGet(h.t)}catch(e){}
   nf(h.km,1)+' km · '+fmt(h.el)+' · '+(h.asc||0)+' m D+ · '+(h.ap||0)+' W moy.'+(h.np?' · NP '+h.np+' W':'')+' · '+nf(h.kcal)+' kcal</p>'+
   (R?'':'<p style="color:var(--mut)"><small>Trace détaillée absente (sortie faite avant l\'historique complet) : export .fit impossible.</small></p>');
  const B=[];
- if(R){B.push(['⬇ Télécharger le .fit',()=>downloadFit(fitEncode(R),fitName(R,h.n))]);B.push(['🟧 Envoyer sur Strava',()=>offerStrava(R)]);B.push(['📊 Analyse',()=>{R.h=h;R.n=h.n;anaOpen(R)}])}
+ if(R){B.push(['⬇ Télécharger le .fit',()=>downloadFit(fitEncode(R),fitName(R,h.n))]);B.push(['🟧 Envoyer sur Strava',()=>offerStrava(R)]);B.push(['✉️ Envoyer par mail',()=>mailRide(R,rideSummary(R))]);B.push(['📊 Analyse',()=>{R.h=h;R.n=h.n;anaOpen(R)}])}
  B.push(['🗑 Supprimer',()=>mod('Supprimer cette sortie de l\'historique ?<br><small>'+esc(h.n)+' · '+new Date(h.t).toLocaleDateString('fr-FR')+'</small>',[['Supprimer',()=>{const i=GS.hist.indexOf(h);if(i>=0)GS.hist.splice(i,1);gsave();rdbDo('readwrite',st=>st.delete(h.t)).catch(()=>{});suiviRender()}],['Annuler',()=>{}]])]);
  B.push(['Fermer',()=>{}]);mod(tx,B)}
 // toutes les sorties qui ont une trace : un .fit chacune
@@ -7078,8 +7078,52 @@ function offerStrava(R){const S=rideSummary(R),fit=fitEncode(R),d=new Date(R.t0)
   catch(e){mod('Envoi impossible<br><small>'+String(e.message||e).replace(/</g,'')+'</small><br><small>Tu peux télécharger le fichier et l\'importer sur strava.com/upload</small>',[['Télécharger le .fit',()=>{downloadFit(fit,fname);window.open('https://www.strava.com/upload/select','_blank')}],['Fermer',()=>{}]])}};
  const btn=[];if(STR.id&&STR.ref)btn.push(['Envoyer sur Strava',send]);else btn.push(['Connecter Strava…',()=>{stravaPanel(()=>offerStrava(R))}]);
  btn.push(['📊 Analyse',()=>anaOpen(R)],['🖼️ Carte souvenir',()=>postcard(R)]);if(DIAG.on&&DIAG.frames)btn.push(['🩺 Diagnostic',diagShow]);
- btn.push(['Télécharger le .fit',()=>downloadFit(fit,fname)],['Ne pas envoyer',()=>{}]);
+ btn.push(['✉️ Envoyer par mail',()=>mailRide(R,S)],['Télécharger le .fit',()=>downloadFit(fit,fname)],['Ne pas envoyer',()=>{}]);
  finShow(R,S,btn)}
+// ---- export par mail (15 nov. 2026, demande de Cyril) : adresse prérenseignée, résumé, et image du graphique (séance : blocs + puissance réelle) ----
+const MAIL_TO='cyril.boisset@gmail.com';
+function rideGraphCanvas(R,S,A){const sea=R.mode==='wk',p=R.pts,n=p.length,W=1200,H=sea?700:640,k=mkCanvas(W,H),g=k.getContext('2d'),F="'Space Grotesk',system-ui,sans-serif",C="'Barlow Condensed','Arial Narrow',sans-serif";
+ g.fillStyle='#0f0e0d';g.fillRect(0,0,W,H);const gl=g.createRadialGradient(W,0,0,W,0,W*.7);gl.addColorStop(0,'rgba(240,207,115,.16)');gl.addColorStop(1,'rgba(240,207,115,0)');g.fillStyle=gl;g.fillRect(0,0,W,H);
+ g.fillStyle='#f0cf73';g.fillRect(0,0,6,H);
+ const title=(R.wkn||R.n||'')?(R.wkn||R.n):(ROUTE?ROUTE.name:COURSE?COURSE.name:'Sortie');
+ g.textBaseline='alphabetic';g.fillStyle='#e9a178';g.font='700 20px '+F;g.fillText(sea?'SÉANCE TERMINÉE':'SORTIE TERMINÉE',40,50);
+ g.fillStyle='#f4efe6';g.font='700 46px '+F;g.fillText(String(title).slice(0,40),40,100);
+ g.fillStyle='#978e7f';g.font='500 20px '+F;g.fillText(new Date(R.t0).toLocaleString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}),40,132);
+ const el=(p[n-1].t-p[0].t)/1000,st=[[nf(S.km,1),'km'],[fmt(el),'temps'],[S.asc,'m D+'],[S.ap,'W moy.']];if(A&&A.np)st.push([A.np,'W norm.']);if(A&&A.tss)st.push([A.tss,'TSS']);if(A&&A.ahr)st.push([A.ahr,'bpm moy.']);
+ let x=40;for(const[v,l]of st){g.fillStyle='#f0cf73';g.font='700 40px '+C;g.fillText(String(v),x,186);const w=g.measureText(String(v)).width;g.fillStyle='#978e7f';g.font='500 18px '+F;g.fillText(l,x+w+6,186);x+=w+g.measureText(l).width+36}
+ const x0=84,x1=W-30,y0=238,y1=H-64,cw=x1-x0,ch=y1-y0,tm=Math.max(1,el);let pm=100;const sm=[];for(let i=0;i<n;i++){let a=0,c=0;for(let j=Math.max(0,i-2);j<=Math.min(n-1,i+2);j++){a+=p[j].pw||0;c++}sm.push(a/c);pm=Math.max(pm,sm[i])}
+ if(sea&&R.bl)for(const b of R.bl)pm=Math.max(pm,Math.max(b[1],b[2])*FTP);pm=Math.max(pm,FTP*1.15);const step=pm>450?100:50;pm=Math.ceil(pm/step)*step;
+ const X=t=>x0+t/tm*cw,Y=w=>y1-w/pm*ch;
+ g.font='500 16px '+F;g.textAlign='right';g.lineWidth=1;for(let w=0;w<=pm;w+=step){g.strokeStyle='rgba(255,255,255,'+(w?'.08':'.25')+')';g.beginPath();g.moveTo(x0,Y(w));g.lineTo(x1,Y(w));g.stroke();g.fillStyle='#978e7f';g.fillText(w+' W',x0-8,Y(w)+5)}
+ g.textAlign='center';const tk=tm>5400?900:tm>2400?600:tm>900?300:120;for(let t=0;t<=tm;t+=tk){g.strokeStyle='rgba(255,255,255,.06)';g.beginPath();g.moveTo(X(t),y0);g.lineTo(X(t),y1);g.stroke();g.fillStyle='#978e7f';g.fillText(Math.round(t/60)+' min',X(t),y1+24)}
+ if(sea&&R.bl){let t=0;for(const b of R.bl){const t1=t+b[0],a=b[1]*FTP,c=b[2]*FTP,col=ZN[Math.max(0,zi((b[1]+b[2])/2))][1];g.fillStyle=col;g.globalAlpha=.32;g.beginPath();g.moveTo(X(t),y1);g.lineTo(X(t),Y(a));g.lineTo(X(Math.min(t1,tm)),Y(c));g.lineTo(X(Math.min(t1,tm)),y1);g.closePath();g.fill();g.globalAlpha=1;g.strokeStyle=col;g.lineWidth=3;g.beginPath();g.moveTo(X(t),Y(a));g.lineTo(X(Math.min(t1,tm)),Y(c));g.stroke();t=t1;if(t>tm)break}}
+ else{let lo=1e9,hi=-1e9;for(const q of p)if(q.alt>-500){lo=Math.min(lo,q.alt);hi=Math.max(hi,q.alt)}if(hi-lo<20)hi=lo+20;g.fillStyle='rgba(255,255,255,.10)';g.beginPath();g.moveTo(x0,y1);for(let i=0;i<n;i++)g.lineTo(X((p[i].t-p[0].t)/1000),y1-(p[i].alt-lo)/(hi-lo)*ch*.55);g.lineTo(x1,y1);g.closePath();g.fill()}
+ // puissance réelle : colorée par zone en barres pour une sortie, ligne blanche épaisse pour une séance (lisible sur les blocs)
+ if(sea){g.strokeStyle='#f4efe6';g.lineWidth=2.6;g.lineJoin='round';g.beginPath();for(let i=0;i<n;i++){const xx=X((p[i].t-p[0].t)/1000),yy=Y(sm[i]);i?g.lineTo(xx,yy):g.moveTo(xx,yy)}g.stroke()}
+ else{const kk=Math.max(1,Math.floor(n/cw));for(let i=0;i<n;i+=kk){let a=0,c=0;for(let j=i;j<Math.min(n,i+kk*3);j++){a+=p[j].pw||0;c++}const w=a/c;g.fillStyle=ZN[Math.max(0,zi(w/FTP))][1];g.fillRect(X((p[i].t-p[0].t)/1000),Y(w),Math.max(1.5,kk/n*cw+1),y1-Y(w))}}
+ g.strokeStyle='#f0cf73';g.setLineDash([8,6]);g.lineWidth=1.5;g.beginPath();g.moveTo(x0,Y(FTP));g.lineTo(x1,Y(FTP));g.stroke();g.setLineDash([]);g.textAlign='right';g.fillStyle='#f0cf73';g.font='700 15px '+F;g.fillText('FTP '+FTP+' W',x1,Y(FTP)-6);
+ g.textAlign='left';g.fillStyle='#978e7f';g.font='500 16px '+F;g.fillText(sea&&R.bl?'Blocs prévus (couleur de zone) · ligne blanche : puissance réelle':'Puissance par zone · altitude en gris',x0,y0-12);
+ g.textAlign='right';g.fillText('Virtual Cycling Training',W-30,H-20);return k}
+function rideMailText(R,S,A){const sea=R.mode==='wk',p=R.pts,kc=Math.round(p.reduce((a,q)=>a+(q.pw||0),0)/(.24*4184)),d=new Date(R.t0),nm=(R.wkn||R.n||(ROUTE?ROUTE.name:COURSE?COURSE.name:'Sortie'));
+ const L=[(sea?'Séance : ':'Sortie : ')+nm,d.toLocaleString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}),'',
+  'Distance : '+nf(S.km,1)+' km','Temps : '+fmt(S.el),'Dénivelé + : '+S.asc+' m','Puissance moyenne : '+S.ap+' W'+(A&&A.np?' · normalisée '+A.np+' W':'')+(A&&A.mx?' · maxi '+A.mx+' W':''),'Énergie : '+nf(kc)+' kcal'];
+ if(A&&A.tss)L.push('Charge (TSS) : '+A.tss+(A.ifv?' · IF '+nf(A.ifv,2):''));if(A&&A.ahr)L.push('Cardio : '+A.ahr+' bpm moy. · '+A.mhr+' max');if(A&&A.acad)L.push('Cadence moyenne : '+A.acad+' tr/min');
+ L.push('FTP : '+FTP+' W','','Envoyé depuis Virtual Cycling Training');return L.join('\n')}
+function dlBlob(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
+function mailRide(R,S){let A=null;try{A=analyzeRide(R.pts)}catch(e){}
+ const base=fitName(R,R.wkn||R.n||'').replace(/\.fit$/,''),sub=(R.mode==='wk'?'Séance ':'Sortie ')+(R.wkn||R.n||'')+' · '+new Date(R.t0).toLocaleDateString('fr-FR')+' · '+nf(S.km,1)+' km',txt=rideMailText(R,S,A);
+ const png=()=>new Promise(ok=>{try{rideGraphCanvas(R,S,A).toBlob(ok,'image/png')}catch(e){console.warn(e);ok(null)}});
+ mod('Envoyer par mail<br><small>'+esc(MAIL_TO)+'<br>'+(R.mode==='wk'?'Avec une image du graphique de la séance (blocs et puissance réelle).':'Avec une image du graphique de la sortie.')+'</small>',[
+  ['📎 Partager avec les pièces jointes',async()=>{const b=await png();if(!b)return say('Image du graphique impossible.');
+    const f1=new File([b],base+'-graphique.png',{type:'image/png'});let files=[f1];try{files.push(new File([fitEncode(R)],base+'.fit',{type:'application/octet-stream'}))}catch(e){}
+    try{if(navigator.canShare&&!navigator.canShare({files}))files=[f1];if(!navigator.share||!navigator.canShare||!navigator.canShare({files}))throw new Error('partage de fichiers indisponible');
+     await navigator.share({files,title:sub,text:'À : '+MAIL_TO+'\n\n'+txt})}
+    catch(e){if(e&&e.name==='AbortError')return;dlBlob(b,base+'-graphique.png');mod('Partage de fichiers indisponible ici<br><small>L\'image du graphique est enregistrée dans Téléchargements. Utilise « Ouvrir un mail » puis joins-la.</small>',[['Ouvrir un mail',()=>mailRide(R,S)],['Fermer',()=>{}]])}}],
+  ['✉️ Ouvrir un mail à '+MAIL_TO,async()=>{const b=await png();if(b)dlBlob(b,base+'-graphique.png');
+    const body=txt+(b?'\n\n(Image du graphique : '+base+'-graphique.png, enregistrée dans Téléchargements : à joindre au mail.)':'');
+    location.href='mailto:'+MAIL_TO+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body)}],
+  ['🖼️ Enregistrer l\'image seule',async()=>{const b=await png();if(b){dlBlob(b,base+'-graphique.png');say('Image enregistrée')}}],
+  ['Annuler',()=>{}]])}
 // ---- écran de fin de sortie (façon applis du commerce) : chiffres clés, records, trace, puissance et altitude ----
 function finShow(R,S,btn){let el=$('fin');if(!el){el=document.createElement('div');el.id='fin';document.body.appendChild(el)}
  const A=analyzeRide(R.pts),p=R.pts,h=R.ses,el2=S.el,spd=el2>0?S.km/(el2/3600):0,kc=h?h.kcal:Math.round(p.reduce((a,q)=>a+q.pw,0)/(.24*4184)),tl=(v,l,c)=>'<div'+(c?' class="big"':'')+'><b>'+v+'</b><small>'+l+'</small></div>';
