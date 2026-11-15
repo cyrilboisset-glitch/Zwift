@@ -1758,7 +1758,7 @@ function advTick(now,hm,dt){ADVG.visible=!hm&&!VEL.on;if(!ROUTE||!COURSE)return;
 
 
 // résolution de rendu × 0,8 pour toutes les qualités (le sol, qui coûte le plus, se colorie pixel par pixel)
-const DPRS={lo:0,hi:0,t:0},RES_K=.8,PRMAX=()=>Math.min(devicePixelRatio||1,QP.dpr)*RES_K;let PR=PRMAX();ren.setPixelRatio(PR);
+const AQ={t:performance.now(),lo:0,hi:0,max:QK,fail:{},fps:0,n:0},DPRS={lo:0,hi:0,t:0},RES_K=.8,PRMAX=()=>Math.min(devicePixelRatio||1,QP.dpr)*RES_K;let PR=PRMAX();ren.setPixelRatio(PR);
 
 const HL=new T.HemisphereLight(0xcfe3ff,0x56603c,.62);sc.add(HL);
 const SUNL=new T.DirectionalLight(0xfff0d8,1.55);sc.add(SUNL,SUNL.target);
@@ -4915,7 +4915,7 @@ function endRamp(){if(wk.over)return;wk.over=1;doneWk();if(stepI>=0&&sT>55)best=
 function nav(m){const pm=mode,wkn=wk&&wk.n,wkp=wk&&wk.plan!=null&&WT&&wt>=.8*WT?wk.plan:null;let R2=null,S2=null;if((pm==='ride'||pm==='wk')&&m!==pm){R2=recStop();S2=sesStop(wkn)}
  // analyse de la sortie : NP, TSS, courbe de puissance, records, série de jours, plan
  if(S2&&R2){const A=analyzeRide(R2.pts);Object.assign(S2,{np:A.np,tss:A.tss,ifv:A.ifv,pc:A.pc});LASTR=Object.assign(R2,{n:S2.n,h:S2});lastSave(R2,S2);rideStore(R2,S2.n);prCheck(A);gsave()}
- if(S2)streakTick(S2);if(wkp!=null&&wk&&!wk.over)tplanDone(wkp);mode=m;demoCheck(m);if(BIGM.on)bigMapToggle(false);wakeLock(true);if(m!=='wk')wk=null;document.body.classList.toggle('hm',m==='home');document.body.classList.toggle('wkm',m==='wk');
+ if(S2)streakTick(S2);if(wkp!=null&&wk&&!wk.over)tplanDone(wkp);mode=m;AQ.t=performance.now();AQ.lo=AQ.hi=0;demoCheck(m);if(BIGM.on)bigMapToggle(false);wakeLock(true);if(m!=='wk')wk=null;document.body.classList.toggle('hm',m==='home');document.body.classList.toggle('wkm',m==='wk');
  document.querySelectorAll('.r').forEach(e=>e.style.display=m==='ride'?'flex':'none');
  document.querySelectorAll('.e').forEach(e=>e.style.display=m==='explore'?'flex':'none');
  $('pad').style.display=m==='explore'?'flex':'none';$('wkb').style.display=m==='wk'?'flex':'none';$('home').style.display=m==='home'?'flex':'none';
@@ -5536,8 +5536,8 @@ function regRender(){const box=document.querySelector('#s-reg .cards');box.inner
  hcard(box,'🔧 Garage','Points, équipement, historique FTP, records de sprint',()=>{garage();showScr('s-gar')});
  hcard(box,'🩺 Diagnostic des blocages','Mesure ce qui ralentit l\'appli pendant une sortie, puis rapport à copier',diagPanel);
  hcard(box,'🎛️ Préférences','Sprints, voix, musique, météo, nuit, affichage, FC max',()=>{prefRender();showScr('s-pref')});
- hcard(box,'🖥️ Graphismes','Qualité actuelle : '+QPRE[QK].n,()=>mod('Qualité graphique<br><small>Actuelle : '+QPRE[QK].n+'. Changement immédiat, sans recharger.</small>',
-  ['tab','low','med','high','ultra'].map(k=>[QPRE[k].n,()=>{qualitySet(k);regRender()}]).concat([['🌳 Éléments affichés (arbres, animaux, passants…)',showMenu],['✨ Effets visuels : '+['aucun','doux','max'][fxLevel()],()=>mod('Effets visuels<br><small>Halo lumineux autour des lumières, rayons du soleil, couleurs plus riches, vignette. Coûte un peu de fluidité : déconseillé sur la tablette.</small>',[['Automatique (selon la qualité)',()=>{fxSet(-1);regRender()}],['Aucun',()=>{fxSet(0);regRender()}],['Doux',()=>{fxSet(1);regRender()}],['Max',()=>{fxSet(2);regRender()}],['Annuler',()=>{}]])],['Annuler',()=>{}]])))}
+ hcard(box,'🖥️ Graphismes','Qualité actuelle : '+QPRE[QK].n+(SET.autoQ===0?'':' · automatique'),()=>mod('Qualité graphique<br><small>Actuelle : '+QPRE[QK].n+'. Changement immédiat, sans recharger.</small>',
+  ['tab','low','med','high','ultra'].map(k=>[QPRE[k].n,()=>{qualitySet(k);regRender()}]).concat([['🎚️ Qualité automatique : '+(SET.autoQ===0?'non':'oui (≥ 20 img/s)'),()=>{autoQSet(SET.autoQ===0);regRender()}],['🌳 Éléments affichés (arbres, animaux, passants…)',showMenu],['✨ Effets visuels : '+['aucun','doux','max'][fxLevel()],()=>mod('Effets visuels<br><small>Halo lumineux autour des lumières, rayons du soleil, couleurs plus riches, vignette. Coûte un peu de fluidité : déconseillé sur la tablette.</small>',[['Automatique (selon la qualité)',()=>{fxSet(-1);regRender()}],['Aucun',()=>{fxSet(0);regRender()}],['Doux',()=>{fxSet(1);regRender()}],['Max',()=>{fxSet(2);regRender()}],['Annuler',()=>{}]])],['Annuler',()=>{}]])))}
 // ---- éléments affichés (19 nov. 2026, demande de Cyril) : arbres, herbe, animaux, passants, autres cyclistes, nuages ; gardé dans SET.show ----
 const SHOWK=[['trees','🌳 Arbres'],['grass','🌱 Herbe'],['farm','🐄 Animaux de la ferme (vaches, moutons, chiens, chats, écureuils)'],['wild','🦌 Animaux sauvages et oiseaux (chevaux, cerfs, renards, dinosaures)'],['peds','🚶 Passants et spectateurs'],['npc','🚴 Autres cyclistes'],['clouds','☁️ Nuages']];
 function SHW(k){return !(typeof SET!=='undefined'&&SET.show&&SET.show[k]===0)}
@@ -6088,7 +6088,7 @@ function diagReport(){if(!DIAG.frames)return 'Diagnostic : aucune image mesurée
  const D=DIAG,n=D.frames,sec=D.ride/1000,L=[];let dbg='';try{const e=ren.getContext().getExtension('WEBGL_debug_renderer_info');dbg=e?ren.getContext().getParameter(e.UNMASKED_RENDERER_WEBGL):''}catch(e){}
  L.push('DIAGNOSTIC VIRTUAL CYCLING TRAINING — '+new Date().toLocaleString('fr-FR'));
  L.push('Appareil : '+(dbg||'carte graphique inconnue')+' · '+navigator.userAgent.replace(/^.*?\(([^)]*)\).*$/,'$1'));
- L.push('Qualité '+QPRE[QK].n+' · image '+ren.domElement.width+'×'+ren.domElement.height+' px (résolution ×'+dgf(PR,2)+') · écran '+innerWidth+'×'+innerHeight);
+ L.push('Qualité '+QPRE[QK].n+(SET.autoQ===0?'':' (auto, plafond '+(AQ.max?QPRE[AQ.max].n:'?')+')')+' · image '+ren.domElement.width+'×'+ren.domElement.height+' px (résolution ×'+dgf(PR,2)+') · écran '+innerWidth+'×'+innerHeight);
  L.push('');L.push('Durée mesurée en sortie : '+fmt(sec)+' · '+n+' images · '+dgf(n/Math.max(1,sec))+' images/s en moyenne');
  L.push('Images lentes : > 50 ms : '+D.cnt[0]+' ('+dgf(100*D.cnt[0]/n)+' %) · > 100 ms : '+D.cnt[1]+' · > 250 ms : '+D.cnt[2]+' · > 500 ms : '+D.cnt[3]+' · pire : '+Math.round(D.worst)+' ms');
  L.push('Tâches longues du navigateur : '+D.lt+' ('+dgf(D.ltMs/1000)+' s au total)');
@@ -7165,7 +7165,7 @@ function onDataTile(a,b){dataDirty=1;const x0=a*DT-64,x1=(a+1)*DT+64,z0=b*DT-64,
 const ATT0=($('att')?$('att').textContent:'')+' · Animaux 3D : three.js (mirada), Quaternius, renard © PixelMannen / @tomkranis (CC BY 4.0)';
 // qualité graphique changée sans recharger : réglages, résolution, ombres, PNJ, piétons, puis monde reconstruit avec les nouvelles distances
 // (l'anticrénelage et la finesse du vélo, de l'avatar, des arbres et du vélodrome ne changent qu'au prochain lancement)
-function qualitySet(k){if(!QPRE[k]||k===QK)return;QK=k;try{localStorage.v3q2=k}catch(e){}
+function qualitySet(k,auto){if(!QPRE[k]||k===QK)return;QK=k;if(!auto){AQ.max=k;AQ.fail={};try{localStorage.v3q2=k}catch(e){}}AQ.t=performance.now();AQ.lo=AQ.hi=0;
  for(const key of Object.keys(QP))delete QP[key];Object.assign(QP,QPRE[k]);
  BCAP={tab:[220,110],low:[360,180],med:[600,320],high:[900,480],ultra:[1300,700]}[k]||[600,320];BDET=k==='tab'?40:k==='low'?55:80;
  // résolution
@@ -7180,7 +7180,7 @@ function qualitySet(k){if(!QPRE[k]||k===QK)return;QK=k;try{localStorage.v3q2=k}c
  NPCN=QP.npc||7;if(NPCS.length){while(NPCS.length<NPCN)NPCS.push(makeNPC(NPCS.length));while(NPCS.length>NPCN){const n=NPCS.pop();n.alive=false;if(n.R){n.R.visible=false;if(n.R.parent)n.R.parent.remove(n.R)}}}
  // piétons : maillages refaits au nombre voulu
  PEDN=QP.ped||18;if(PED.meshes){for(const m of Object.values(PED.meshes))if(m.parent)m.parent.remove(m);PED.meshes=null;PED.list=[]}
- say('Qualité « '+QPRE[k].n+' »');if(COURSE)startWorld()}
+ say((auto?'Qualité automatique : « ':'Qualité « ')+QPRE[k].n+' »'+(auto?' ('+Math.round(AQ.fps)+' img/s avant)':''));if(COURSE)startWorld()}
 async function startWorld(){const id=++WID;resetWorld();if(!NOVEG&&!TREEG.b)initTreeGeos();if(!NET.ready)initNetwork();
  {const sb=document.querySelector('#hh .sub');if(sb)sb.textContent=CRS.cur?CRS.cur.name+' · '+nf(CRS.cur.km,1)+' km':'Importe un GPX pour rouler'}
  setupRegions();if(!CLIP.k)clipInit();computeNearCoverage();initGrass();CAM.snap=true;
@@ -12079,11 +12079,26 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  firstFrames++;renderScene()}
 // résolution adaptative (partagée avec le vélodrome)
 function dprTick(now){
- if(now-dprT>2500){dprT=now;const fps=1000/fA,mn=Math.min(QP.minPR||.75,PRMAX());
+ if(now-dprT>2500){dprT=now;const fps=1000/fA,mn=Math.min(QP.minPR||.75,PRMAX())*(SET.autoQ!==0&&QK==='tab'&&AQ.low?.75:1);
   // chaque changement réalloue l'image (petit blocage) : on baisse après 5 s de lenteur, on remonte après 15 s de fluidité, jamais deux fois en moins de 10 s
   DPRS.lo=fps<(QP.fpsLo||40)?DPRS.lo+1:0;DPRS.hi=fps>(QP.fpsHi||57)?DPRS.hi+1:0;
+  aqTick(now,fps,mn);
   if(now-DPRS.t>10000){if(DPRS.lo>=2&&PR>mn){PR=Math.max(mn,PR-.1);ren.setPixelRatio(PR);rs();DPRS.t=now;DPRS.lo=0}else if(DPRS.hi>=6&&PR<PRMAX()-.04){PR=Math.min(PRMAX(),PR+.05);ren.setPixelRatio(PR);rs();DPRS.t=now;DPRS.hi=0}}}
 }
+
+// ---- qualité automatique (15 nov. 2026, demande de Cyril : détecter les images/s et adapter le graphisme, au moins 20 img/s) ----
+// mesure toutes les 2,5 s (appelée par dprTick). On baisse d'un cran de qualité quand la résolution est déjà au plancher et que les img/s restent sous AQ_LO (24 = marge au-dessus de 20)
+// pendant 3 mesures (≈ 8 s) ; on remonte d'un cran (jamais au-dessus du choix de l'utilisateur) après ≈ 60 s au-dessus de 52 img/s avec la résolution pleine,
+// sauf vers un cran qui a déjà échoué depuis moins de 10 min. Pas de mesure pendant le chargement, le vélodrome, l'accueil, l'onglet caché, ni 25 s après un changement.
+const AQ_ORD=['tab','low','med','high','ultra'],AQ_LO=24,AQ_HI=52;
+function aqTick(now,fps,mn){
+ AQ.fps=fps;if(SET.autoQ===0)return;
+ if(!(mode==='ride'||mode==='wk'||mode==='explore')||VEL.on||LDG.on||document.visibilityState!=='visible'||firstFrames<120||now-AQ.t<25000||!COURSE){AQ.lo=AQ.hi=0;return}
+ const i=AQ_ORD.indexOf(QK),atFloor=PR<=mn+.02,full=PR>=PRMAX()-.04;
+ AQ.lo=fps<AQ_LO?AQ.lo+1:0;AQ.hi=fps>AQ_HI&&full?AQ.hi+1:0;
+ if(AQ.lo>=3&&atFloor){AQ.lo=0;if(i>0){AQ.fail[QK]=now;qualitySet(AQ_ORD[i-1],true)}else if(!AQ.low){AQ.low=1;say('Qualité minimale atteinte ('+Math.round(fps)+' img/s) : résolution encore réduite');AQ.t=now}}
+ else if(AQ.hi>=24){AQ.hi=0;const j=AQ_ORD.indexOf(AQ.max);if(i>=0&&i<j){const k=AQ_ORD[i+1];if(!(AQ.fail[k]&&now-AQ.fail[k]<600000))qualitySet(k,true)}}}
+function autoQSet(v){SET.autoQ=v?1:0;ssave();AQ.lo=AQ.hi=0;say('Qualité automatique : '+(v?'oui (≥ 20 img/s)':'non'))}
 // ---- mini-carte : le réseau autour de toi (nord en haut) ----
 // fond de la mini-carte (autres routes, réseau, villages) dessiné une fois dans une image en mémoire, centrée sur (MC.cx, MC.cz) et deux fois plus grande :
 // redessiné seulement quand on s'est éloigné de ~2 km ou que de nouvelles données arrivent (avant : des milliers de traits redessinés 2 à 3 fois par seconde)
@@ -12111,6 +12126,7 @@ function drawMap(){const c=$('map');if(!c||!N)return;const W=c.width,g=c.getCont
 {const t=$('top'),h=document.createElement('h4');h.textContent='Graphismes';t.appendChild(h);const sel=document.createElement('select');
  for(const k of['ultra','high','med','low','tab']){const o=document.createElement('option');o.value=k;o.textContent=QPRE[k].n+(k==='tab'?' (Redmi Pad)':'')+(k===QK?' (actuelle)':'');if(k===QK)o.selected=true;sel.appendChild(o)}
  const lab=document.createElement('label');lab.textContent='Qualité ';lab.appendChild(sel);t.appendChild(lab);
+ {const ab=document.createElement('button');const al=()=>{ab.textContent='🎚️ Qualité automatique : '+(SET.autoQ===0?'non':'oui')};al();ab.onclick=()=>{autoQSet(SET.autoQ===0);al()};t.appendChild(ab)}
  {const fs=document.createElement('select');[[-1,'Auto'],[0,'Aucun'],[1,'Doux'],[2,'Max']].forEach(([v,n])=>{const o=document.createElement('option');o.value=v;o.textContent=n;if((SET.fx==null?-1:SET.fx)===v)o.selected=true;fs.appendChild(o)});fs.onchange=()=>fxSet(+fs.value);const l2=document.createElement('label');l2.textContent='Effets ';l2.appendChild(fs);t.appendChild(l2)}sel.onchange=()=>{qualitySet(sel.value);for(const o of sel.options)o.textContent=QPRE[o.value].n+(o.value==='tab'?' (Redmi Pad)':'')+(o.value===QK?' (actuelle)':'')};
  {const eb=document.createElement('button');eb.textContent='🌳 Éléments affichés';eb.onclick=()=>{topShow(false);showMenu()};t.appendChild(eb)}
  const vb2=document.createElement('button');vb2.textContent='🎥 Changer de vue';vb2.onclick=nextView;t.appendChild(vb2);
