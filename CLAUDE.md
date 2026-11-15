@@ -25,6 +25,7 @@ Tout tient dans **un seul fichier HTML**, sans serveur ni installation. Il s'ouv
   - sans parcours, une petite route fictive (jamais construite en 3D) fait tourner le moteur ; l'accueil, le vélodrome et les séances au vélodrome restent utilisables ;
   - **📚 Mes parcours** (`crsMenu`) : choisir (`crsUse`, recharge), rouler, supprimer (`crsDelete`) ;
   - plus de communes intégrées (`COMMUNES = []`) : noms des villages par IGN (France) ou OpenStreetMap ; hors de France, photos ArcGIS et données OSM (repli déjà existant).
+- **Changement de parcours sans redémarrage** (20 novembre 2026, demande de Cyril ; `crsSwitch`) : avant, choisir un parcours, importer un GPX, créer une trace sur la carte (« Rouler »), créer un parcours imaginaire ou supprimer le parcours actif **rechargeait la page** (l'origine du repère `LA`, `LO0`, `KX` n'était calculée qu'au lancement), ce qui coupait aussi le Bluetooth. Maintenant : nouvelle origine, remise à zéro de ce qui dépend des coordonnées (largeurs de route `RDW`, ponts, carrefours `JC`, cols, côte en cours, sprint, profil, mini-carte, vue 3D, animaux 3D, décor Space / Aventure, sprints, PNJ, piétons), `resetWorld`, `initNetwork`, `setCourse` → `startWorld` ; le monde se reconstruit autour du nouveau parcours, le home trainer reste connecté. Parcours imaginaire en Réaliste / Montagne : passage automatique en Aventure (`worldSwitch`). Testé sur le banc : 6 scénarios enchaînés (Mes parcours, import GPX, trace sur la carte, parcours imaginaire, suppression du parcours actif puis nouveau choix, après le vélodrome), en Montagne et en Réaliste avec vraies données : **0 rechargement de page, 0 erreur**, origine changée à chaque fois, cycliste à 1–3 m de son nouveau tracé pendant la sortie, aucun objet de l'ancien parcours restant. Texte de la fenêtre « mode démo » mis à jour (le Bluetooth ne se perd plus au changement de parcours). Non testé avec le vrai home trainer.
 - **Relief** : tuiles d'altitude AWS Terrarium (SRTM) en trois niveaux (z12 proche, z10 lointain, z8 horizon). Couches de terrain : couloir le long des routes, tuiles proches, moyennes, lointain, anneau d'horizon.
   - Courbure terrestre au-delà de 3 km.
   - Relief de secours procédural quand on est hors ligne.
@@ -407,7 +408,7 @@ Les numéros de ligne sont approximatifs. Repère-toi avec les en-têtes `// ===
 | ≈3179 | Monde et boucle principale : `startWorld`, caméras, `loop()`, mini-carte, menu ☰, démarrage |
 
 ### Repère et unités
-- L'origine est le **centre du parcours actif** (`crsOrigin`) : `LA`, `LO0` ; sans parcours, centre de la France (46,6° N, 2,45° E). Changer de parcours recharge l'appli (toutes les constantes du repère en dépendent).
+- L'origine est le **centre du parcours actif** (`crsOrigin`) : `LA`, `LO0` ; sans parcours, centre de la France (46,6° N, 2,45° E). Changer de parcours ne recharge plus l'appli : `crsSwitch` recalcule le repère et reconstruit le monde.
 - Conversion : `x = (lon − LO0) × KX` (vers l'est), `z = −(lat − LA) × 110574` (vers le **sud**), avec `KX = 111320 × cos(LA)`. +Y est vers le haut. Fonctions `ll2xz` et `xz2ll`.
 - Repère du cycliste : +Z vers l'avant, +X à sa gauche. Un décalage latéral positif sur la route va **à droite**, selon la direction `(−tz, tx)`.
 

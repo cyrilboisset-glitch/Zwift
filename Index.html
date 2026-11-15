@@ -998,7 +998,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 'use strict';
 // ====================== parcours personnels : GPX importés (aucune route intégrée) ======================
 // Chaque GPX importé est gardé (v3crs : nom, points simplifiés « lat,lon,alt; »). Le parcours actif (v3cur) fixe l'origine du repère
-// (centre du tracé) et devient à lui seul le « réseau » de routes ; changer de parcours recharge l'appli.
+// (centre du tracé) et devient à lui seul le « réseau » de routes ; changer de parcours reconstruit le monde sans recharger (crsSwitch).
 const CRS={list:[],cur:null};
 try{CRS.list=JSON.parse(localStorage.v3crs||'[]')}catch(e){CRS.list=[]}
 try{CRS.cur=CRS.list.find(c=>c.id===localStorage.v3cur)||null}catch(e){}
@@ -2172,7 +2172,7 @@ function mrName(){const n=($('mrName').value||'').trim().slice(0,40);return n||(
 function mrSave(ride){const c=MR.route&&MR.route.coords;if(!c||c.length<2)return;const nm=mrName(),prev=(()=>{try{return localStorage.v3cur}catch(e){return null}})();
  const q=c.map(p=>[p[0],p[1],typeof p[2]==='number'?p[2]:0]),cs=crsImport(nm,q);
  if(!cs){MR.msg='Stockage plein : supprime un ancien parcours (Rouler → Mes parcours).';return mrDraw()}
- if(ride){say('Parcours « '+nm+' » créé ('+nf(cs.km,1)+' km) : préparation…');MR.msg='Préparation du parcours en 3D…';mrDraw();setTimeout(()=>location.reload(),900)}
+ if(ride){say('Parcours « '+nm+' » créé ('+nf(cs.km,1)+' km) : préparation…');mrClose();setTimeout(()=>crsSwitch(cs.id),50)}
  else{try{if(prev)localStorage.v3cur=prev;else delete localStorage.v3cur}catch(e){}MR.msg='✅ Gardé dans « Mes parcours » : '+nm+' ('+nf(cs.km,1)+' km).';mrDraw()}}
 function mrGpx(){const c=MR.route&&MR.route.coords;if(!c||c.length<2)return;const nm=mrName(),e=s=>s.replace(/[<>&"]/g,'');
  const x='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="VCT" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>'+e(nm)+'</name><trkseg>\n'+c.map(p=>'<trkpt lat="'+p[0].toFixed(6)+'" lon="'+p[1].toFixed(6)+'">'+(typeof p[2]==='number'?'<ele>'+p[2].toFixed(1)+'</ele>':'')+'</trkpt>').join('\n')+'\n</trkseg></trk></gpx>';
@@ -2207,8 +2207,25 @@ async function snapRoads(ll,prog){if(ll.length<3)return{ll,st:null};const la0=ll
  for(let i=0;i<n;i++){while(b<n&&cd[b]-cd[i]<=30){if(M[b]){sx+=OX[b];sy+=OY[b];sw++}b++}while(cd[i]-cd[a]>30){if(M[a]){sx-=OX[a];sy-=OY[a];sw--}a++}
   const ox=sw?sx/sw:0,oy=sw?sy/sw:0;dsum+=Math.hypot(ox,oy);out.push([la0+(XY[i][1]+oy)/ky,lo0+(XY[i][0]+ox)/kx,ll[i][2]])}
  return{ll:out,st:{ok:nm/n,dm:dsum/n,src,segs:segs.length}}}
-function crsUse(id){try{localStorage.v3cur=id}catch(e){}{const c=CRS.list.find(q=>q.id===id);if(c&&c.gen&&(WORLDK==='real'||WORLDK==='mont')){SET.world='adv';ssave()}}say('Préparation du parcours…');setTimeout(()=>location.reload(),400)}
-function crsDelete(id){CRS.list=CRS.list.filter(c=>c.id!==id);try{localStorage.v3crs=JSON.stringify(CRS.list);if(localStorage.v3cur===id){delete localStorage.v3cur;setTimeout(()=>location.reload(),400)}}catch(e){}}
+// changement de parcours SANS recharger l'appli (20 nov. 2026, demande de Cyril) : nouvelle origine du repère, nouveau « réseau »,
+// remise à zéro de tout ce qui dépend des coordonnées (terrain, routes, données, villages, cols, animaux, PNJ, décor Space / Aventure…),
+// puis le monde est reconstruit autour du nouveau parcours. Le Bluetooth (home trainer, ceinture) reste connecté.
+function crsSwitch(id){if(id===undefined){try{id=localStorage.v3cur||null}catch(e){id=null}}
+ if(VEL.on&&typeof velStop==='function')velStop();
+ const c=id?CRS.list.find(q=>q.id===id)||null:null;CRS.cur=c;try{if(c)localStorage.v3cur=c.id;else delete localStorage.v3cur}catch(e){}
+ COURSE=null;// pour que le changement de monde ne reconstruise pas l'ancien parcours
+ if(c&&c.gen&&(WORLDK==='real'||WORLDK==='mont'))worldSwitch('adv');
+ const o=crsOrigin();LA=o[0];LO0=o[1];KX=111320*Math.cos(LA*Math.PI/180);
+ RDW=RMK=CHK_OF=null;RDIRTY.clear();BRG=null;JC.clear();COLS.list=null;COLS.busy=false;KOM=null;SP=null;ROUTE=null;ACT=null;RHIST.length=0;
+ CPF.d=null;CPF.t=-1e9;MC.v=-1;MC.cx=MC.cz=1e9;C3D.d=null;skT=-1e9;
+ for(const a of M3D.act){if(a.pending)a.dead=true;else if(!a.dead)m3dFree(a)}M3D.act=[];
+ spReset();sprReset();if(typeof npcReset==='function'){npcReset();pedReset()}
+ NET.ready=false;RID.init=false;RID.jx=null;RID.prev=null;resetWorld();initNetwork();
+ let ok=false;if(c){try{ok=setCourse(NET.E.map(E=>[E.id,1]),c.name)}catch(e){console.warn('parcours',e)}}
+ if(!ok){ldSet('crs','Aucun parcours : Rouler → Importer un GPX',0);const sb=document.querySelector('#hh .sub');if(sb)sb.textContent='Importe un GPX pour rouler'}
+ CAM.snap=true;if(typeof homeRender==='function')homeRender();return ok}
+function crsUse(id){say('Préparation du parcours…');setTimeout(()=>crsSwitch(id),50)}
+function crsDelete(id){CRS.list=CRS.list.filter(c=>c.id!==id);try{localStorage.v3crs=JSON.stringify(CRS.list);if(localStorage.v3cur===id||(CRS.cur&&CRS.cur.id===id)){delete localStorage.v3cur;setTimeout(()=>crsSwitch(null),50)}}catch(e){}}
 // mes parcours : choisir, rouler, supprimer
 function crsMenu(){if(!CRS.list.length)return mod('Aucun parcours pour l\'instant<br><small>Importe un fichier GPX : il devient ton parcours en 3D. Ou crée un parcours imaginaire à ta mesure.</small>',[['📂 Importer un GPX',()=>$('gf').click()],['🗺️ Tracer sur la carte',mrOpen],['✨ Créer un parcours',genCourseOpen],['Fermer',()=>{}]]);
  mod('Mes parcours<br><small>Touche un parcours pour le choisir ou le supprimer.</small>',[...CRS.list.slice().reverse().map(c=>[(CRS.cur&&CRS.cur.id===c.id?'✓ ':'')+(c.gen?'✨ ':'')+c.name+' · '+nf(c.km,1)+' km'+(c.dp?' · '+c.dp+' m D+':''),()=>
@@ -2250,9 +2267,8 @@ function genCourseOpen(){const n=CRS.list.filter(c=>c.gen).length+1;
   [['✨ Créer et rouler',()=>{const km=clamp(+$('gnK').value||30,3,200),dp=clamp(+$('gnD').value||0,0,5000),loop=$('gnL').value==='1',name=($('gnN').value||'').trim().slice(0,40)||'Aventure '+n;
     const{c,lim}=crsGenerate({km,dp,loop,name});CRS.list.push(c);
     try{localStorage.v3crs=JSON.stringify(CRS.list);localStorage.v3cur=c.id}catch(e){CRS.list.pop();return say('Stockage plein : supprime un parcours dans « Mes parcours ».')}
-    if(WORLDK==='real'||WORLDK==='mont'){SET.world='adv';ssave()}
     mod('✨ « '+esc(name)+' » créé<br><small>'+nf(km,1)+' km · '+c.dp+' m D+ · '+(loop?'boucle':'aller simple')+(lim?'<br>⚠️ D+ ramené à '+c.dp+' m pour ne pas dépasser 14 % de pente (distance trop courte pour '+dp+' m).':'')+'<br>Préparation du monde Aventure…</small>',[]);
-    setTimeout(()=>location.reload(),lim?2600:1100)}],['Annuler',()=>{}]]);
+    setTimeout(()=>{crsSwitch(c.id);setTimeout(()=>{$('res').style.display='none'},lim?2500:900)},50)}],['Annuler',()=>{}]]);
  document.querySelectorAll('.gnf input,.gnf select').forEach(i=>i.onkeydown=e=>e.stopPropagation())}
 function initNetwork(){
  const src=netSrc(),per=[];let tot=0;NETD.E=src;
@@ -4712,7 +4728,7 @@ async function connect(){if(!navigator.bluetooth)return noBT();
 function demoBar(){let b=$('demob');if(!b){b=document.createElement('div');b.id='demob';b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom,0px));z-index:60;background:#b45309;color:#fff;font:600 13px system-ui;padding:5px 12px;border-radius:14px;cursor:pointer;box-shadow:0 2px 8px #0006;display:none';b.onclick=connect;document.body.appendChild(b)}
  const on=!conn&&(mode==='ride'||mode==='wk');b.style.display=on?'block':'none';if(on)b.textContent='⚠️ Mode démo · '+(+$('dem').value)+' W — touche ici pour appairer le home trainer'}
 function demoCheck(m){demoBar();if(conn||(m!=='ride'&&m!=='wk')||demoCheck.done)return;demoCheck.done=1;
- mod('<h3>⚠️ Home trainer non connecté</h3><p style="text-align:left;line-height:1.45">L\'appli roule en <b>mode démo</b> à '+(+$('dem').value)+' W (curseur « Watts démo »).<br>La connexion Bluetooth se perd quand la page se recharge (import d\'un GPX, changement de parcours) : il faut alors réappairer.</p>',[['Appairer le home trainer',connect],['Rouler en démo',()=>{}]])}
+ mod('<h3>⚠️ Home trainer non connecté</h3><p style="text-align:left;line-height:1.45">L\'appli roule en <b>mode démo</b> à '+(+$('dem').value)+' W (curseur « Watts démo »).<br>Touche « Appairer le home trainer » pour le connecter (une fois connecté, il le reste même si tu changes de parcours).</p>',[['Appairer le home trainer',connect],['Rouler en démo',()=>{}]])}
 setInterval(()=>{demoBar();if(conn&&mode!=='home'&&performance.now()-IBT>6000){if(!TRW){TRW=1;say('⚠️ Le home trainer est connecté mais n\'envoie aucune puissance : pédale, ou réappaire-le (☰ → Appairer).')}}else if(conn&&performance.now()-IBT<2000)TRW=0},1000);
 // après un rechargement de la page : on tente de retrouver tout seul le dernier home trainer (si Chrome le permet, getDevices)
 (async()=>{try{const nm=localStorage.v3tr;if(!nm||!navigator.bluetooth||!navigator.bluetooth.getDevices)return;const L=await navigator.bluetooth.getDevices(),d=L.find(x=>x.name===nm);if(!d)return;
@@ -4883,7 +4899,7 @@ $('gf').onchange=async e=>{const f=e.target.files[0];if(!f)return;const d=new DO
    try{const r=await snapRoads(q,(f,src)=>{const a=$('snp'),b=$('snb');if(a)a.textContent='Téléchargement des routes ('+src+') : '+Math.round(f*100)+' %';if(b)b.style.width=(f*100).toFixed(0)+'%'});
     if(r.st&&r.st.ok>.3){q=r.ll;info=' · recalé sur les routes '+r.st.src+' ('+Math.round(r.st.ok*100)+' % des points, écart moyen '+nf(r.st.dm,1)+' m)'}else info=' · pas de recalage (routes non trouvées)'}catch(err){info=' · pas de recalage'}
    $('res').style.display='none'}
-  const c=crsImport(nm,q);if(c){say('Parcours « '+nm+' » importé ('+nf(c.km,1)+' km'+info+') : préparation…');setTimeout(()=>location.reload(),info?2600:900)}else say('Stockage plein : supprime un ancien parcours (Rouler → Mes parcours).')}else say('GPX illisible.');e.target.value=''};
+  const c=crsImport(nm,q);if(c){say('Parcours « '+nm+' » importé ('+nf(c.km,1)+' km'+info+') : préparation…');setTimeout(()=>crsSwitch(c.id),50)}else say('Stockage plein : supprime un ancien parcours (Rouler → Mes parcours).')}else say('GPX illisible.');e.target.value=''};
 $('ftp').onchange=()=>{FTP=Math.max(80,Math.min(500,+$('ftp').value||200));$('ftp').value=FTP;save();ftpLog(FTP);$('zn').innerHTML=zonesHTML()};$('kg').onchange=save;
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const g=b.dataset.go;if(g==='wk'){listWk();showScr('s-wk')}else if(g==='hw')showScr('s-hw');else nav(g)});
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>{if(b.dataset.b==='s-wk')listWk();showScr(b.dataset.b)});
