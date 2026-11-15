@@ -12044,9 +12044,9 @@ function cornerCalc(pos,v){const E=NET.E[RID.e],dir=RID.dir;if(!E||!NET.ready){C
  let vm=99;const look=Math.min(40,Math.ceil((v*v/(2*CRN.b)+40)/SEG));
  for(let k=0;k<=look;k++){const j=i+dir*k;if(j<E.i0||j>E.i1)break;const kap=Math.abs(DA[j]);if(kap<.004)continue;const vc=Math.max(5,Math.sqrt(CRN.a/kap)),d=Math.max(0,k*SEG-5),va=Math.sqrt(vc*vc+2*CRN.b*d);if(va<vm)vm=va}
  CRN.vmax=vm;
- const cN=sg(K(0)*.5+(K(1)+K(-1))*.25),cA=sg(av(5,9)),cB=sg(av(-7,-3));
+ const cN=sg(K(0)*.5+(K(1)+K(-1))*.25),cA=sg(av(6,12)),cB=sg(av(-8,-3));
  let f=.5-.5*cN+(1-Math.abs(cN))*.5*(.9*cA+.5*cB);f=clamp(f,0,1);f=.5+(f-.5)*clamp((v-3.5)/5,0,1);CRN.f=f;// plus on va vite, plus on prend la ligne
- const hw=3.4*roadScale(i,E),o0=.55,o1=Math.max(.9,hw-.6),om=clamp(1.3,o0,o1);CRN.o=f<.5?o0+(om-o0)*f*2:om+(o1-om)*(f-.5)*2}
+ const hw=3.5*roadScale(i,E),o1=Math.max(.8,hw-.6),o0=-o1,om=clamp(1.3,o0,o1);/* toute la largeur de la chaussée : de 0,6 m du bord gauche à 0,6 m du bord droit */CRN.o=f<.5?o0+(om-o0)*f*2:om+(o1-om)*(f-.5)*2}
 const RS2={cad:0,P:0,v:0,g:0,coast:false,stand:false,tuck:false,steer:0},_PS={};
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;if(!N)return;fA+=((now-(loop.p||now))-fA)*.05;loop.p=now;
  const hm=mode==='home',riding=mode==='ride'||mode==='wk';RM.visible=TR.visible=hm;WORLD.visible=!hm;sky.visible=!hm;clouds.visible=!hm&&!!QP.clouds&&SHW('clouds');stars.visible=!hm&&DAYF<.6;moon.visible=!hm&&MD.y>-.04;sc.background=hm?BGC:null;sc.fog.density=hm?0:1/42000;
@@ -12097,8 +12097,8 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  // position sur le réseau (file de droite, on se décale pour doubler)
  const p2=posSmooth(RID,riderNext,_PS),x=p2.x,z=p2.z,y=p2.y,tx=p2.tx,tz=p2.tz;
  if(!hm){const ah=riderAhead();let tl=CRN.on?CRN.o:1.3;if(ah&&ah.d<4.5&&v>ah.o.v+.15)tl=.25;else if(RLAT<1.2&&NPCS.some(n=>n.alive&&Math.abs((n.x-RW.x)*tx+(n.z-RW.z)*tz)<3&&Math.abs((n.x-RW.x)*-tz+(n.z-RW.z)*tx)<1.7))tl=.25;
-  const r0=RLAT,lim=Math.max(.5,v*.14)*dt;RLAT+=clamp((tl-RLAT)*Math.min(1,dt*2.2),-lim,lim);CRN.dr=(RLAT-r0)/Math.max(dt,1e-3);CRN.yd+=(CRN.dr-CRN.yd)*Math.min(1,dt*6)}
- const cur=p2.da,lt=-clamp(Math.atan(v*v*cur/9.81)*1.05,-.55,.55);lean+=(lt-lean)*Math.min(1,dt*3.5);
+  const r0=RLAT,lim=Math.max(.6,v*.2)*dt;RLAT+=clamp((tl-RLAT)*Math.min(1,dt*2.2),-lim,lim);CRN.dr=(RLAT-r0)/Math.max(dt,1e-3);CRN.yd+=(CRN.dr-CRN.yd)*Math.min(1,dt*6)}
+ const cur=p2.da/Math.max(.3,1+RLAT*p2.da),lt=-clamp(Math.atan(v*v*cur/9.81)*1.05,-.55,.55);lean+=(lt-lean)*Math.min(1,dt*3.5);
  if(hm){R.position.set(0,.06,0);R.rotation.set(0,0,0)}else{R.position.set(x-tz*RLAT,y+roadLift(RID.e,p2.i,RLAT),z+tx*RLAT);R.rotation.set(-Math.atan(g),Math.atan2(tx,tz)-Math.atan2(CRN.yd,Math.max(v,3)),lean)}
  Object.assign(RW,{x:R.position.x,z:R.position.z,tx,tz,v,lat:RLAT,e:RID.e,u:RID.u,dir:RID.dir});if(!hm){RPOS.x=x;RPOS.z=z;routeTick(x,z)}
  if(riding)sesTick(dt,P,v*dt,y);// km, kcal, D+ et récompenses de la sortie ou de la séance
