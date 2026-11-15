@@ -945,6 +945,45 @@ svg.leaflet-image-layer.leaflet-interactive path {
 #home .tiles .card .prog{background:var(--g-fond)}#home .tiles .card .prog i{background:linear-gradient(90deg,var(--g-or2),var(--g-or))}
 #home .hw{background:linear-gradient(160deg,var(--g-s2),var(--g-s1));border-color:var(--g-ligne)}
 #home input,#home select{background:var(--g-fond);border:1px solid var(--g-ligne);color:var(--g-txt)}
+/* ====== accueil v2 : proportions (15 nov. 2026, « la page principale est disproportionnée ») : tout est dimensionné sur la plus petite dimension de l'écran (vmin) et remplit la hauteur ====== */
+#home:not(.sub){justify-content:flex-start;gap:clamp(10px,2.2vmin,24px);padding:calc(clamp(12px,2.6vmin,30px) + var(--sa)) calc(clamp(14px,3vmin,36px) + var(--sr)) calc(clamp(12px,2.6vmin,30px) + var(--sb)) calc(clamp(14px,3vmin,36px) + var(--sl));
+ background:radial-gradient(80% 55% at 88% -5%,rgba(240,207,115,.12),transparent 62%),radial-gradient(60% 45% at 0% 100%,rgba(233,161,120,.08),transparent 60%),linear-gradient(180deg,rgba(15,14,13,.9),rgba(15,14,13,.7) 45%,rgba(15,14,13,.82))}
+#home:not(.sub) #hh{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:clamp(8px,1.6vmin,18px) clamp(10px,2vmin,22px)}
+#home:not(.sub) #hh .brand{gap:clamp(10px,2vmin,18px)}
+#home:not(.sub) #hh .logo{width:clamp(40px,7.4vmin,64px);height:clamp(40px,7.4vmin,64px);flex-basis:clamp(40px,7.4vmin,64px);font-size:clamp(14px,2.5vmin,21px);border-radius:clamp(12px,2vmin,18px)}
+#home:not(.sub) #hh h1{font-size:clamp(22px,4.8vmin,42px)}
+#home:not(.sub) #hh .sub{font-size:clamp(13px,2.1vmin,18px)}
+#home:not(.sub) #pchip{padding:clamp(4px,.8vmin,8px) clamp(12px,2vmin,20px) clamp(4px,.8vmin,8px) clamp(4px,.8vmin,8px)}
+#home:not(.sub) #pchip .lv{width:clamp(36px,6.4vmin,56px);height:clamp(36px,6.4vmin,56px);font-size:clamp(15px,2.6vmin,22px)}
+#home:not(.sub) #pchip b{font-size:clamp(13px,2.1vmin,18px)}#home:not(.sub) #pchip small{font-size:clamp(11px,1.7vmin,14px)}
+#home:not(.sub) #hh .ftp{font-size:clamp(13px,2.1vmin,18px);padding:clamp(6px,1.1vmin,10px) clamp(10px,1.8vmin,16px)}#home:not(.sub) #hh .ftp input{width:clamp(54px,9vmin,80px);font-size:clamp(15px,2.5vmin,22px)}
+#home:not(.sub) #zn{grid-column:1/-1;margin-top:0;gap:clamp(4px,.8vmin,8px)}#home:not(.sub) #zn span{font-size:clamp(10.5px,1.6vmin,14px);padding:clamp(2px,.4vmin,4px) clamp(6px,1.1vmin,10px)}
+#home:not(.sub) #hs{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#home:not(.sub) #s-main.on{flex:1 1 auto;min-height:0;display:flex}
+#home:not(.sub) .hm{flex:1 1 auto;min-height:0;width:100%;grid-template-columns:minmax(300px,.85fr) 1.6fr;grid-template-rows:minmax(0,1fr);gap:clamp(10px,2vmin,22px)}
+#home:not(.sub) .hero{min-height:0;padding:clamp(16px,3.2vmin,34px);gap:clamp(8px,1.7vmin,18px);border-radius:clamp(18px,3vmin,30px)}
+#home:not(.sub) .hero .k{font-size:clamp(11px,1.8vmin,15px)}
+#home:not(.sub) .hero .t{font-size:clamp(24px,5.4vmin,48px)}
+#home:not(.sub) .hero .s span{font-size:clamp(14px,2.3vmin,20px);padding:clamp(4px,.8vmin,8px) clamp(9px,1.6vmin,16px)}
+#home:not(.sub) .hero canvas{flex:1 1 auto;height:auto;min-height:64px}
+#home:not(.sub) .hero .wsel button{font-size:clamp(12px,2vmin,17px);padding:clamp(7px,1.4vmin,13px) clamp(8px,1.4vmin,14px)}
+#home:not(.sub) .hero .b .cta{font-size:clamp(17px,3.2vmin,26px);padding:clamp(13px,2.6vmin,24px) clamp(14px,2.4vmin,22px)}
+#home:not(.sub) .hero .b .ghost{font-size:clamp(14px,2.4vmin,20px);padding:0 clamp(12px,2.2vmin,22px)}
+#home:not(.sub) .tiles{min-height:0;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:clamp(10px,2vmin,22px)}
+#home:not(.sub) .tiles .card{min-height:0;justify-content:flex-end;padding:clamp(12px,2.6vmin,28px);border-radius:clamp(16px,2.8vmin,28px);gap:clamp(6px,1.2vmin,12px)}
+#home:not(.sub) .tiles .card .ic{margin-bottom:auto;width:clamp(42px,7.6vmin,68px);height:clamp(42px,7.6vmin,68px);font-size:clamp(22px,4vmin,34px);border-radius:clamp(12px,2.2vmin,20px)}
+#home:not(.sub) .tiles .card b{font-size:clamp(17px,3.3vmin,28px)}
+#home:not(.sub) .tiles .card span{font-size:clamp(12px,2vmin,16px);line-height:1.35}
+#home:not(.sub) .tiles .card .prog{height:clamp(6px,1vmin,9px)}
+#home .card,#home .wc,.hero{background-color:transparent}
+#home:not(.sub) .tiles .card{background:linear-gradient(160deg,rgba(39,36,31,.92),rgba(28,26,23,.9))}
+/* portrait : la carte « prochaine sortie » en haut, les tuiles en dessous (2 colonnes) */
+@media(max-aspect-ratio:1/1),(max-width:700px){#home:not(.sub) #s-main.on{flex:1 0 auto;min-height:min-content}#home:not(.sub) .hm{min-height:min-content;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(min-content,1fr)}#home:not(.sub) .tiles{min-height:min-content}#home:not(.sub) .hero canvas{flex:none;height:clamp(60px,11vmin,110px)}
+ #home:not(.sub) .tiles{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(clamp(96px,17vmin,150px),1fr)}}
+@media(max-aspect-ratio:1/1){#home:not(.sub) #hh h1{font-size:clamp(20px,3.9vmin,36px)}}
+@media(max-aspect-ratio:1/1) and (max-width:520px){#home:not(.sub) #hh{grid-template-columns:1fr auto}#home:not(.sub) #pchip small{display:none}}
+/* écrans très peu hauts : on garde les règles compactes d'avant, mais l'accueil remplit quand même la largeur */
+@media(max-height:520px){#home:not(.sub) .hm{grid-template-columns:minmax(240px,.9fr) 1.5fr}#home:not(.sub) .tiles .card{flex-direction:row;align-items:center;justify-content:flex-start}#home:not(.sub) .tiles .card .ic{margin:0}#home:not(.sub) #zn{display:none}#home:not(.sub) .hero canvas{min-height:36px}}
 </style></head><body><div id="lv"><i>📱</i><b>Touche l'écran</b><small>pour passer en plein écran, en paysage</small></div>
 <canvas id="c"></canvas>
 <div id="hud" class="p"><div class="m"><span data-f="spd"><b id="vs">0</b><i>km/h</i></span><span data-f="pw"><b id="vp">0</b><i>W</i></span><span data-f="p3"><b id="vp3">0</b><i>W 3 s</i></span><span data-f="wkg"><b id="vwk">0</b><i>W/kg</i></span><span data-f="cad"><b id="vc">0</b><i>tr/min</i></span><span data-f="grd"><b id="vg">0.0</b><i>%</i></span><span data-f="hr"><b id="vh">–</b><i>bpm</i></span><span data-f="np"><b id="vnp">0</b><i>NP</i></span></div><div class="n"><span data-f="dist"><span id="vd">0.0</span> km · </span><span data-f="avg">moy. <span id="vav">0,0</span> km/h · </span><span data-f="rest"><span id="vrl">reste</span> <span id="vr">0.0</span> <span id="vru">km</span> · </span><span data-f="alt"><span id="va">0</span> m · </span><span data-f="dp">D+ <span id="vdp">0</span> m · </span><span data-f="time"><span id="vt">0:00</span> · </span><span data-f="kcal"><span id="vk">0</span> kcal</span><span data-f="wind" id="vwd"></span><span id="vdrf" style="color:var(--ac);font-weight:700"></span></div><div id="zg" data-f="zone"><div class="zbar" id="zbar"><em id="zmk"></em></div><div class="zlab"><b id="zzn">Z1</b><span id="zzt">Récup</span><span id="zzp">0 % FTP</span><span id="zzm"></span></div></div></div>
