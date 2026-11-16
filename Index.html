@@ -3078,9 +3078,9 @@ function roadDetail(m){if(m.userData.rd)return;m.userData.rd=1;const lite=QK==='
  m.needsUpdate=true}
 for(const m of ROADMATS)roadDetail(m);
 // RDW : largeur de chaussée (m) par échantillon, RMK : marquage (0 complet, 1 médiane, 2 aucun), 0 / 255 = inconnu (route standard 7 m)
-let RDW=null,RMK=null,CHK_OF=null;const RDIRTY=new Set();
+let RDW=null,RMK=null,CHK_OF=null;const RDIRTY=new Set(),CRLV={v:0};// CRLV : version des largeurs (trajectoire idéale à recalculer)
 function roadAttr(i,w,mk){if(!RDW){RDW=new Float32Array(N);RMK=new Uint8Array(N).fill(255);CHK_OF=new Int32Array(N).fill(-1);CHUNKS.forEach((c,k)=>{for(let j=c.i0;j<=c.i1;j++)CHK_OF[j]=k})}
- if(Math.abs(RDW[i]-w)<.3&&RMK[i]===mk)return;RDW[i]=w;RMK[i]=mk;if(CHK_OF[i]>=0)RDIRTY.add(CHK_OF[i])}
+ if(Math.abs(RDW[i]-w)<.3&&RMK[i]===mk)return;RDW[i]=w;RMK[i]=mk;CRLV.v++;if(CHK_OF[i]>=0)RDIRTY.add(CHK_OF[i])}
 // marquage d'après la largeur réelle (les petites routes de 4 m comptées « 2 voies » n'ont pas de ligne médiane)
 function roadMarkOf(w,lanes,main,kind){if(kind==='c'||kind==='s')return 2;if(main||w>=6.5||lanes>=3)return 0;if(w>=5.2)return 1;return 2}
 function roadScale(i,Ed){if(!RDW)return 1;let s=0,c=0;for(let k=-8;k<=8;k++){const j=clamp(i+k,Ed.i0,Ed.i1);if(RDW[j]){s+=RDW[j];c++}}return c?clamp((s/c+1.1)/8.2,.55,1.15):1}
@@ -3946,7 +3946,7 @@ const BN=['root','pelvis','spine','chest','neck','head','thL','shL','ftL','thR',
 const BIND={pelvis:[V(0,1,0),V(0,1,0)],spine:[V(0,1.17,0),V(0,1,0)],chest:[V(0,1.34,0),V(0,1,0)],neck:[V(0,1.53,0),V(0,1,0)],head:[V(0,1.61,0),V(0,1,0)],
  thL:[V(.09,1,0),V(0,-1,0)],shL:[V(.09,.565,0),V(0,-1,0)],ftL:[V(.09,.13,0),V(0,0,1)],thR:[V(-.09,1,0),V(0,-1,0)],shR:[V(-.09,.565,0),V(0,-1,0)],ftR:[V(-.09,.13,0),V(0,0,1)],
  uaL:[V(.19,1.47,0),V(0,-1,0)],faL:[V(.19,1.17,0),V(0,-1,0)],hdL:[V(.19,.91,0),V(0,-1,0)],uaR:[V(-.19,1.47,0),V(0,-1,0)],faR:[V(-.19,1.17,0),V(0,-1,0)],hdR:[V(-.19,.91,0),V(0,-1,0)]};
-const _bx=V(),_by=V(),_bz=V(),_bm=new T.Matrix4(),XREF=V(1,0,0);
+const _bx=V(),_by=V(),_bz=V(),_bm=new T.Matrix4(),XREF=V(1,0,0),_hx=V(1,0,0),_zAx=V(0,0,1);
 function basisQ(y,ref,q){_by.copy(y).normalize();_bx.copy(ref).addScaledVector(_by,-ref.dot(_by));if(_bx.lengthSq()<1e-8)_bx.set(0,0,1).addScaledVector(_by,-_by.z);_bx.normalize();_bz.crossVectors(_bx,_by);_bm.makeBasis(_bx,_by,_bz);return q.setFromRotationMatrix(_bm)}
 // tube de membre (axe vertical vers le bas en pose de liaison) : profil(s) -> [rx, rz, cz], couleur(s) -> [uv, rgb], poids(s) -> [[os,w],...]
 function limb(sb,top,len,segs,prof,paint,wts,ref,bump){const R=bump?28:16,rings=[];for(let k=0;k<=segs;k++)rings.push(k/segs*len);
@@ -4731,15 +4731,17 @@ const _spn=[V(),V(),V(),V(),V()],_ped=[V(),V()],_ank=[V(),V()],_kn=V(),_sh=[V(),
 function riderAnim(dt,st,Rd){// st: {cad, P, v, g, coast, stand, tuck, home, t, lean}
  Rd=Rd||RIDER;_RD=Rd;const bk=Rd.bike;if(!Rd.R)return;
  // phase du pédalier (angle 0 = manivelle droite en haut, croissant = sens de marche)
- const pedaling=!st.coast&&st.cad>5;
+ const cs=st.cside||0,pedaling=!st.coast&&st.cad>5&&!cs;if(cs)Rd.cs=cs;Rd.ca=(Rd.ca||0)+((cs?1:0)-(Rd.ca||0))*Math.min(1,dt*3);Rd.bl=(Rd.bl||0)+((st.blean||0)-(Rd.bl||0))*Math.min(1,dt*8);
  if(pedaling){Rd.th+=st.cad/60*6.2832*dt;Rd.coast=Math.max(0,Rd.coast-dt*3)}
+ else if(cs){// virage (16 nov. 2026) : on arrête de pédaler, manivelle intérieure en haut (droite à 12 h = angle 0), par le plus court
+  const b=cs>0?0:Math.PI,tgt=b+Math.round((Rd.th-b)/6.2832)*6.2832;Rd.th+=clamp((tgt-Rd.th)*Math.min(1,dt*5),-dt*9,dt*9);Rd.coast=Math.min(1,Rd.coast+dt*2)}
  else{const tgt=Math.round((Rd.th-Math.PI/2)/Math.PI)*Math.PI+Math.PI/2;Rd.th+=(tgt-Rd.th)*Math.min(1,dt*3);Rd.coast=Math.min(1,Rd.coast+dt*2)}
  const th=Rd.th;bk.crank.rotation.x=th;
  Rd.sf+=((st.stand?1:0)-Rd.sf)*Math.min(1,dt*2.2);Rd.tf+=((st.tuck?1:0)-Rd.tf)*Math.min(1,dt*1.5);const sf=Rd.sf,tf=Rd.tf*(1-sf);
  // danseuse (8 novembre 2026) : le vélo se balance du côté opposé à la pédale qui descend (on tire sur la cocotte du même côté),
  // le corps reste au-dessus et descend sur chaque pédale ; assis : petit roulis du bassin, appui plus marqué quand l'effort monte
  const pk=pedaling?1:0,pw=clamp((st.P||0)/(typeof FTP==='number'&&FTP>0?FTP:200),0,2),hard=sm(.8,1.3,pw)*(1-sf)*(1-tf),climb=clamp(((st.g||0)-.03)/.06,0,1)*(1-sf)*(1-tf);
- const roll=-sf*.12*Math.sin(th-.25)*pk;Rd.roll+=(roll-Rd.roll)*Math.min(1,dt*10);bk.G.rotation.z=Rd.roll;
+ const roll=-sf*.12*Math.sin(th-.25)*pk+Rd.bl;Rd.roll+=(roll-Rd.roll)*Math.min(1,dt*10);bk.G.rotation.z=Rd.roll;// + virage : le vélo penche plus que le corps
  _rollM.makeRotationZ(Rd.roll);
  // pédales (repère vélo -> repère cycliste)
  const L=.1725,BB=BK.BB;
@@ -4749,7 +4751,7 @@ function riderAnim(dt,st,Rd){// st: {cad, P, v, g, coast, stand, tuck, home, t, 
  // bassin : assis sur la selle (un peu plus en avant quand on force, en arrière en montée) ; en danseuse au-dessus du pédalier,
  // il descend sur chaque coup de pédale (point bas vers 4 h 30) et se décale vers la jambe qui pousse
  const ph2=2*(th-2.4),sway=pk*(-sf*.035*Math.sin(th-.2)-(1-sf)*(.005+.006*hard)*Math.sin(th)),bob=pk*(-Math.cos(ph2)*.022*sf+Math.sin(2*th)*(.004+.003*hard)*(1-sf));
- const hip=_tmp.set(sway,lerp(1.035-.008*hard,1.075,sf)-tf*.02+bob,lerp(-.175+.022*hard-.022*climb,-.03,sf)-tf*.02+pk*sf*.012*Math.cos(ph2));
+ const hip=_tmp.set(sway,lerp(1.035-.008*hard,1.075,sf)-tf*.02+bob,lerp(-.175+.022*hard-.022*climb,-.03,sf)-tf*.02+pk*sf*.012*Math.cos(ph2));if(Rd.bl)hip.applyAxisAngle(_zAx,Rd.bl*(1-sf));// assis : le bassin reste sur la selle qui penche
  // dos : angle et position des épaules
  const beta=lerp(lerp(.66-.07*hard+.08*climb,.4,tf),.64,sf)+Math.sin(th*2)*(.012+.01*hard)*pk,d=V(0,Math.sin(beta),Math.cos(beta)),nrm=V(0,Math.cos(beta),-Math.sin(beta));
  const rockA=-(sf*.1+.016+.03*hard)*Math.sin(th-.15)*pk;_lat.set(Math.cos(rockA),Math.sin(rockA)*.6,0).normalize();
@@ -4757,7 +4759,7 @@ function riderAnim(dt,st,Rd){// st: {cad, P, v, g, coast, stand, tuck, home, t, 
  _spn[4].copy(_spn[3]).add(V(0,Rd.body&&Rd.body.geometry.userData.mh?.046:.07,.03));// vrai corps : tête 2,4 cm plus bas (cou moins long)
  setBone(BI.pelvis,_spn[0],_t1.copy(_spn[1]).sub(_spn[0]),_lat);setBone(BI.spine,_spn[1],_t1.copy(_spn[2]).sub(_spn[1]),_lat);setBone(BI.chest,_spn[2],_t1.copy(_spn[3]).sub(_spn[2]),_lat);
  // tête : regarde la route
- const look=V(st.steer*.4,lerp(.95,.75,tf)+(sf*.1),lerp(.32,.62,tf)).normalize();setBone(BI.neck,_spn[3],_t1.copy(_spn[4]).sub(_spn[3]),_lat);setBone(BI.head,_spn[4],look,XREF);
+ const look=V(st.steer*.4,lerp(.95,.75,tf)+(sf*.1),lerp(.32,.62,tf)).normalize();setBone(BI.neck,_spn[3],_t1.copy(_spn[4]).sub(_spn[3]),_lat);setBone(BI.head,_spn[4],look,st.hyaw?_hx.set(Math.cos(st.hyaw),0,-Math.sin(st.hyaw)):XREF);// regard tourné vers l'intérieur du virage
  // épaules (attachées au thorax)
  const cb=Rd.bones[BI.chest];_bm.makeRotationFromQuaternion(cb.quaternion);const cx=V().setFromMatrixColumn(_bm,0),cy=V().setFromMatrixColumn(_bm,1),cz=V().setFromMatrixColumn(_bm,2);
  // mains : cocottes (assis), cocottes bras tendus (danseuse), bas du cintre (aéro)
@@ -4771,7 +4773,7 @@ function riderAnim(dt,st,Rd){// st: {cad, P, v, g, coast, stand, tuck, home, t, 
  // jambes : cheville au-dessus de la pédale, angle du pied qui varie (talon qui descend à 3 h)
  for(let k=0;k<2;k++){const s2=k?-1:1,sd=k?'R':'L',a=th+(k?0:Math.PI),phi=.32+.14*Math.sin(a+2.1)+sf*.1;
   const P=_ped[k];const ank=_ank[k].set(P.x,P.y+.12*Math.sin(phi)+.095*Math.cos(phi),P.z-.12*Math.cos(phi)+.095*Math.sin(phi));
-  const H=_H.copy(hip).addScaledVector(_lat,s2*.09);_pole.set(s2*.12,.15,1);const K=ik2(H,ank,.435,.435,_pole,_kn);
+  const H=_H.copy(hip).addScaledVector(_lat,s2*.09);_pole.set(s2*(.12+(Rd.ca&&(Rd.cs>0?k===1:k===0)?.9*Rd.ca:0)),.15,1);/* virage : genou intérieur ouvert */const K=ik2(H,ank,.435,.435,_pole,_kn);
   setBone(BI['th'+sd],H,_t1.copy(K).sub(H));setBone(BI['sh'+sd],K,_t1.copy(ank).sub(K));
   setBone(BI['ft'+sd],ank,_t1.set(0,-Math.sin(phi),Math.cos(phi)))}
  // roues, chaîne, flou
@@ -12175,16 +12177,41 @@ let last=performance.now(),fA=16,dprT=0,hudT=0,skT=-1e9,clipT2=0,lean=0,yawR=0,s
 // d'avance à b = 3,2 m/s² (vitesse permise à d mètres : sqrt(vc² + 2·b·d)). Trajectoire : dans sa voie (de 0,55 m de l'axe au bord − 0,6 m), on part à l'extérieur,
 // on vise la corde (côté intérieur) au milieu du virage et on ressort à l'extérieur ; à gauche, la corde est au ras de la ligne médiane (on ne la franchit pas).
 // courbure signée DA > 0 = virage à gauche ; décalage latéral RLAT > 0 = vers la droite.
-const CRN={on:false,vmax:99,o:1.3,f:.5,dr:0,yd:0,a:2.8,b:3.2};
-function cornerCalc(pos,v){const E=NET.E[RID.e],dir=RID.dir;if(!E||!NET.ready){CRN.vmax=99;CRN.o=1.3;return}
- const i=pos.i,K=k=>DA[clamp(i+dir*k,E.i0,E.i1)]*dir,sg=x=>Math.sign(x)*clamp(Math.abs(x)*55,0,1),av=(a,b)=>{let s=0,n=0;for(let k=a;k<=b;k++){s+=K(k);n++}return s/n};
- let vm=99;const look=Math.min(40,Math.ceil((v*v/(2*CRN.b)+40)/SEG));
- for(let k=0;k<=look;k++){const j=i+dir*k;if(j<E.i0||j>E.i1)break;const kap=Math.abs(DA[j]);if(kap<.004)continue;const vc=Math.max(5,Math.sqrt(CRN.a/kap)),d=Math.max(0,k*SEG-5),va=Math.sqrt(vc*vc+2*CRN.b*d);if(va<vm)vm=va}
- CRN.vmax=vm;
- const cN=sg(K(0)*.5+(K(1)+K(-1))*.25),cA=sg(av(6,12)),cB=sg(av(-8,-3));
- let f=.5-.5*cN+(1-Math.abs(cN))*.5*(.9*cA+.5*cB);f=clamp(f,0,1);f=.5+(f-.5)*clamp((v-3.5)/5,0,1);CRN.f=f;// plus on va vite, plus on prend la ligne
- const hw=3.5*roadScale(i,E),o1=Math.max(.8,hw-.6),o0=-o1,om=clamp(1.3,o0,o1);/* toute la largeur de la chaussée : de 0,6 m du bord gauche à 0,6 m du bord droit */CRN.o=f<.5?o0+(om-o0)*f*2:om+(o1-om)*(f-.5)*2}
-const RS2={cad:0,P:0,v:0,g:0,coast:false,stand:false,tuck:false,steer:0},_PS={};
+const CRN={on:false,vmax:99,o:1.3,f:.5,dr:0,yd:0,a:4.6,b:3.2,ka:0,lp:0,cs:0,te:0};// a : accélération latérale tenue en virage (4,6 m/s² ≈ 25° d'inclinaison), b : freinage
+// trajectoire idéale (16 nov. 2026) : pour chaque route, ligne qui rend les virages les plus coulés possible sur toute la largeur de la chaussée
+// (y = décalage vers la gauche du sens a->b ; courbure de la ligne ≈ k + k²·y + y'' ; on minimise la somme des courbures au carré avec |y| ≤ demi-largeur − 0,6 m,
+// plus un léger rappel vers la droite du sens de marche (1,3 m) qui ne joue que sur les portions presque droites ; Gauss-Seidel projeté du pas de 80 m au pas de 5 m) :
+// extérieur avant le virage, corde au milieu, extérieur à la sortie. Mesuré sur la boucle de test : 81 % de la largeur utilisée aux virages serrés, 0,4 m d'écart moyen à la droite ailleurs
+const CRL={};
+function* crlGen(e,dir){const E=NET.E[e];if(!E)return;const n=E.i1-E.i0+1,K=new Float64Array(n),bw=new Float64Array(n),y=new Float64Array(n),ver=CRLV.v,h=SEG,MU=3e-6,pf=-dir*1.3;
+ for(let q=0;q<n;q++){K[q]=DA[E.i0+q];bw[q]=Math.max(.8,3.5*roadScale(E.i0+q,E)-.6)}yield;
+ const ST=[16,8,4,2,1];
+ for(const st of ST){const H2=(h*st)**2,idx=[];for(let j=0;j<n;j+=st)idx.push(j);if(idx[idx.length-1]!==n-1)idx.push(n-1);const m=idx.length;if(m<5)continue;
+  if(st!==ST[0]){const p=st*2;for(let j=0;j<n;j++){if(j%p===0)continue;const a=Math.floor(j/p)*p,b=Math.min(n-1,a+p);y[j]=y[a]+(y[b]-y[a])*((j-a)/((b-a)||1))}}
+  const ks=new Float64Array(m),bs=new Float64Array(m),Y=new Float64Array(m),PF=new Float64Array(m),r2=st>>1,M=MU*H2*H2;
+  for(let q=0;q<m;q++){const j=idx[q];let a=0,c=0,b=9;for(let u=Math.max(0,j-r2);u<=Math.min(n-1,j+r2);u++){a+=K[u];c++;b=Math.min(b,bw[u])}ks[q]=a/c;bs[q]=b;Y[q]=y[j];PF[q]=clamp(pf,-b,b)}
+  const its=st===1?200:300;
+  for(let it=0;it<its;it++){for(let q=2;q<m-2;q++){const k0=ks[q-1]*(1+ks[q-1]*Y[q-1]),k1=ks[q]*(1+ks[q]*Y[q]),k2=ks[q+1]*(1+ks[q+1]*Y[q+1]);
+    const v=(4*Y[q-1]+4*Y[q+1]-Y[q-2]-Y[q+2]-H2*(k0-2*k1+k2)+M*PF[q])/(6+M);Y[q]=v<-bs[q]?-bs[q]:v>bs[q]?bs[q]:v}
+   if(it%12===11)yield}
+  for(let q=0;q<m;q++)y[idx[q]]=Y[q]}
+ const o=new Float32Array(n),k=new Float32Array(n);for(let q=0;q<n;q++){o[q]=-y[q];k[q]=q>0&&q<n-1?K[q]*(1+K[q]*y[q])+(y[q-1]-2*y[q]+y[q+1])/(h*h):K[q]}
+ if(NET.E[e]===E)CRL[e+':'+dir]={o,k,ver,t:performance.now(),E}}// E : la route pour laquelle la ligne a été calculée (un changement de parcours la périme)
+function crlLine(e,d){const L=CRL[e+':'+d];return L&&L.E===NET.E[e]?L:null}
+function crlEnsure(e){for(const d of[1,-1]){const L=crlLine(e,d);if(!L||(L.ver!==CRLV.v&&performance.now()-L.t>8000))job(crlGen(e,d),0,'crl'+e+':'+d)}}
+function cornerCalc(pos,v){const e=RID.e,E=NET.E[e],dir=RID.dir;if(!E||!NET.ready){CRN.vmax=99;CRN.o=1.3;CRN.lp=0;return}
+ const now=performance.now();if(!crlLine(e,dir)||now-CRN.te>1500){CRN.te=now;crlEnsure(e);for(let e2=0;e2<NET.E.length;e2++)if(e2!==e&&NET.E[e2]&&inWorld(NET.E[e2]))crlEnsure(e2)}
+ const L=crlLine(e,dir),i=pos.i,w=sm(5,9,v);CRN.f=w;// plus on va vite, plus on suit la trajectoire idéale (18 → 32 km/h)
+ // vitesse tenable (courbure de la ligne suivie devant soi) et inclinaison prévue dans la seconde qui vient
+ let vm=99,lp=0;const look=Math.min(48,Math.ceil((v*v/(2*CRN.b)+40)/SEG)),ahd=Math.max(8,v*1.1);
+ for(let k=0;k<=look;k++){const j=i+dir*k;if(j<E.i0||j>E.i1)break;const kl=L?w*L.k[j-E.i0]+(1-w)*DA[j]:DA[j],kap=Math.abs(kl);
+  if(k*SEG<=ahd){const la=-Math.atan(v*v*kl*dir/9.81);if(Math.abs(la)>Math.abs(lp))lp=la}
+  if(kap<.004)continue;const vc=Math.max(5,Math.sqrt(CRN.a/kap)),d=Math.max(0,k*SEG-5),va=Math.sqrt(vc*vc+2*CRN.b*d);if(va<vm)vm=va}
+ CRN.vmax=vm;CRN.lp=lp;
+ const hw=3.5*roadScale(i,E),o1=Math.max(.8,hw-.6),om=clamp(1.3,-o1,o1);/* toute la largeur de la chaussée : de 0,6 m du bord gauche à 0,6 m du bord droit */
+ let ol=om;if(L){const[si,t]=sampleAt(e,RID.u+dir*v*.25),q=si-E.i0;ol=clamp((L.o[q]+(L.o[q+1]-L.o[q])*t)*dir,-o1,o1)}// un peu en avant : compense le temps de réaction
+ CRN.o=om+(ol-om)*w}
+const RS2={cad:0,P:0,v:0,g:0,coast:false,stand:false,tuck:false,steer:0,cside:0,blean:0,hyaw:0},_PS={};
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;if(!N)return;fA+=((now-(loop.p||now))-fA)*.05;loop.p=now;
  const hm=mode==='home',riding=mode==='ride'||mode==='wk';RM.visible=TR.visible=hm;WORLD.visible=!hm;sky.visible=!hm;clouds.visible=!hm&&!!QP.clouds&&SHW('clouds');stars.visible=!hm&&DAYF<.6;moon.visible=!hm&&MD.y>-.04;sc.background=hm?BGC:null;sc.fog.density=hm?0:1/42000;
  if(SPACE.on&&!hm){sky.visible=clouds.visible=stars.visible=moon.visible=false;sc.fog.density=0}
@@ -12234,15 +12261,21 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  // position sur le réseau (file de droite, on se décale pour doubler)
  const p2=posSmooth(RID,riderNext,_PS),x=p2.x,z=p2.z,y=p2.y,tx=p2.tx,tz=p2.tz;
  if(!hm){const ah=riderAhead();let tl=CRN.on?CRN.o:1.3;if(ah&&ah.d<4.5&&v>ah.o.v+.15)tl=.25;else if(RLAT<1.2&&NPCS.some(n=>n.alive&&Math.abs((n.x-RW.x)*tx+(n.z-RW.z)*tz)<3&&Math.abs((n.x-RW.x)*-tz+(n.z-RW.z)*tx)<1.7))tl=.25;
-  const r0=RLAT,lim=Math.max(.6,v*.2)*dt;RLAT+=clamp((tl-RLAT)*Math.min(1,dt*2.2),-lim,lim);CRN.dr=(RLAT-r0)/Math.max(dt,1e-3);CRN.yd+=(CRN.dr-CRN.yd)*Math.min(1,dt*6)}
- const cur=p2.da/Math.max(.3,1+RLAT*p2.da),lt=-clamp(Math.atan(v*v*cur/9.81)*1.05,-.55,.55);lean+=(lt-lean)*Math.min(1,dt*3.5);
- if(hm){R.position.set(0,.06,0);R.rotation.set(0,0,0)}else{R.position.set(x-tz*RLAT,y+roadLift(RID.e,p2.i,RLAT),z+tx*RLAT);R.rotation.set(-Math.atan(g),Math.atan2(tx,tz)-Math.atan2(CRN.yd,Math.max(v,3)),lean)}
+  const r0=RLAT,lim=Math.max(.6,v*.28)*dt;RLAT+=clamp((tl-RLAT)*Math.min(1,dt*3.5),-lim,lim);CRN.dr=(RLAT-r0)/Math.max(dt,1e-3);CRN.yd+=(CRN.dr-CRN.yd)*Math.min(1,dt*6)}
+ // inclinaison (16 nov. 2026) : d'après la courbure de la trajectoire réellement suivie (cap du cycliste d'une image à l'autre), lissée ;
+ // le vélo penche un peu plus que le corps (on appuie sur la pédale extérieure)
+ const cur=p2.da/Math.max(.3,1+RLAT*p2.da),yA=Math.atan2(tx,tz)-Math.atan2(CRN.yd,Math.max(v,3));let dyw=yA-(loop.yA===undefined?yA:loop.yA);dyw=Math.atan2(Math.sin(dyw),Math.cos(dyw));loop.yA=yA;
+ const kA=v>2&&Math.abs(dyw)<.35&&dt>0?clamp(dyw/Math.max(v*dt,1e-3),-.1,.1):cur;CRN.ka+=(kA-CRN.ka)*Math.min(1,dt*8);
+ const lt=-clamp(Math.atan(v*v*CRN.ka/9.81),-.7,.7);lean+=(lt-lean)*Math.min(1,dt*6);
+ // virage : jambe intérieure en haut (manivelle intérieure à 12 h) dès que l'inclinaison, actuelle ou prévue, dépasse ~9°
+ {const la=Math.abs(CRN.lp)>Math.abs(lean)?CRN.lp:lean;if(!CRN.on||hm||v<3)CRN.cs=0;else if(Math.abs(la)>.16&&Math.sign(la)!==CRN.cs)CRN.cs=Math.sign(la);else if(CRN.cs&&Math.abs(la)<.09)CRN.cs=0}
+ if(hm){R.position.set(0,.06,0);R.rotation.set(0,0,0)}else{R.position.set(x-tz*RLAT,y+roadLift(RID.e,p2.i,RLAT),z+tx*RLAT);R.rotation.set(-Math.atan(g),Math.atan2(tx,tz)-Math.atan2(CRN.yd,Math.max(v,3)),lean*.92)}
  Object.assign(RW,{x:R.position.x,z:R.position.z,tx,tz,v,lat:RLAT,e:RID.e,u:RID.u,dir:RID.dir});if(!hm){RPOS.x=x;RPOS.z=z;routeTick(x,z)}
  if(riding)sesTick(dt,P,v*dt,y);// km, kcal, D+ et récompenses de la sortie ou de la séance
  // pédalage
  const rc=cadReal(dt,riding,P),pedal=riding?(rc?cad>5:P>5&&v>.3):hm?true:v>.3&&g>-.03;
  const cadT=hm?78:rc?cad:clamp(86+(P/FTP-.7)*14-Math.max(0,gP-.04)*220+(stand?-14:0),58,118);cadS+=(cadT-cadS)*Math.min(1,dt*(rc?7:2));
- Object.assign(RS2,{cad:pedal?cadS:0,P,v:hm?0:v,g:gP,coast:!pedal,stand:stand&&!hm,tuck:tuck&&!hm,steer:clamp(-cur*30,-1,1)});riderAnim(dt,RS2);faceTick(dt,riding?P:0,stand&&!hm);
+ Object.assign(RS2,{cad:pedal?cadS:0,P,v:hm?0:v,g:gP,coast:!pedal,stand:stand&&!hm,tuck:tuck&&!hm,steer:hm?0:clamp(lean*1.8,-1,1),cside:hm?0:CRN.cs,blean:hm?0:lean*.26,hyaw:hm?0:clamp(-lean*.55,-.3,.3)});riderAnim(dt,RS2);faceTick(dt,riding?P:0,stand&&!hm);
  if(hm){FAN.rotation.z+=dt*22;if(now-(loop.mt||0)>100){loop.mt=now;mon(now)}}
  // caméra
  if(!dr&&riding)yaw*=Math.pow(.2,dt);
