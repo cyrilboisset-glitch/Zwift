@@ -4267,17 +4267,22 @@ function mhHeadGeo(){if(_MHH)return _MHH;const bs=atob(MHHEAD),u8=new Uint8Array
  const p=new Float32Array(n*3),dj=new Float32Array(n*3),z=new Float32Array(n*3),fz=new Float32Array(n*4),vp=new Float32Array(n);
  for(let i=0;i<n*3;i++){p[i]=q[i]/1e4;dj[i]=dq[i]/1e4}
  for(let i=0;i<n;i++){vp[i]=A[i*5];for(let k=0;k<4;k++)fz[i*4+k]=A[i*5+1+k]/255}
+ // bas du cou (rallonge du raccord) : remis en anneau sous la peau du cou du corps (16 nov. 2026 ; avant : pan qui pendait devant le menton, jusqu'à 3 cm en avant, et pointes sur les côtés)
+ for(let i=0;i<n;i++)if(vp[i]===0&&p[i*3+1]<-.055){const a=Math.atan2(p[i*3],p[i*3+2]-.004),c=Math.cos(a);p[i*3]=.058*Math.sin(a);p[i*3+2]=.004+(c>0?.053:.05)*c;dj[i*3]=dj[i*3+1]=dj[i*3+2]=0}
+ const nw=new Float32Array(n*2);// poids (cou, thorax) du bas du cou, repris du corps au premier affichage (faceBuildMH)
  const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(p,3));g.setIndex(new T.BufferAttribute(ix,1));
- g.setAttribute('aFZ',new T.BufferAttribute(fz,4));g.setAttribute('aVP',new T.BufferAttribute(vp,1));
+ g.setAttribute('aFZ',new T.BufferAttribute(fz,4));g.setAttribute('aVP',new T.BufferAttribute(vp,1));g.setAttribute('aNW',new T.BufferAttribute(nw,2));
  g.morphAttributes.position=[new T.BufferAttribute(dj,3),new T.BufferAttribute(z,3)];g.morphTargetsRelative=true;g.computeVertexNormals();return _MHH=g}
-const RHD={uHair:{value:new T.Color(0x3a2a1f)},uBeard:{value:.5},uFlush:{value:0}};
+const RHD={uHair:{value:new T.Color(0x3a2a1f)},uBeard:{value:.5},uFlush:{value:0},uNeckM:{value:new T.Matrix4()},uChestM:{value:new T.Matrix4()}};
 // matière de la tête : peau hâlée (comme le corps), lèvres, sourcils en traits, barbe naissante en points, cheveux ras, dents, langue,
 // grain de peau, pores, lumière qui traverse la peau
 function headMatMH(){const m=new T.MeshPhysicalMaterial({roughness:.5,metalness:0,sheen:.35,sheenColor:new T.Color(0xff9a80),sheenRoughness:.55,clearcoat:.04,clearcoatRoughness:.35});
  m.extensions={derivatives:true};
- m.onBeforeCompile=sh=>{sh.uniforms.uSkin=RMH.uSkin;sh.uniforms.uHair=RHD.uHair;sh.uniforms.uBeard=RHD.uBeard;sh.uniforms.uFlush=RHD.uFlush;
-  sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec4 aFZ;attribute float aVP;varying vec4 vFZ;varying float vVP;varying vec3 vHP;')
-   .replace('#include <begin_vertex>','#include <begin_vertex>\nvFZ=aFZ;vVP=aVP;vHP=position;');
+ m.onBeforeCompile=sh=>{sh.uniforms.uSkin=RMH.uSkin;sh.uniforms.uHair=RHD.uHair;sh.uniforms.uBeard=RHD.uBeard;sh.uniforms.uFlush=RHD.uFlush;sh.uniforms.uNeckM=RHD.uNeckM;sh.uniforms.uChestM=RHD.uChestM;
+  sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec4 aFZ;attribute float aVP;attribute vec2 aNW;uniform mat4 uNeckM,uChestM;varying vec4 vFZ;varying float vVP;varying vec3 vHP;')
+   .replace('#include <defaultnormal_vertex>','objectNormal=normalize(objectNormal*(1.-aNW.x-aNW.y)+mat3(uNeckM)*objectNormal*aNW.x+mat3(uChestM)*objectNormal*aNW.y);\n#include <defaultnormal_vertex>')
+   .replace('#include <begin_vertex>','#include <begin_vertex>\nvFZ=aFZ;vVP=aVP;vHP=position;')
+   .replace('#include <morphtarget_vertex>','#include <morphtarget_vertex>\ntransformed=transformed*(1.-aNW.x-aNW.y)+(uNeckM*vec4(transformed,1.)).xyz*aNW.x+(uChestM*vec4(transformed,1.)).xyz*aNW.y;');
   sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec4 vFZ;varying float vVP;varying vec3 vHP;uniform vec3 uSkin;uniform vec3 uHair;uniform float uBeard;uniform float uFlush;\n'+GLNOISE+`
 float AFh(float k){return clamp(1.3-length(fwidth(vHP))*k*1.2,0.,1.);}`)
    .replace('#include <color_fragment>',`#include <color_fragment>
@@ -4296,6 +4301,19 @@ float AFh(float k){return clamp(1.3-length(fwidth(vHP))*k*1.2,0.,1.);}`)
    .replace('#include <aomap_fragment>','#include <aomap_fragment>\nif(vVP<.5)'+SSS_GL('(1.-vFZ.w)'))};
  return m}
 function faceBuildMH(G,km){const g=mhHeadGeo(),mat=headMatMH(),mesh=new T.Mesh(g,mat);mesh.castShadow=true;G.add(mesh);
+ // cou souple (16 nov. 2026) : le bas du cou de la tête prend les poids d'os (tête, cou, thorax) du corps au même endroit et se déforme
+ // exactement comme le col (avant : tête rigide, la gorge pendait devant le col et le col noir ressortait en dents de scie)
+ {let r0=null;const m4=new T.Matrix4(),bm=[RHD.uNeckM.value,RHD.uChestM.value];mesh.onBeforeRender=()=>{const hb=G.parent;let b=hb;while(b&&!b.isSkinnedMesh)b=b.parent;if(!b||!b.skeleton)return;const sk=b.skeleton;if(sk.bones[BI.head]!==hb||!sk.bones[BI.neck]||!sk.bones[BI.chest])return;
+  if(!r0){r0=new T.Matrix4().copy(sk.boneInverses[BI.head]).invert().multiply(m4.copy(hb.matrixWorld).invert().multiply(mesh.matrixWorld));// tête (repère du maillage) -> pose de liaison
+   const bg=b.geometry,bp=bg.attributes.position.array,bi=bg.attributes.skinIndex.array,bw=bg.attributes.skinWeight.array,C=[];
+   for(let j=0;j<bp.length/3;j++)if(bp[j*3+1]>1.46&&bp[j*3+1]<1.6&&Math.hypot(bp[j*3],bp[j*3+2])<.13)C.push(j);
+   const hp=g.attributes.position.array,vp=g.attributes.aVP.array,aw=g.attributes.aNW.array,v=new T.Vector3(),sst=(a,c,x)=>{const t=clamp((x-a)/(c-a),0,1);return t*t*(3-2*t)};
+   for(let i=0;i<vp.length;i++){if(vp[i]!==0)continue;v.fromArray(hp,i*3).applyMatrix4(r0);const tw=sst(1.6,1.572,v.y)*(1-sst(.075,.105,hp[i*3+2]));if(tw<=0)continue;
+    const nb=[];for(const j of C){const d=(bp[j*3]-v.x)**2+(bp[j*3+1]-v.y)**2+(bp[j*3+2]-v.z)**2;if(nb.length<4||d<nb[3][0]){nb.push([d,j]);nb.sort((a,c)=>a[0]-c[0]);if(nb.length>4)nb.pop()}}
+    let wn=0,wc=0,ws=0;for(const[d,j]of nb){const k=1/(Math.sqrt(d)+.004);ws+=k;for(let q=0;q<4;q++){const x=bi[j*4+q],w=bw[j*4+q]*k;if(x===BI.neck)wn+=w;else if(x!==BI.head)wc+=w}}// thorax + épaules -> thorax
+    if(ws>0){aw[i*2]=tw*wn/ws;aw[i*2+1]=tw*wc/ws}}
+   g.attributes.aNW.needsUpdate=true}
+  [BI.neck,BI.chest].forEach((k,q)=>bm[q].copy(mesh.matrixWorld).invert().multiply(sk.bones[k].matrixWorld).multiply(m4.copy(sk.boneInverses[k]).multiply(r0)))}}
  skinSSS(KM.skin);skinSSS(KM.skinE);
  // yeux : globe et iris peint, au centre des yeux MakeHuman
  const icv=mkCanvas(128,64),itx=texOf(icv,true,false),irM=new T.MeshPhysicalMaterial({map:itx,roughness:.1,metalness:0,clearcoat:1,clearcoatRoughness:.05}),scM=stdM(0xf1ece4,.25,0);
@@ -4674,6 +4692,7 @@ function riderMatMH(tex){
  m.onBeforeCompile=sh=>{ob(sh);sh.uniforms.uSkin=RMH.uSkin;
   sh.fragmentShader=sh.fragmentShader.replace('varying vec2 vPS;varying vec3 vBP;varying float vU0;','varying vec2 vPS;varying vec3 vBP;varying float vU0;uniform vec3 uSkin;float gSk=0.;float gPt=0.;vec2 gUV;vec2 gDx=vec2(0.);vec2 gDy=vec2(0.);')
    .replace('#include <map_fragment>',`{vec3 p=vBP;gPt=vPS.x>.5&&vPS.x>=vPS.y?1.:vPS.y>.5?2.:0.;float pt=gPt;vec2 uv;float sk=0.;
+ if(pt!=1.&&vPS[0]<.01&&vPS[1]>.002&&vPS[1]<.998&&p.y>1.3&&p.y<1.6){float yy=p.y-1.46;pt=abs(p.x)>.19-.054*yy-.099*p.z-6.03*yy*yy-6.24*p.z*p.z-4.09*yy*p.z?2.:0.;gPt=pt;}// couture d'emmanchure lisse (16 nov. 2026) : dans les seuls triangles à cheval buste / bras, limite = surface ajustée sur la couture du maillage (écart moyen 5 mm) au lieu du bord des triangles en escalier
  float aT=atan(p.x,p.z),tu1=mod(aT+1.5708,6.28318),tu2=mod(aT+4.7124,6.28318);vec2 tdx1=vec2(dFdx(tu1),dFdx(p.y)),tdx2=vec2(dFdx(tu2),dFdx(p.y)),tdy1=vec2(dFdy(tu1),dFdy(p.y)),tdy2=vec2(dFdy(tu2),dFdy(p.y));
  float rN=length(vec2(p.x,(p.z-.02)*1.1)),cl=1.548+.03*smoothstep(.05,.1,rN);if(pt<.5&&p.y>1.572&&rN<.075){uv=vec2(.9375,.94);sk=1.;}else if(pt<.5&&p.y>cl-.022&&rN<.095){uv=vec2(.5,.99);}// col rond (20 nov. 2026)
  else if(pt<.5){{float u1=tu1;
@@ -4747,7 +4766,7 @@ function riderAnim(dt,st,Rd){// st: {cad, P, v, g, coast, stand, tuck, home, t, 
   _sh[k].copy(cb.position).addScaledVector(cx,s2*.19).addScaledVector(cy,.13).addScaledVector(cz,-.01);
   const hand=_hd[k].copy(hood).lerp(drop,tf);hand.x*=s2;hand.applyMatrix4(_rollM);
   const wrist=_wr[k].copy(hand).add(V(0,.035,-.055));
-  _pole.set(s2*.8,-.5,-.35);const el=ik2(_sh[k],wrist,.3,.26,_pole,_el);
+  _pole.set(s2*lerp(.38,.6,sf),-.62,-.68);const el=ik2(_sh[k],wrist,.3,.26,_pole,_el);// coude vers le bas et l'arrière, un peu ouvert (avant : presque à l'horizontale vers l'extérieur, le pli ne se voyait pas)
   setBone(BI['ua'+sd],_sh[k],_t1.copy(el).sub(_sh[k]));setBone(BI['fa'+sd],el,_t1.copy(wrist).sub(el));setBone(BI['hd'+sd],wrist,_t1.copy(hand).sub(wrist).add(V(0,-.02,0)))}
  // jambes : cheville au-dessus de la pédale, angle du pied qui varie (talon qui descend à 3 h)
  for(let k=0;k<2;k++){const s2=k?-1:1,sd=k?'R':'L',a=th+(k?0:Math.PI),phi=.32+.14*Math.sin(a+2.1)+sf*.1;
