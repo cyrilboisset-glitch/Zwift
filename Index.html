@@ -12237,6 +12237,7 @@ let last=performance.now(),fA=16,dprT=0,hudT=0,skT=-1e9,clipT2=0,lean=0,yawR=0,s
 // d'avance à b = 3,2 m/s² (vitesse permise à d mètres : sqrt(vc² + 2·b·d)). Trajectoire : dans sa voie (de 0,55 m de l'axe au bord − 0,6 m), on part à l'extérieur,
 // on vise la corde (côté intérieur) au milieu du virage et on ressort à l'extérieur ; à gauche, la corde est au ras de la ligne médiane (on ne la franchit pas).
 // courbure signée DA > 0 = virage à gauche ; décalage latéral RLAT > 0 = vers la droite.
+const DSC={g:0,on:false,w:0};// descente : pente réelle lissée (2 s), active sous −2,5 %, quitte au-dessus de −1 % ; virages (inclinaison, trajectoire, jambe intérieure) seulement en descente
 const BRK={a:0,s:0};// freinage envoyé au home trainer (a : décélération du virage, s : pente de freinage ajoutée)
 const CRN={on:false,vmax:99,o:1.3,f:.5,dr:0,yd:0,a:4.6,b:3.2,ka:0,lp:0,cs:0,te:0};// a : accélération latérale tenue en virage (4,6 m/s² ≈ 25° d'inclinaison), b : freinage
 // trajectoire idéale (16 nov. 2026) : pour chaque route, ligne qui rend les virages les plus coulés possible sur toute la largeur de la chaussée
@@ -12296,7 +12297,8 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
    if(!wk.ramp)wkCoach(dt,B,Pt,P);loop.Pt=Pt}}
  if(VEL.on&&!hm){velFrame(now,dt,P);return}// vélodrome : piste plate, monde extérieur caché
  const pos=posAt(RID.e,RID.u,RID.dir,_PS),g=pos.g,wkA=mode==='wk'&&SET.wkRel===1,gP=mode==='wk'&&!SET.wkRel?0:wkA&&g>0?g/3:g;// séance : relief adouci (montées /3), réel ou plat// séance : résistance toujours en ERG ; vitesse, danseuse et posture selon le relief (SET.wkRel) ou comme sur le plat
- CRN.on=SET.corner!==0&&!hm&&!LDG.on;if(CRN.on)cornerCalc(pos,v);else{CRN.vmax=99;CRN.o=1.3}
+ DSC.g+=(pos.g-DSC.g)*Math.min(1,dt/2);if(DSC.on?DSC.g>-.01:DSC.g<-.025)DSC.on=!DSC.on;if(hm||LDG.on)DSC.on=false;DSC.w+=((DSC.on?1:0)-DSC.w)*Math.min(1,dt*1.5);// w : transition progressive (~1 s)
+ CRN.on=SET.corner!==0&&!hm&&!LDG.on&&DSC.w>.02;if(CRN.on)cornerCalc(pos,v);else{CRN.vmax=99;CRN.o=1.3;CRN.lp=0}
  const tuck=v>13.2&&P<FTP*.45&&gP<-.015,sprinting=P>FTP*1.45&&v<16,surge=riding?standLogic(dt,P,gP,v):false;
  if(gP>.06&&(riding||mode==='explore')){standT+=dt;if(standT>75)standT=0}else standT=0;
  const stand=(sprinting||surge||(gP>.075&&P>FTP*.95)||(standT>60))&&v>1.2;
@@ -12323,15 +12325,15 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
   else{done=true;say('🏁 Arrivée ! '+(s/1000).toFixed(1).replace('.',',')+' km en '+Math.floor(tt/60)+' min '+Math.round(tt%60)+' s. Demi-tour pour continuer, ou ☰ → Terminer.')}}
  // position sur le réseau (file de droite, on se décale pour doubler)
  const p2=posSmooth(RID,riderNext,_PS),x=p2.x,z=p2.z,y=p2.y,tx=p2.tx,tz=p2.tz;
- if(!hm){const ah=riderAhead();let tl=CRN.on?CRN.o:1.3;if(ah&&ah.d<4.5&&v>ah.o.v+.15)tl=.25;else if(RLAT<1.2&&NPCS.some(n=>n.alive&&Math.abs((n.x-RW.x)*tx+(n.z-RW.z)*tz)<3&&Math.abs((n.x-RW.x)*-tz+(n.z-RW.z)*tx)<1.7))tl=.25;
+ if(!hm){const ah=riderAhead();let tl=CRN.on?1.3+(CRN.o-1.3)*DSC.w:1.3;if(ah&&ah.d<4.5&&v>ah.o.v+.15)tl=.25;else if(RLAT<1.2&&NPCS.some(n=>n.alive&&Math.abs((n.x-RW.x)*tx+(n.z-RW.z)*tz)<3&&Math.abs((n.x-RW.x)*-tz+(n.z-RW.z)*tx)<1.7))tl=.25;
   const r0=RLAT,lim=Math.max(.6,v*.28)*dt;RLAT+=clamp((tl-RLAT)*Math.min(1,dt*3.5),-lim,lim);CRN.dr=(RLAT-r0)/Math.max(dt,1e-3);CRN.yd+=(CRN.dr-CRN.yd)*Math.min(1,dt*6)}
  // inclinaison (16 nov. 2026) : d'après la courbure de la trajectoire réellement suivie (cap du cycliste d'une image à l'autre), lissée ;
  // le vélo penche un peu plus que le corps (on appuie sur la pédale extérieure)
  const cur=p2.da/Math.max(.3,1+RLAT*p2.da),yA=Math.atan2(tx,tz)-Math.atan2(CRN.yd,Math.max(v,3));let dyw=yA-(loop.yA===undefined?yA:loop.yA);dyw=Math.atan2(Math.sin(dyw),Math.cos(dyw));loop.yA=yA;
  const kA=v>2&&Math.abs(dyw)<.35&&dt>0?clamp(dyw/Math.max(v*dt,1e-3),-.1,.1):cur;CRN.ka+=(kA-CRN.ka)*Math.min(1,dt*8);
- const lt=-clamp(Math.atan(v*v*CRN.ka/9.81),-.7,.7);lean+=(lt-lean)*Math.min(1,dt*6);
+ const lt=CRN.on?-clamp(Math.atan(v*v*CRN.ka/9.81),-.7,.7)*DSC.w:0;lean+=(lt-lean)*Math.min(1,dt*(CRN.on?6:3));// hors descente : vélo droit
  // virage : jambe intérieure en haut (manivelle intérieure à 12 h) dès que l'inclinaison, actuelle ou prévue, dépasse ~9°
- {const la=Math.abs(CRN.lp)>Math.abs(lean)?CRN.lp:lean;if(!CRN.on||hm||v<3)CRN.cs=0;else if(Math.abs(la)>.16&&Math.sign(la)!==CRN.cs)CRN.cs=Math.sign(la);else if(CRN.cs&&Math.abs(la)<.09)CRN.cs=0}
+ {const la=Math.abs(CRN.lp)>Math.abs(lean)?CRN.lp:lean;if(!CRN.on||hm||v<3||DSC.w<.6)CRN.cs=0;else if(Math.abs(la)>.16&&Math.sign(la)!==CRN.cs)CRN.cs=Math.sign(la);else if(CRN.cs&&Math.abs(la)<.09)CRN.cs=0}
  if(hm){R.position.set(0,.06,0);R.rotation.set(0,0,0)}else{R.position.set(x-tz*RLAT,y+roadLift(RID.e,p2.i,RLAT),z+tx*RLAT);R.rotation.set(-Math.atan(g),Math.atan2(tx,tz)-Math.atan2(CRN.yd,Math.max(v,3)),lean*.92)}
  Object.assign(RW,{x:R.position.x,z:R.position.z,tx,tz,v,lat:RLAT,e:RID.e,u:RID.u,dir:RID.dir});if(!hm){RPOS.x=x;RPOS.z=z;routeTick(x,z)}
  if(riding)sesTick(dt,P,v*dt,y);// km, kcal, D+ et récompenses de la sortie ou de la séance
