@@ -1996,10 +1996,10 @@ function roadTexD(mode,W){const H=W*4,k=mkCanvas(W,H),g=k.getContext('2d'),mx=W/
  for(let k2=0;k2<6;k2++){const x=(.9+r()*5.6)*mx,y=r()*H,w=(.8+r()*2)*mx,h=(1+r()*2.5)*my,dk=r()<.5;g.fillStyle=dk?`rgba(30,31,34,${.12+r()*.12})`:`rgba(150,150,150,${.05+r()*.05})`;g.fillRect(x,y,w,h);
   g.strokeStyle='rgba(20,20,22,.22)';g.lineWidth=1.5*sc2;g.strokeRect(x,y,w,h);gb.strokeStyle='rgba(0,0,0,.5)';gb.lineWidth=2*sc2;gb.strokeRect(x,y,w,h)}
  const crack=(x,y,dx,dy,n,wd,dark)=>{g.beginPath();gb.beginPath();g.moveTo(x,y);gb.moveTo(x,y);for(let i=0;i<n;i++){x+=(dx+(r()-.5)*dx*1.6+(r()-.5)*6)*sc2;y+=(dy+(r()-.5)*dy*1.6+(r()-.5)*6)*sc2;g.lineTo(x,y);gb.lineTo(x,y)}
-  g.strokeStyle=dark;g.lineWidth=Math.max(1,wd*sc2);g.stroke();gb.strokeStyle='rgba(0,0,0,.9)';gb.lineWidth=Math.max(1,(wd+1)*sc2);gb.stroke()};
- for(let k2=0;k2<6;k2++)crack((1+r()*6.2)*mx,r()*H,(r()-.5)*2,14,8+r()*12|0,1.1,'rgba(18,18,20,.28)');
- for(let k2=0;k2<3;k2++)crack((1+r()*2)*mx,r()*H,10,(r()-.5)*3,6+r()*8|0,1,'rgba(18,18,20,.4)');
- crack((2+r()*4)*mx,r()*H,(r()-.5)*1,22,10,2,'rgba(12,12,14,.16)');
+  g.strokeStyle=dark;g.lineWidth=Math.max(1,wd*sc2);g.stroke();gb.strokeStyle='rgba(0,0,0,.25)';gb.lineWidth=Math.max(1,(wd+1)*sc2);gb.stroke()};
+ for(let k2=0;k2<6;k2++)crack((1+r()*6.2)*mx,r()*H,(r()-.5)*2,14,8+r()*12|0,1.1,'rgba(18,18,20,.1)');
+ for(let k2=0;k2<3;k2++)crack((1+r()*2)*mx,r()*H,10,(r()-.5)*3,6+r()*8|0,1,'rgba(18,18,20,.12)');
+ crack((2+r()*4)*mx,r()*H,(r()-.5)*1,22,10,2,'rgba(12,12,14,.07)');
  for(let k2=0;k2<6;k2++){const x=(r()<.5?2.3:5.9)*mx+(r()-.5)*.5*mx,y=r()*H,rr=(.15+r()*.3)*mx,gr=g.createRadialGradient(x,y,0,x,y,rr);gr.addColorStop(0,'rgba(10,10,12,.35)');gr.addColorStop(1,'rgba(10,10,12,0)');g.fillStyle=gr;g.beginPath();g.ellipse(x,y,rr,rr*2.5,0,0,6.283);g.fill()}
  const paint=(u0,wm,v0,lm)=>{const x0=u0*mx|0,w=Math.max(2,wm*mx)|0,y0=v0*my|0,h=lm*my|0;const id=g.getImageData(x0,y0,w,h),pd=id.data;
   for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){const wear=pvn((x0+xx)/W*90,(y0+yy)/H*360,90,23);if(wear<.28)continue;const a=clamp((wear-.28)*4,0,1)*.92,j=(yy*w+xx)*4;
@@ -3065,7 +3065,7 @@ const ROADMATS=[roadMat,...[1,2].map(m=>new T.MeshLambertMaterial({map:TXR.roadM
 // liant plus sombre, taches de quelques mètres), estompé au loin (pas de scintillement), léger relief de surface ; Tablette / Basse : version allégée
 function roadDetail(m){if(m.userData.rd)return;m.userData.rd=1;const lite=QK==='tab'||QK==='low';m.extensions={derivatives:true};
  m.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vRWP;').replace('#include <begin_vertex>','#include <begin_vertex>\nvRWP=position;');
-  sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vRWP;float gRH=0.;\n'+GLNOISE)
+  sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vRWP;float gRH=0.,gWP=0.,gTar=0.;\n'+GLNOISE)
    .replace('#include <map_fragment>',`#include <map_fragment>
 {vec2 w=vRWP.xz;float fw=max(length(fwidth(w)),1e-5),a0=clamp(1.5-fw*55.,0.,1.),a1=clamp(1.5-fw*170.,0.,1.);float g0=vn3(vec3(w*55.,4.5)),g1=vn3(vec3(w*170.,.5));
  float m1=vn3(vec3(w*.23,1.)),pt=step(.6,diffuseColor.r)*step(.6,diffuseColor.b);float agg=(g0-.5)*.32*a0+(g1-.5)*.55*a1;
@@ -3073,7 +3073,15 @@ function roadDetail(m){if(m.userData.rd)return;m.userData.rd=1;const lite=QK==='
  agg+=(g2-.5)*.38*a2;gRH=(g0-.5)*a0*.0012+(g1-.5)*a1*.0016+(g2-.5)*a2*.0007+chip*.0006-tar*.0004;`}
  vec3 c=diffuseColor.rgb*(1.+agg*(1.-.55*pt))*(.9+.15*m1${lite?'':'+.07*(m2-.5)'});
  ${lite?'':'c=mix(c,c*1.7+.04,chip*.45*(1.-pt));c*=1.-tar*.22;'}
+ // enrobé vivant (17 nov. 2026), sans motif répété : sections refaites plus ou moins claires, joints de bitume sinueux, fissures fines, traces de roues polies, poussière sur les bords
+ {float um=vUv.x*8.2,sd=vUv.y*26.,np=1.-pt,ln=um<4.1?um-.55:um-4.1,wp=exp(-pow((ln-.95)/.32,2.))+exp(-pow((ln-2.6)/.32,2.));gWP=wp*np;
+  c*=.9+.2*smoothstep(.42,.58,vn3(vec3(sd*.011,3.3,7.)));// sections d'âge différent
+  float q1=vn3(vec3(w*.42,11.)),tk=1.-smoothstep(.0,.008+fw*.5,abs(q1-.5)),tm=smoothstep(.5,.62,vn3(vec3(w*.07,23.)));gTar=tk*tm*np;c=mix(c,vec3(.03,.03,.034),gTar*.8);// joints de bitume
+  float q2=vn3(vec3(w*2.6,17.)),ck=(1.-smoothstep(.0,.006+fw*1.2,abs(q2-.5)))*smoothstep(.55,.7,vn3(vec3(w*.16,31.)))*clamp(1.4-fw*30.,0.,1.);c*=1.-ck*.4*np;// fissures fines
+  c=mix(c,c*1.13+.012,wp*.5*np);// traces de roues plus claires
+  float ed=smoothstep(1.,.0,min(um-.5,7.7-um))*smoothstep(.35,.7,vn3(vec3(w*1.3,41.)));c=mix(c,c*1.2+vec3(.035,.03,.02),ed*.55*np);}// poussière et gravillons près des bords
  diffuseColor.rgb=c;}`)
+   .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor*(1.-.22*gWP)-.45*gTar,.25,1.);')
    .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n'+(lite?'':'normal=pnArb(-vViewPosition,normal,vec2(dFdx(gRH),dFdy(gRH)));'))};
  m.needsUpdate=true}
 for(const m of ROADMATS)roadDetail(m);
@@ -4227,7 +4235,7 @@ function glassesParts(lens,hb){const G=new T.Group(),P=[],I=[],TOP=[],NU=40,NV=7
 function handFingers(s2){const GL=[],SK=[],q=new T.Quaternion(),sc=V(1,1,1);
  const seg=(L,a,b,r)=>{const d=b.clone().sub(a),l=d.length();q.setFromUnitVectors(UP,d.normalize());L.push({g:new T.CapsuleGeometry(r,l,3,10),m:new T.Matrix4().compose(a.clone().add(b).multiplyScalar(.5),q,sc)})};
  for(const[x0,k,r]of[[-.021,1,.0088],[-.007,1.08,.0088],[.008,1.02,.0083],[.021,.82,.0075]]){let p=V(s2*x0,.072,-.006),ang=0;
-  [.044*k,.025*k,.019*k].forEach((l,s)=>{ang+=[.32,.62,.55][s];const p2=p.clone().addScaledVector(V(0,Math.cos(ang),Math.sin(ang)),l);seg(s?SK:GL,p,p2,r*(1-.08*s));p=p2})}
+  [.044*k,.025*k,.019*k].forEach((l,s)=>{ang+=[.55,.95,.8][s];const p2=p.clone().addScaledVector(V(0,Math.cos(ang),Math.sin(ang)),l);seg(s?SK:GL,p,p2,r*(1-.08*s));p=p2})}
  {let p=V(-s2*.028,.03,.006),d=V(-s2*.55,.75,.45).normalize();const p2=p.clone().addScaledVector(d,.036);seg(GL,p,p2,.0095);d.add(V(0,-.1,.35)).normalize();seg(SK,p2,p2.clone().addScaledVector(d,.03),.0085)}
  const G=new T.Group(),a=new T.Mesh(mergeGeos(GL),KM.glove),b=new T.Mesh(mergeGeos(SK),KM.skin);a.castShadow=b.castShadow=true;G.add(a,b);return G}
 // assemblage de la tête du joueur
@@ -4606,9 +4614,9 @@ function buildBike(pl){const G=new T.Group(),{BB,RA,FA,ST,HT,HB}=BK;let decal=nu
   for(const x of[-.08,-.061]){const pl2=new T.Mesh(new T.BoxGeometry(.0022,.022,.07),blkM);pl2.position.set(x,-.006,.022);pl2.rotation.x=-.12;fd.add(pl2)}
   add(fd)}
   for(const[a,b,c]of[[V(0,.43,.17),V(0,.56,.28),0xffd23f]]){const bo=new T.Mesh(new T.CylinderGeometry(.036,.036,.19,sg(20)),pl&&c===0xffd23f?KM.bot:stdM(c,.4,0));bo.position.copy(a).add(b).multiplyScalar(.5).add(V(0,.0,0));
-  bo.quaternion.setFromUnitVectors(UP,b.clone().sub(a).normalize());bo.position.add(b.clone().sub(a).normalize().cross(V(1,0,0)).multiplyScalar(c===0xffd23f?-.042:.042));add(bo);
+  bo.quaternion.setFromUnitVectors(UP,b.clone().sub(a).normalize());bo.position.add(b.clone().sub(a).normalize().cross(V(1,0,0)).multiplyScalar(.081));add(bo);// sur le tube diagonal, dans le triangle du cadre (avant : dessous)
   {// bouchon, tétine et porte-bidon (17 nov. 2026)
-   const ax=b.clone().sub(a).normalize(),c0=bo.position.clone(),at=t=>c0.clone().addScaledVector(ax,t),nz=ax.clone().cross(V(1,0,0)).multiplyScalar(-1);// nz : du tube vers le bidon
+   const ax=b.clone().sub(a).normalize(),c0=bo.position.clone(),at=t=>c0.clone().addScaledVector(ax,t),nz=ax.clone().cross(V(1,0,0));// nz : du tube vers le bidon
    add(tubeAB(at(.095),at(.118),.03,.022,16,blkM));add(tubeAB(at(.118),at(.136),.011,.009,10,stdM(0xd8dadd,.5,0)));
    const cm=stdM(0x101113,.45,.3);for(const s2 of[-1,1])add(curveTube([at(-.085).addScaledVector(nz,-.036),at(-.085).add(V(s2*.03,0,0)).addScaledVector(nz,-.012),at(-.02).add(V(s2*.038,0,0)).addScaledVector(nz,.006),at(.045).add(V(s2*.034,0,0)).addScaledVector(nz,.02),at(.062).add(V(s2*.012,0,0)).addScaledVector(nz,.036)],.0034,cm,20));
    add(curveTube([at(-.092).addScaledVector(nz,-.036),at(-.1).addScaledVector(nz,-.01),at(-.1).addScaledVector(nz,.018)],.0036,cm,8))}}
@@ -4668,6 +4676,7 @@ function riderMatHi(tex,geo){
    .replace('#include <begin_vertex>','#include <begin_vertex>\nvPS=aPS;vBP=position;vU0=uv.x;');
   sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vPS;varying vec3 vBP;varying float vU0;\n'+GLNOISE+`
 float AF(float k){return clamp(1.3-length(fwidth(vBP))*k*1.2,0.,1.);}
+float rVein(vec3 p){float v=abs(vn3(vec3(p.x*26.,p.y*9.,p.z*26.))-.5),m=smoothstep(1.2,1.12,p.y)*smoothstep(.93,.99,p.y);return (1.-smoothstep(.0,.035,v))*m;}// veines de l'avant-bras
 float rHeight(){float sk=vPS.y,pt=vPS.x,y=vBP.y;vec3 p=vBP;float h=0.;
  if(sk>.5){h+=(vn3(p*650.)-.5)*.00012*AF(650.)+(vn3(p*95.)-.5)*.0005+(vn3(p*30.)-.5)*.0012;
   // relief anatomique fin (20 nov. 2026) : rotule, vaste interne, tendon rotulien, sillon du mollet ; coude, sillon biceps / triceps, avant-bras
@@ -4676,7 +4685,8 @@ float rHeight(){float sk=vPS.y,pt=vPS.x,y=vBP.y;vec3 p=vBP;float h=0.;
     -.002*exp(-pow((y-.535)/.012,2.))*fr*(1.-exp(-pow(ux/.3,2.)))-.003*exp(-pow((y-.43)/.065,2.))*exp(-pow(ux/.14,2.))*bk+.0018*smoothstep(.48,.42,y)*smoothstep(.22,.3,y)*exp(-pow((ux+.35)/.18,2.))*fr;}
   else if(pt>1.5){vec2 q=vec2(p.x-sign(p.x)*.19,p.z);float r=max(length(q),1e-4),uz=q.y/r,ux=q.x/r*sign(p.x);
    h+=.0035*exp(-pow((y-1.17)/.022,2.))*max(0.,-uz)-.0025*exp(-pow((y-1.25)/.06,2.))*exp(-pow((ux-.95)/.3,2.))-.002*exp(-pow((y-1.06)/.07,2.))*exp(-pow((ux-.25)/.22,2.))
-    +.002*exp(-pow((y-1.12)/.035,2.))*max(0.,uz);}}
+    +.002*exp(-pow((y-1.12)/.035,2.))*max(0.,uz);
+   h+=.0007*rVein(p)*AF(60.);}}
  else{float nz=vn3(p*22.);
   h+=sin((p.x+p.z)*1700.)*sin(p.y*1700.)*.00006*AF(1700.);// maille
   if(pt<.5){float fr=smoothstep(.0,.05,p.z);
@@ -4689,22 +4699,26 @@ float rHeight(){float sk=vPS.y,pt=vPS.x,y=vBP.y;vec3 p=vBP;float h=0.;
    h+=.0012*smoothstep(.645,.63,y)*step(.6,y);}// bord élastique de la jambe
   else{h+=sin(y*260.+nz*4.+atan(p.x-sign(p.x)*.19,p.z)*2.)*.0008*smoothstep(1.33,1.36,y)*(1.-smoothstep(1.44,1.47,y));}}
  return h;}`)
-  .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n{float hh=rHeight();normal=pnArb(-vViewPosition,normal,vec2(dFdx(hh),dFdy(hh))*1.);}')
+  .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n{float hh=rHeight();normal=pnArb(-vViewPosition,normal,vec2(dFdx(hh),dFdy(hh))*(vPS.y>.5?1.8:1.35));}')
   .replace('#include <color_fragment>',`#include <color_fragment>
 {float y=vBP.y;vec3 p=vBP;float sk=vPS.y,pt=vPS.x;
  if(sk>.5){float mt=vn3(p*38.)*.6+vn3(p*140.)*.4;diffuseColor.rgb*=vec3(.84,.76,.7)*(.93+.14*mt);
   float red=(pt<1.5?exp(-pow((y-.565)/.03,2.))*smoothstep(.0,.04,p.z):exp(-pow((y-1.17)/.035,2.))*smoothstep(.0,-.04,p.z))*.8;
   diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.08,.86,.82),red);
   float tan=pt<1.5?smoothstep(.598,.615,y)*step(y,.63):smoothstep(1.3,1.315,y)*step(y,1.33);diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.13,1.12,1.1),tan*.9);
-  if(pt<1.5&&y<.23)diffuseColor.rgb*=1.06;}
+  if(pt<1.5&&y<.23)diffuseColor.rgb*=1.06;
+  // hâle inégal (17 nov. 2026) : devant des cuisses, genoux, dessus des avant-bras plus bronzés ; arrière des jambes et intérieur des bras plus clairs ; veines
+  if(pt>.5&&pt<1.5){vec2 q=vec2(p.x-sign(p.x)*.09,p.z);float uz=q.y/max(length(q),1e-4);diffuseColor.rgb*=mix(vec3(1.07,1.06,1.05),vec3(.88,.8,.74),smoothstep(-.5,.8,uz));}
+  else if(pt>1.5){vec2 q=vec2(p.x-sign(p.x)*.19,p.z);float ux=q.x/max(length(q),1e-4)*sign(p.x);diffuseColor.rgb*=mix(vec3(1.06,1.05,1.04),vec3(.88,.8,.75),smoothstep(-.4,.8,ux));
+   diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.86,.93,.98),rVein(p)*.4);}}
  float ao=1.;ao*=1.-.35*smoothstep(.95,.86,y)*exp(-pow(p.x/.07,2.))*step(pt,.5);// entrejambe
  ao*=1.-.3*(pt>.5&&pt<1.5?exp(-pow((y-.555)/.035,2.))*smoothstep(.0,-.04,p.z):0.);// creux du genou
  ao*=1.-.3*(pt<.5?smoothstep(1.32,1.42,y)*(1.-smoothstep(1.45,1.5,y))*smoothstep(.12,.17,abs(p.x)):0.);// aisselles
  ao*=1.-.25*smoothstep(1.53,1.58,y)*step(pt,.5);// sous le menton
  diffuseColor.rgb*=ao;}`)
   .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
-{float y=vBP.y;bool sh2=(vPS.x<.5&&y<1.13)||(vPS.x>.5&&vPS.x<1.5&&y>.62);roughnessFactor=vPS.y>.5?.46+.12*vn3(vBP*120.):sh2?.48:.74;}`)
-  .replace('#include <lights_physical_fragment>','#include <lights_physical_fragment>\nif(vPS.y>.5){material.sheenColor*=.15;material.specularColor*=.75;material.roughness=max(material.roughness,.5);}')
+{float y=vBP.y;bool sh2=(vPS.x<.5&&y<1.13)||(vPS.x>.5&&vPS.x<1.5&&y>.62);roughnessFactor=vPS.y>.5?.33+.2*vn3(vBP*45.)+.08*vn3(vBP*160.):sh2?.44:.74;}// peau légèrement luisante (sueur, jambes rasées)`)
+  .replace('#include <lights_physical_fragment>','#include <lights_physical_fragment>\nif(vPS.y>.5){material.sheenColor*=.15;material.roughness=max(material.roughness,.3);}')
   .replace('#include <aomap_fragment>','#include <aomap_fragment>\nif(vPS.y>.5)'+SSS_GL('1.')+'\nelse{reflectedLight.directSpecular*=.8;}')};
  return m}
 // ---- vrai corps du joueur (16 novembre 2026, demande de Cyril : « un vrai corps, pas des morceaux collés ») ----
@@ -4806,9 +4820,9 @@ function riderAnim(dt,st,Rd){// st: {cad, P, v, g, coast, stand, tuck, home, t, 
  for(let k=0;k<2;k++){const s2=k?-1:1,sd=k?'R':'L';
   _sh[k].copy(cb.position).addScaledVector(cx,s2*.19).addScaledVector(cy,.13).addScaledVector(cz,-.01);
   const hand=_hd[k].copy(hood).lerp(drop,tf);hand.x*=s2;hand.applyMatrix4(_rollM);
-  const wrist=_wr[k].copy(hand).add(V(0,.035,-.055));
+  const wrist=_wr[k].copy(hand).add(V(0,lerp(.033,.035,tf),lerp(-.09,-.055,tf)));// cocottes : poignet derrière la cocotte, main posée à plat dessus (avant : elle plongeait à travers)
   _pole.set(s2*lerp(.38,.6,sf),-.62,-.68);const el=ik2(_sh[k],wrist,.3,.26,_pole,_el);// coude vers le bas et l'arrière, un peu ouvert (avant : presque à l'horizontale vers l'extérieur, le pli ne se voyait pas)
-  setBone(BI['ua'+sd],_sh[k],_t1.copy(el).sub(_sh[k]));setBone(BI['fa'+sd],el,_t1.copy(wrist).sub(el));setBone(BI['hd'+sd],wrist,_t1.copy(hand).sub(wrist).add(V(0,-.02,0)))}
+  setBone(BI['ua'+sd],_sh[k],_t1.copy(el).sub(_sh[k]));setBone(BI['fa'+sd],el,_t1.copy(wrist).sub(el));setBone(BI['hd'+sd],wrist,_t1.copy(hand).sub(wrist).add(V(0,lerp(.012,-.02,tf),0)))}
  // jambes : cheville au-dessus de la pédale, angle du pied qui varie (talon qui descend à 3 h)
  for(let k=0;k<2;k++){const s2=k?-1:1,sd=k?'R':'L',a=th+(k?0:Math.PI),phi=.32+.14*Math.sin(a+2.1)+sf*.1;
   const P=_ped[k];const ank=_ank[k].set(P.x,P.y+.12*Math.sin(phi)+.095*Math.cos(phi),P.z-.12*Math.cos(phi)+.095*Math.sin(phi));
