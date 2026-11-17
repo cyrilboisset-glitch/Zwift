@@ -4412,6 +4412,18 @@ const accMat=stdM(0xffd23f,.35,.2),blkM=stdM(0x111214,.55,.15),alu=stdM(0xc8cdd2
 function tubeAB(a,b,r1,r2,sides,mat,ell){const d=b.clone().sub(a),L=d.length(),g=new T.CylinderGeometry(r2,r1,L,sg(sides||16),1,false);g.translate(0,L/2,0);if(ell)g.scale(ell,1,1);
  const m=new T.Mesh(g,mat);m.position.copy(a);m.quaternion.setFromUnitVectors(UP,d.normalize());return m}
 function curveTube(pts,r,mat,seg,closed){const c=new T.CatmullRomCurve3(pts,!!closed,'centripetal');return new T.Mesh(new T.TubeGeometry(c,sg(seg||48),r,sg(10),!!closed),mat)}
+// tube profilé (17 nov. 2026) : section aéro (nez arrondi, arrière tronqué) qui varie le long d'un chemin ; sec(t) -> [demi-largeur, nez, arrière, largeur de la troncature 0..1]
+function loft(P,sec,mat,o){o=o||{};const c=P.length>2?new T.CatmullRomCurve3(P,false,'centripetal'):new T.LineCurve3(P[0],P[1]),NS=o.ns||sg(P.length>2?20:10),M=o.m||sg(22),t0=o.t0||0,t1=o.t1===undefined?1:o.t1,a0=o.a0===undefined?Math.PI:o.a0,a1=o.a1===undefined?3*Math.PI:o.a1,off=o.off||0;
+ const ref=(o.ref||XREF).clone().multiplyScalar(o.rv?-1:1),pos=[],uv=[],ix=[],tg=V(),sd=V(),ch=V(),p=V();
+ for(let i=0;i<=NS;i++){const t=t0+(t1-t0)*i/NS;c.getPoint(t,p);c.getTangent(t,tg);sd.copy(ref).addScaledVector(tg,-ref.dot(tg)).normalize();ch.crossVectors(tg,sd);
+  const q=sec(t),w=q[0]+off,dF=q[1]+off,dR=q[2]+off,kw=q[3]===undefined?1:q[3];
+  for(let j=0;j<=M;j++){const a=a0+(a1-a0)*j/M,u=Math.cos(a),v=Math.sin(a);let cd,wd;
+   if(u>=0){cd=u*dF;wd=v*w}else if(kw<1){cd=Math.max(u*dR*1.35,-dR);wd=v*w*(1-(1-kw)*Math.min(1,-u*1.35))}else{cd=u*dR;wd=v*w}
+   pos.push(p.x+ch.x*cd+sd.x*wd,p.y+ch.y*cd+sd.y*wd,p.z+ch.z*cd+sd.z*wd);uv.push(o.uf?1-i/NS:i/NS,o.vf?1-j/M:j/M)}}
+ for(let i=0;i<NS;i++)for(let j=0;j<M;j++){const a=i*(M+1)+j,b=a+M+1;ix.push(a,b,a+1,b,b+1,a+1)}
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(ix);g.computeVertexNormals();
+ if(a1-a0>6.28){const n=g.attributes.normal;for(let i=0;i<=NS;i++){const a=i*(M+1),b=a+M,x=n.getX(a)+n.getX(b),y=n.getY(a)+n.getY(b),z=n.getZ(a)+n.getZ(b),l=Math.hypot(x,y,z)||1;n.setXYZ(a,x/l,y/l,z/l);n.setXYZ(b,x/l,y/l,z/l)}}
+ return new T.Mesh(g,mat)}
 const BK={BB:V(0,.266,0),RA:V(0,.336,-.405),FA:V(0,.336,.585),ST:V(0,.77,-.148),HT:V(0,.826,.39),HB:V(0,.683,.434),r:.336};
 function decalTex(txt,bg,fg){const k=mkCanvas(512,64),g=k.getContext('2d');g.fillStyle=bg||'#15171b';g.fillRect(0,0,512,64);g.fillStyle=fg||'#ffd23f';g.font='800 44px "Arial Narrow",Arial';g.textBaseline='middle';g.fillText(txt,40,34);g.fillRect(380,22,90,6);return texOf(k,true,false)}
 function wheel(rear,pl){const G=new T.Group(),R=BK.r;
@@ -4436,10 +4448,19 @@ function wheel(rear,pl){const G=new T.Group(),R=BK.r;
   const tan=new T.Group();for(const s2 of[-1,1]){const r=new T.Mesh(new T.RingGeometry(.309,.322,72,1),KM.tan);r.rotation.y=s2*Math.PI/2;r.position.x=s2*.0105;tan.add(r)}tan.visible=false;G.add(tan);G.userData.tan=tan}
  G.userData.rims=rims;
  // pneu
- const tire=new T.Mesh(new T.TorusGeometry(.3215,.0135,sg(14),sg(72)),rubber);tire.rotation.y=Math.PI/2;G.add(tire);
+ const tire=new T.Mesh(new T.TorusGeometry(.3215,.0135,sg(14),sg(72)),rubber);tire.rotation.y=Math.PI/2;tire.scale.z=1.06;G.add(tire);
+ {// marquage du flanc, valve (17 nov. 2026)
+  const tk=mkCanvas(1024,32),tg=tk.getContext('2d');tg.clearRect(0,0,1024,32);tg.textBaseline='middle';tg.fillStyle='#b9bcc0';for(let k=0;k<2;k++){tg.font='800 22px Arial';tg.fillText('VCT  RACE',k*512+40,17);tg.font='600 15px Arial';tg.fillText('700 × 28C   max 7 bar',k*512+190,18)}
+  const tm=stdM(0xffffff,.8,0,{map:texOf(tk,true,false),transparent:true,alphaTest:.35,side:T.DoubleSide});for(const s2 of[-1,1]){const r=new T.Mesh(polarRing(.3175,.3285,sg(96),s2),tm);r.rotation.y=s2*Math.PI/2;r.position.x=s2*.0139;G.add(r)}
+  const vr=[.288,.26,.297,.242][0];const vs=tubeAB(V(0,-.268,0),V(0,-.222,0),.0026,.0022,8,stdM(0x1b1c1f,.4,.7));G.add(vs);const vc=tubeAB(V(0,-.222,0),V(0,-.212,0),.0032,.0028,8,blkM);G.add(vc)}
  const tread=new T.Mesh(new T.TorusGeometry(.3218,.0128,6,72,6.2832),stdM(0x2a2b2e,.9,0,{wireframe:false}));tread.rotation.y=Math.PI/2;tread.scale.set(1,1,.6);
  // moyeu, rayons
- G.add(tubeAB(V(-.05,0,0),V(.05,0,0),.012,.012,14,alu));for(const x of[-.032,.032]){const f=tubeAB(V(x-.003,0,0),V(x+.003,0,0),.026,.026,18,alu);G.add(f)}
+ {// moyeu formé (corps fin, flasques évasés), noir anodisé, filets clairs
+  const hp=[[-.05,.009],[-.044,.0105],[-.038,.02],[-.034,.0265],[-.03,.0265],[-.026,.017],[-.012,.0125],[.012,.0125],[.026,.017],[.03,.0265],[.034,.0265],[.038,.02],[.044,.0105],[.05,.009]];
+  const hg=new T.LatheGeometry(hp.map(([x,r])=>new T.Vector2(r,x)),sg(24));hg.rotateZ(-Math.PI/2);G.add(new T.Mesh(hg,stdM(0x1c1d21,.3,.75)));
+  for(const x of[-.032,.032])G.add(tubeAB(V(x-.0012,0,0),V(x+.0012,0,0),.0272,.0272,24,alu));
+  const sp2=[];for(let k=0;k<6;k++){const a=k/6*6.2832,g=new T.BoxGeometry(.003,.05,.012);g.translate(0,.036,0);g.rotateX(a+.5);g.translate(.043,0,0);sp2.push({g,m:new T.Matrix4()})}G.add(new T.Mesh(mergeGeos(sp2),dark));// étoile du disque
+  const lr=tubeAB(V(.04,0,0),V(.047,0,0),.019,.019,16,dark);G.add(lr)}
  const sp=[];const n=24;for(let k=0;k<n;k++){const a=k/n*6.2832+(k%2)*.13,side=k%2?1:-1,hx=side*.032,ha=a+(k%4<2?.32:-.32);
   const p0=V(hx,Math.sin(ha)*.024,Math.cos(ha)*.024),p1=V(side*.004,Math.sin(a)*.29,Math.cos(a)*.29);const d=p1.clone().sub(p0),L=d.length(),g=new T.CylinderGeometry(.0013,.0013,L,4,1);g.translate(0,L/2,0);
   const m=new T.Matrix4().compose(p0,new T.Quaternion().setFromUnitVectors(UP,d.normalize()),V(1,1,1));sp.push({g,m})}
@@ -4505,33 +4526,46 @@ function buildBike(pl){const G=new T.Group(),{BB,RA,FA,ST,HT,HB}=BK;let decal=nu
  // tube horizontal plongeant, tube de selle noir, touche de couleur d'accent sur les haubans, fourche droite profilée
  const add=m=>{m.castShadow=true;m.receiveShadow=true;G.add(m);return m};
  const blkF=pl?(KM.blkF||(KM.blkF=new T.MeshPhysicalMaterial({color:0x0b0c0f,roughness:.28,metalness:.35,clearcoat:1,clearcoatRoughness:.06}))):frameMat;
- add(tubeAB(BB,HB,.032,.027,20,frameMat,.64));// tube diagonal
- {const d=HB.clone().sub(BB),L=d.length(),g=new T.CylinderGeometry(.0274,.0322,L*.62,sg(24),1,true,0,Math.PI);g.rotateY(Math.PI/2);g.translate(0,L*.52,0);g.scale(.655,1,1.012);const m=new T.Mesh(g,new T.MeshStandardMaterial({map:decalTex('VCT'),roughness:.3,metalness:.3,transparent:false}));
-  m.position.copy(BB);m.quaternion.setFromUnitVectors(UP,d.normalize());m.userData.decal=1;decal=m.material;add(m)}
- add(tubeAB(BB,ST,.023,.019,18,blkF,.6));// tube de selle (noir)
- add(tubeAB(V(0,.792,.39),V(0,.735,-.118),.019,.015,18,frameMat,.82));// tube horizontal plongeant
- add(tubeAB(HB.clone().add(V(0,-.03,.009)),HT.clone().add(V(0,.022,-.006)),.028,.024,20,frameMat,.7));// douille
+ // cadre profilé (17 nov. 2026) : tubes à section aéro tronquée qui varie le long du tube (avant : cylindres droits aplatis)
+ const L2=(a,b,t)=>a+(b-a)*t,dtS=t=>[L2(.0235,.0205,t),L2(.03,.027,t),L2(.043,.036,t),.55];
+ add(loft([BB,HB],dtS,frameMat,{rv:1}));// tube diagonal : profond, arrière tronqué
+ {const dm=new T.MeshStandardMaterial({map:decalTex('VCT'),roughness:.3,metalness:.3,transparent:false});decal=dm;// logo des deux côtés, lisible dans les deux sens
+  for(const sd of[1,-1]){const m=loft([BB,HB],dtS,dm,{rv:1,off:.0006,t0:.2,t1:.82,a0:sd>0?Math.PI*1.2:Math.PI*.12,a1:sd>0?Math.PI*1.88:Math.PI*.8,uf:sd>0,vf:sd>0,m:10});m.userData.decal=1;add(m)}}
+ // tube de selle échancré : l'arrière suit la roue arrière
+ add(loft([BB,BB.clone().lerp(ST,.5).add(V(0,0,.004)),ST],t=>[L2(.019,.0135,t),.019,L2(.047,.026,Math.min(1,t*1.45)),.6],blkF,{rv:1}));
+ const TT0=V(0,.792,.392),TT1=V(0,.737,-.12),ttS=t=>[L2(.024,.016,t),L2(.0185,.0125,t),L2(.0185,.0125,t)];
+ add(loft([TT0,TT0.clone().lerp(TT1,.5).add(V(0,-.004,0)),TT1],ttS,frameMat));// tube horizontal plongeant, large et plat
+ const HA=HB.clone().add(V(0,-.03,.009)),HC=HT.clone().add(V(0,.022,-.006)),hdS=t=>[.0285-.0045*Math.sin(Math.PI*t),.03,L2(.05,.04,t),.7];
+ add(loft([HA,HC],hdS,frameMat,{rv:1}));// douille en sablier, prolongée vers l'arrière
  const SJ=BB.clone().lerp(ST,.72);// jonction des haubans, abaissée
- for(const s2 of[-1,1]){add(tubeAB(BB.clone().add(V(s2*.026,0,-.03)),RA.clone().add(V(s2*.062,0,0)),.014,.0095,12,frameMat,.85));
-  const a=SJ.clone().add(V(s2*.013,0,-.012)),b=RA.clone().add(V(s2*.062,.012,0));add(tubeAB(a,b,.0115,.0078,12,frameMat,.62));
-  add(tubeAB(a.clone().lerp(b,.18),a.clone().lerp(b,.5),.0121,.0103,12,accMat,.64))}// touche de couleur sur les haubans
- add(tubeAB(BB.clone().add(V(-.046,0,0)),BB.clone().add(V(.046,0,0)),.025,.025,20,frameMat));// boîtier
+ for(const s2 of[-1,1]){// bases hautes et fines, haubans en lames
+  add(loft([BB.clone().add(V(s2*.03,.002,-.02)),BB.clone().lerp(RA,.45).add(V(s2*.058,-.004,0)),RA.clone().add(V(s2*.064,0,.004))],t=>[L2(.0105,.007,t),L2(.02,.011,t),L2(.02,.011,t)],frameMat));
+  const a=SJ.clone().add(V(s2*.012,0,-.014)),b=RA.clone().add(V(s2*.064,.012,.002)),mid=a.clone().lerp(b,.45).add(V(s2*.016,0,0)),ssS=t=>[L2(.0068,.0055,t),L2(.0125,.008,t),L2(.0125,.008,t)];
+  add(loft([a,mid,b],ssS,frameMat));add(loft([a,mid,b],ssS,accMat,{off:.0005,t0:.16,t1:.46,ns:8}));// touche de couleur sur les haubans
+  const dp=new T.Mesh(new T.CylinderGeometry(.017,.017,.008,sg(14)),frameMat);dp.rotation.z=Math.PI/2;dp.position.copy(RA).add(V(s2*.064,.004,.002));add(dp)}// pattes
+ {const bs=new T.Mesh(new T.SphereGeometry(1,sg(20),sg(14)),frameMat);bs.scale.set(.044,.047,.058);bs.position.copy(BB).add(V(0,.006,0));add(bs)}// boîtier massif
+ add(tubeAB(BB.clone().add(V(-.046,0,0)),BB.clone().add(V(.046,0,0)),.025,.025,20,frameMat));
+ {const sc2=new T.Mesh(new T.SphereGeometry(1,sg(16),sg(10)),frameMat);sc2.scale.set(.017,.02,.036);sc2.position.copy(ST).add(V(0,-.02,.006));add(sc2)}// nœud de selle
  // filets de couleur d'accent (dorés en « Noir et or ») aux extrémités des tubes, insigne sur la douille
- {const TT0=V(0,.792,.39),TT1=V(0,.735,-.118),ring=(a,b,t0,t1,r,e)=>add(tubeAB(a.clone().lerp(b,t0),a.clone().lerp(b,t1),r,r,20,accMat,e));
-  ring(TT0,TT1,.05,.058,.0193,.83);ring(TT0,TT1,.94,.948,.0158,.83);ring(BB,HB,.875,.884,.0278,.65);ring(BB,ST,.93,.938,.0196,.61);
-  const hc=HB.clone().lerp(HT,.55),hd=HT.clone().sub(HB).normalize(),fw=V(0,0,1).addScaledVector(hd,-hd.z).normalize(),bd=new T.Mesh(new T.CircleGeometry(.0095,24),accMat);
-  bd.position.copy(hc).addScaledVector(fw,.0262);bd.lookAt(bd.position.clone().add(fw));add(bd)}
- // fourche droite profilée, té de fourche
- for(const s2 of[-1,1])add(tubeAB(HB.clone().add(V(s2*.036,-.03,.006)),FA.clone().add(V(s2*.054,.012,0)),.018,.0115,16,frameMat,.55));
- add(tubeAB(HB.clone().add(V(-.046,-.03,.004)),HB.clone().add(V(.046,-.03,.004)),.024,.022,14,frameMat,1)).rotation.z=Math.PI/2;
+ {add(loft([TT0,TT0.clone().lerp(TT1,.5).add(V(0,-.004,0)),TT1],ttS,accMat,{off:.0005,t0:.1,t1:.11,ns:1}));add(loft([BB,HB],dtS,accMat,{rv:1,off:.0005,t0:.86,t1:.87,ns:1}));
+  const hc=HB.clone().lerp(HT,.55),hd=HT.clone().sub(HB).normalize(),fw=V(0,0,1).addScaledVector(hd,-hd.z).normalize(),bd=new T.Mesh(new T.CircleGeometry(.0105,24),accMat);
+  bd.position.copy(hc).addScaledVector(fw,.0308);bd.lookAt(bd.position.clone().add(fw));add(bd)}
+ // fourche : té profilé et lames aéro légèrement cintrées
+ {const cr=new T.Mesh(new T.SphereGeometry(1,sg(20),sg(12)),frameMat);cr.scale.set(.057,.021,.036);cr.position.copy(HB).add(V(0,-.036,.006));add(cr)}
+ for(const s2 of[-1,1]){const a=HB.clone().add(V(s2*.045,-.036,.006)),b=FA.clone().add(V(s2*.056,.006,0));
+  add(loft([a,a.clone().lerp(b,.5).add(V(s2*.004,0,-.003)),b],t=>[L2(.0098,.007,t),L2(.02,.011,t),L2(.029,.013,t),.5],frameMat));
+  const dp=new T.Mesh(new T.CylinderGeometry(.014,.014,.008,sg(14)),frameMat);dp.rotation.z=Math.PI/2;dp.position.copy(FA).add(V(s2*.056,.002,0));add(dp)}
  for(const P of[FA,RA])add(tubeAB(P.clone().add(V(-.07,0,0)),P.clone().add(V(.07,0,0)),.0065,.0065,10,alu));// axes traversants
  // étriers de frein (côté gauche +X)
  for(const[P,dz,dy]of[[FA,-.064,.03],[RA,.062,.028]]){const c=new T.Mesh(new T.BoxGeometry(.018,.028,.052),blkM);c.position.copy(P).add(V(.052,dy,dz));c.rotation.x=dz<0?-.45:.45;add(c)}
  // potence, cintre, cocottes
- const SP=HT.clone().add(V(0,.04,-.012)),BC=V(0,.845,.495);add(tubeAB(HT,SP,.017,.017,16,blkM));add(tubeAB(SP.clone().add(V(0,-.005,0)),BC,.017,.015,16,blkM,1.1));
- add(tubeAB(BC.clone().add(V(-.03,0,0)),BC.clone().add(V(.03,0,0)),.021,.021,14,blkM)).quaternion.setFromUnitVectors(UP,V(1,0,0));
+ // poste de pilotage aéro d'une pièce (17 nov. 2026) : potence plate, dessus de cintre en aile, ruban seulement à partir des cocottes
+ const SP=HT.clone().add(V(0,.04,-.012)),BC=V(0,.845,.495);add(tubeAB(HT,SP,.0185,.0185,16,blkM));
+ for(let k=0;k<2;k++){const sp=tubeAB(HT.clone().lerp(SP,.15+k*.3),HT.clone().lerp(SP,.3+k*.3),.0196,.0196,16,stdM(0x2c2d31,.35,.5));add(sp)}// entretoises
+ add(loft([SP.clone().add(V(0,-.004,-.018)),SP.clone().add(V(0,-.002,.03)),BC],t=>[L2(.02,.026,t),L2(.0135,.01,t),L2(.0135,.01,t)],blkM,{ns:10}));
+ add(loft([V(-.172,.8455,.5),V(-.09,.845,.496),V(0,.845,.495),V(.09,.845,.496),V(.172,.8455,.5)],t=>{const e=Math.abs(t-.5)*2,k=sm(.72,1,e);return[L2(.0092,.0122,k),L2(.02,.0122,k),L2(.024,.0122,k)]},blkM,{ref:UP,ns:24}));
  const tape=pl?KM.tape:stdM(0x141416,.7,.05);
- for(const s2 of[-1,1]){const pts=[V(0,.845,.495),V(s2*.12,.845,.497),V(s2*.2,.846,.51),V(s2*.214,.848,.55),V(s2*.216,.84,.585),V(s2*.218,.8,.607),V(s2*.22,.745,.592),V(s2*.22,.722,.552),V(s2*.22,.722,.51)];add(curveTube(pts,.0122,tape,64));
+ for(const s2 of[-1,1]){const pts=[V(0,.845,.495),V(s2*.12,.845,.497),V(s2*.2,.846,.51),V(s2*.214,.848,.55),V(s2*.216,.84,.585),V(s2*.218,.8,.607),V(s2*.22,.745,.592),V(s2*.22,.722,.552),V(s2*.22,.722,.51)].slice(1);pts.unshift(V(s2*.168,.8455,.5));add(curveTube(pts,.0122,tape,64));// ruban à partir de l'extérieur du dessus
   {const hM=stdM(0x16171a,.62,.05),hood=new T.Mesh(new T.CapsuleGeometry(.0145,.05,4,sg(14)),hM);hood.scale.set(.82,1,1.05);hood.position.set(s2*.214,.857,.585);hood.rotation.x=1.05;add(hood);
    const horn=new T.Mesh(new T.SphereGeometry(.0125,sg(12),sg(8)),hM);horn.scale.set(.75,1.1,.9);horn.position.set(s2*.214,.884,.613);add(horn);
    const rib=new T.Mesh(new T.BoxGeometry(.004,.004,.05),stdM(0x2b2c30,.4,.3));rib.position.set(s2*(.214-.0115),.857,.585);rib.rotation.x=1.05-Math.PI/2;add(rib)}
@@ -4541,7 +4575,7 @@ function buildBike(pl){const G=new T.Group(),{BB,RA,FA,ST,HT,HB}=BK;let decal=nu
  const gps=new T.Mesh(new T.BoxGeometry(.05,.015,.075),blkM);gps.position.set(0,.862,.56);gps.rotation.x=-.12;add(gps);
  const scr=new T.Mesh(new T.PlaneGeometry(.042,.06),pl?new T.MeshBasicMaterial({map:compInit()}):new T.MeshBasicMaterial({color:0x2b6a52}));scr.rotation.x=-Math.PI/2-.12;scr.position.set(0,.8705,.56);G.add(scr);
  // tige de selle aéro et selle formée (nez étroit, arrière large et relevé, creux au milieu, rails)
- const SH=V(0,.946,-.205);add(tubeAB(ST,SH,.018,.016,14,blkF,.5));
+ const SH=V(0,.946,-.205);add(loft([ST.clone().add(V(0,-.03,.009)),SH],t=>[.0098,.0135,.023,.6],blkF,{rv:1}));{const cl=new T.Mesh(new T.BoxGeometry(.03,.012,.05),blkM);cl.position.copy(SH).add(V(0,-.004,-.004));add(cl)}
  {const m=new T.Mesh(saddleGeo(),pl?KM.sad:stdM(0x141416,.5,.05));m.position.set(0,.952,-.215);add(m);
   for(const s2 of[-1,1])add(curveTube([V(s2*.02,.948,-.09),V(s2*.022,.938,-.15),V(s2*.024,.938,-.26),V(s2*.03,.947,-.33)],.0035,alu,12))}
  // pédalier (côté droit -X) : plateaux, manivelles, pédales — groupe tournant
@@ -4572,7 +4606,12 @@ function buildBike(pl){const G=new T.Group(),{BB,RA,FA,ST,HT,HB}=BK;let decal=nu
   for(const x of[-.08,-.061]){const pl2=new T.Mesh(new T.BoxGeometry(.0022,.022,.07),blkM);pl2.position.set(x,-.006,.022);pl2.rotation.x=-.12;fd.add(pl2)}
   add(fd)}
   for(const[a,b,c]of[[V(0,.43,.17),V(0,.56,.28),0xffd23f]]){const bo=new T.Mesh(new T.CylinderGeometry(.036,.036,.19,sg(20)),pl&&c===0xffd23f?KM.bot:stdM(c,.4,0));bo.position.copy(a).add(b).multiplyScalar(.5).add(V(0,.0,0));
-  bo.quaternion.setFromUnitVectors(UP,b.clone().sub(a).normalize());bo.position.add(b.clone().sub(a).normalize().cross(V(1,0,0)).multiplyScalar(c===0xffd23f?-.042:.042));add(bo)}
+  bo.quaternion.setFromUnitVectors(UP,b.clone().sub(a).normalize());bo.position.add(b.clone().sub(a).normalize().cross(V(1,0,0)).multiplyScalar(c===0xffd23f?-.042:.042));add(bo);
+  {// bouchon, tétine et porte-bidon (17 nov. 2026)
+   const ax=b.clone().sub(a).normalize(),c0=bo.position.clone(),at=t=>c0.clone().addScaledVector(ax,t),nz=ax.clone().cross(V(1,0,0)).multiplyScalar(-1);// nz : du tube vers le bidon
+   add(tubeAB(at(.095),at(.118),.03,.022,16,blkM));add(tubeAB(at(.118),at(.136),.011,.009,10,stdM(0xd8dadd,.5,0)));
+   const cm=stdM(0x101113,.45,.3);for(const s2 of[-1,1])add(curveTube([at(-.085).addScaledVector(nz,-.036),at(-.085).add(V(s2*.03,0,0)).addScaledVector(nz,-.012),at(-.02).add(V(s2*.038,0,0)).addScaledVector(nz,.006),at(.045).add(V(s2*.034,0,0)).addScaledVector(nz,.02),at(.062).add(V(s2*.012,0,0)).addScaledVector(nz,.036)],.0034,cm,20));
+   add(curveTube([at(-.092).addScaledVector(nz,-.036),at(-.1).addScaledVector(nz,-.01),at(-.1).addScaledVector(nz,.018)],.0036,cm,8))}}
  // roues
  const wf=wheel(false,pl),wr=wheel(true,pl);wf.position.copy(FA);wr.position.copy(RA);G.add(wf,wr);
  // chaîne (tube texturé défilant)
