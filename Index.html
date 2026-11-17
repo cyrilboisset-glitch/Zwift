@@ -4695,12 +4695,16 @@ float rHeight(){float sk=vPS.y,pt=vPS.x,y=vBP.y;vec3 p=vBP;float h=0.;
    h+=sin((y+abs(p.x)*.6)*150.+nz*3.)*.0009*smoothstep(1.2,1.3,y)*(1.-smoothstep(1.4,1.46,y))*smoothstep(.0,-.05,p.z);// dos tendu
    float u=vU0,du=min(min(abs(u),abs(u-.375)),abs(u-.75));h-=.0007*exp(-pow((du-.068)/.004,2.))*step(1.14,y)*step(y,1.55);// coutures des côtés
    h-=.0009*exp(-pow((y-1.13)/.004,2.));// ceinture
+   {float bk2=smoothstep(-.015,-.06,p.z),ax=abs(p.x);// haut du dos (17 nov. 2026) : sillon de la colonne, omoplates, trapèzes, muscles le long de la colonne
+    h-=.0032*exp(-pow(p.x/.016,2.))*bk2*smoothstep(1.16,1.26,y)*(1.-smoothstep(1.47,1.53,y));
+    h+=.0042*exp(-pow((ax-.088)/.042,2.)-pow((y-1.395)/.058,2.))*bk2-.0018*exp(-pow((ax-.04)/.012,2.)-pow((y-1.4)/.06,2.))*bk2;
+    h+=.003*exp(-pow((ax-.062)/.04,2.)-pow((y-1.5)/.04,2.))*smoothstep(.03,-.03,p.z)+.0016*exp(-pow((ax-.035)/.016,2.))*bk2*smoothstep(1.14,1.22,y)*(1.-smoothstep(1.33,1.4,y));}
    {float bk=smoothstep(-.01,-.05,p.z)*step(abs(p.x),.13),pb=smoothstep(1.14,1.155,y)*(1.-smoothstep(1.235,1.25,y));// trois poches arrière : bord du haut, séparations, contenu qui bombe
     h-=.0011*exp(-pow((y-1.25)/.0035,2.))*bk+.0009*exp(-pow((abs(p.x)-.045)/.003,2.))*pb*bk;h+=.0028*pb*bk*(.35+vn3(vec3(p.x*30.,y*22.,3.)))*smoothstep(.13,.1,abs(p.x));
     h-=.0009*exp(-pow(p.x/.0028,2.))*fr*step(1.,y)*step(y,1.53);}}// fermeture éclair
   else if(pt<1.5){h+=sin(y*230.+nz*5.+atan(p.x-sign(p.x)*.09,p.z)*1.5)*.0009*smoothstep(.78,.86,y)*(1.-smoothstep(.95,1.,y))*smoothstep(.0,.04,p.z);
    h+=.0012*smoothstep(.645,.63,y)*step(.6,y);}// bord élastique de la jambe
-  else{h+=sin(y*260.+nz*4.+atan(p.x-sign(p.x)*.19,p.z)*2.)*.0008*smoothstep(1.33,1.36,y)*(1.-smoothstep(1.44,1.47,y));}}
+  else{h+=sin(y*260.+nz*4.+atan(p.x-sign(p.x)*.19,p.z)*2.)*.0006*smoothstep(1.325,1.345,y)*(1.-smoothstep(1.37,1.4,y));}}// plis seulement au bas de la manche (avant : épaule côtelée)
  return h;}`)
   .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n{float hh=rHeight();normal=pnArb(-vViewPosition,normal,vec2(dFdx(hh),dFdy(hh))*(vPS.y>.5?1.8:1.35));}')
   .replace('#include <color_fragment>',`#include <color_fragment>
@@ -4716,7 +4720,7 @@ float rHeight(){float sk=vPS.y,pt=vPS.x,y=vBP.y;vec3 p=vBP;float h=0.;
    diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.9,.95,.98),rVein(p)*.2);}}
  float ao=1.;ao*=1.-.35*smoothstep(.95,.86,y)*exp(-pow(p.x/.07,2.))*step(pt,.5);// entrejambe
  ao*=1.-.3*(pt>.5&&pt<1.5?exp(-pow((y-.555)/.035,2.))*smoothstep(.0,-.04,p.z):0.);// creux du genou
- ao*=1.-.3*(pt<.5?smoothstep(1.32,1.42,y)*(1.-smoothstep(1.45,1.5,y))*smoothstep(.12,.17,abs(p.x)):0.);// aisselles
+ ao*=1.-.22*(pt<.5?smoothstep(1.3,1.35,y)*(1.-smoothstep(1.38,1.42,y))*smoothstep(.12,.16,abs(p.x)):0.);// aisselles : seulement sous le bras (avant : bande sombre jusque sur le dessus des épaules)
  ao*=1.-.25*smoothstep(1.53,1.58,y)*step(pt,.5);// sous le menton
  diffuseColor.rgb*=ao;}`)
   .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
@@ -4751,7 +4755,7 @@ function riderMatMH(tex){
  if(pt!=1.&&vPS[0]<.01&&vPS[1]>.002&&vPS[1]<.998&&p.y>1.3&&p.y<1.6){float yy=p.y-1.46;pt=abs(p.x)>.19-.054*yy-.099*p.z-6.03*yy*yy-6.24*p.z*p.z-4.09*yy*p.z?2.:0.;gPt=pt;}// couture d'emmanchure lisse (16 nov. 2026) : dans les seuls triangles à cheval buste / bras, limite = surface ajustée sur la couture du maillage (écart moyen 5 mm) au lieu du bord des triangles en escalier
  float aT=atan(p.x,p.z),tu1=mod(aT+1.5708,6.28318),tu2=mod(aT+4.7124,6.28318);vec2 tdx1=vec2(dFdx(tu1),dFdx(p.y)),tdx2=vec2(dFdx(tu2),dFdx(p.y)),tdy1=vec2(dFdy(tu1),dFdy(p.y)),tdy2=vec2(dFdy(tu2),dFdy(p.y));
  float rN=length(vec2(p.x,(p.z-.02)*1.1)),cl=1.548+.03*smoothstep(.05,.1,rN);if(pt<.5&&p.y>1.572&&rN<.075){uv=vec2(.9375,.94);sk=1.;}else if(pt<.5&&p.y>cl-.022&&rN<.095){uv=vec2(.5,.99);}// col rond (20 nov. 2026)
- else if(pt<.5){{float u1=tu1;
+ else if(pt<.5){{float u1=tu1;{float cc=u1<3.14159?1.5708:4.7124;u1=cc+(u1-cc)*mix(1.,.42,smoothstep(1.33,1.4,p.y));}// épaules et haut du dos : les panneaux latéraux sombres s'arrêtent sous l'épaule (17 nov. 2026)
    uv=vec2(u1/6.28318*.75,clamp((p.y-.86)/.785,.005,(1.535-.86)/.785));vec2 dx1=tdx1,dx2=tdx2,dy1=tdy1,dy2=tdy2;
    bool w2=abs(dx1.x)+abs(dy1.x)>abs(dx2.x)+abs(dy2.x);vec2 dx=w2?dx2:dx1,dy=w2?dy2:dy1;gDx=vec2(dx.x/6.28318*.75,dx.y/.785);gDy=vec2(dy.x/6.28318*.75,dy.y/.785);}}
  else if(pt<1.5){float s=1.-p.y;if(s<.37)uv=vec2(.8125,.488-max(s,0.)/.37*.458);else if(s<.795){uv=vec2(.9375,.94);sk=1.;}else uv=vec2(.9375,clamp(.745-(s-.795)/.075*.23,.52,.745));}
