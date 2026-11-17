@@ -4306,7 +4306,7 @@ float AFh(float k){return clamp(1.3-length(fwidth(vHP))*k*1.2,0.,1.);}`)
    .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=vVP>.5?.3:mix(mix(.48+.1*vn3(vHP*150.),.32,vFZ.x),.85,vFZ.w);')
    .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n{float hh=(vn3(vHP*700.)-.5)*.00009*AFh(700.)+(vn3(vHP*120.)-.5)*.00018;normal=pnArb(-vViewPosition,normal,vec2(dFdx(hh),dFdy(hh)));}')
    .replace('#include <lights_physical_fragment>','#include <lights_physical_fragment>\nmaterial.sheenColor*=1.-vFZ.w;material.specularColor*=.75;')
-   .replace('#include <aomap_fragment>','#include <aomap_fragment>\nif(vVP<.5)'+SSS_GL('(1.-vFZ.w)'))};
+   .replace('#include <aomap_fragment>','#include <aomap_fragment>\n{float hd=dot(normalize(normal),normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz));reflectedLight.indirectDiffuse*=mix(.42,1.,smoothstep(-.95,.55,hd));reflectedLight.directDiffuse*=mix(.8,1.,smoothstep(-.9,.1,hd));}\nif(vVP<.5)'+SSS_GL('(1.-vFZ.w)'))};
  return m}
 function faceBuildMH(G,km){const g=mhHeadGeo(),mat=headMatMH(),mesh=new T.Mesh(g,mat);mesh.castShadow=true;G.add(mesh);
  // cou souple (16 nov. 2026) : le bas du cou de la tête prend les poids d'os (tête, cou, thorax) du corps au même endroit et se déforme
@@ -4686,7 +4686,7 @@ float rHeight(){float sk=vPS.y,pt=vPS.x,y=vBP.y;vec3 p=vBP;float h=0.;
   else if(pt>1.5){vec2 q=vec2(p.x-sign(p.x)*.19,p.z);float r=max(length(q),1e-4),uz=q.y/r,ux=q.x/r*sign(p.x);
    h+=.0035*exp(-pow((y-1.17)/.022,2.))*max(0.,-uz)-.0025*exp(-pow((y-1.25)/.06,2.))*exp(-pow((ux-.95)/.3,2.))-.002*exp(-pow((y-1.06)/.07,2.))*exp(-pow((ux-.25)/.22,2.))
     +.002*exp(-pow((y-1.12)/.035,2.))*max(0.,uz);
-   h+=.0007*rVein(p)*AF(60.);}}
+   h+=.0004*rVein(p)*AF(60.);}}
  else{float nz=vn3(p*22.);
   h+=sin((p.x+p.z)*1700.)*sin(p.y*1700.)*.00006*AF(1700.);// maille
   if(pt<.5){float fr=smoothstep(.0,.05,p.z);
@@ -4694,7 +4694,10 @@ float rHeight(){float sk=vPS.y,pt=vPS.x,y=vBP.y;vec3 p=vBP;float h=0.;
    h+=sin((y-abs(p.x)*.9)*215.+nz*4.)*.0011*smoothstep(.88,.93,y)*(1.-smoothstep(1.,1.05,y))*fr;// plis de l'aine (cuissard)
    h+=sin((y+abs(p.x)*.6)*150.+nz*3.)*.0009*smoothstep(1.2,1.3,y)*(1.-smoothstep(1.4,1.46,y))*smoothstep(.0,-.05,p.z);// dos tendu
    float u=vU0,du=min(min(abs(u),abs(u-.375)),abs(u-.75));h-=.0007*exp(-pow((du-.068)/.004,2.))*step(1.14,y)*step(y,1.55);// coutures des côtés
-   h-=.0009*exp(-pow((y-1.13)/.004,2.));}// ceinture
+   h-=.0009*exp(-pow((y-1.13)/.004,2.));// ceinture
+   {float bk=smoothstep(-.01,-.05,p.z)*step(abs(p.x),.13),pb=smoothstep(1.14,1.155,y)*(1.-smoothstep(1.235,1.25,y));// trois poches arrière : bord du haut, séparations, contenu qui bombe
+    h-=.0011*exp(-pow((y-1.25)/.0035,2.))*bk+.0009*exp(-pow((abs(p.x)-.045)/.003,2.))*pb*bk;h+=.0028*pb*bk*(.35+vn3(vec3(p.x*30.,y*22.,3.)))*smoothstep(.13,.1,abs(p.x));
+    h-=.0009*exp(-pow(p.x/.0028,2.))*fr*step(1.,y)*step(y,1.53);}}// fermeture éclair
   else if(pt<1.5){h+=sin(y*230.+nz*5.+atan(p.x-sign(p.x)*.09,p.z)*1.5)*.0009*smoothstep(.78,.86,y)*(1.-smoothstep(.95,1.,y))*smoothstep(.0,.04,p.z);
    h+=.0012*smoothstep(.645,.63,y)*step(.6,y);}// bord élastique de la jambe
   else{h+=sin(y*260.+nz*4.+atan(p.x-sign(p.x)*.19,p.z)*2.)*.0008*smoothstep(1.33,1.36,y)*(1.-smoothstep(1.44,1.47,y));}}
@@ -4710,7 +4713,7 @@ float rHeight(){float sk=vPS.y,pt=vPS.x,y=vBP.y;vec3 p=vBP;float h=0.;
   // hâle inégal (17 nov. 2026) : devant des cuisses, genoux, dessus des avant-bras plus bronzés ; arrière des jambes et intérieur des bras plus clairs ; veines
   if(pt>.5&&pt<1.5){vec2 q=vec2(p.x-sign(p.x)*.09,p.z);float uz=q.y/max(length(q),1e-4);diffuseColor.rgb*=mix(vec3(1.07,1.06,1.05),vec3(.88,.8,.74),smoothstep(-.5,.8,uz));}
   else if(pt>1.5){vec2 q=vec2(p.x-sign(p.x)*.19,p.z);float ux=q.x/max(length(q),1e-4)*sign(p.x);diffuseColor.rgb*=mix(vec3(1.06,1.05,1.04),vec3(.88,.8,.75),smoothstep(-.4,.8,ux));
-   diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.86,.93,.98),rVein(p)*.4);}}
+   diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.9,.95,.98),rVein(p)*.2);}}
  float ao=1.;ao*=1.-.35*smoothstep(.95,.86,y)*exp(-pow(p.x/.07,2.))*step(pt,.5);// entrejambe
  ao*=1.-.3*(pt>.5&&pt<1.5?exp(-pow((y-.555)/.035,2.))*smoothstep(.0,-.04,p.z):0.);// creux du genou
  ao*=1.-.3*(pt<.5?smoothstep(1.32,1.42,y)*(1.-smoothstep(1.45,1.5,y))*smoothstep(.12,.17,abs(p.x)):0.);// aisselles
@@ -4718,8 +4721,8 @@ float rHeight(){float sk=vPS.y,pt=vPS.x,y=vBP.y;vec3 p=vBP;float h=0.;
  diffuseColor.rgb*=ao;}`)
   .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
 {float y=vBP.y;bool sh2=(vPS.x<.5&&y<1.13)||(vPS.x>.5&&vPS.x<1.5&&y>.62);roughnessFactor=vPS.y>.5?.33+.2*vn3(vBP*45.)+.08*vn3(vBP*160.):sh2?.44:.74;}// peau légèrement luisante (sueur, jambes rasées)`)
-  .replace('#include <lights_physical_fragment>','#include <lights_physical_fragment>\nif(vPS.y>.5){material.sheenColor*=.15;material.roughness=max(material.roughness,.3);}')
-  .replace('#include <aomap_fragment>','#include <aomap_fragment>\nif(vPS.y>.5)'+SSS_GL('1.')+'\nelse{reflectedLight.directSpecular*=.8;}')};
+  .replace('#include <lights_physical_fragment>','#include <lights_physical_fragment>\nif(vPS.y>.5){material.sheenColor*=.15;material.roughness=max(material.roughness,.3);}else material.sheenColor*=.45;')
+  .replace('#include <aomap_fragment>','#include <aomap_fragment>\n{float hd=dot(normalize(normal),normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz));reflectedLight.indirectDiffuse*=mix(.42,1.,smoothstep(-.95,.55,hd));reflectedLight.directDiffuse*=mix(.8,1.,smoothstep(-.9,.1,hd));}\nif(vPS.y>.5)'+SSS_GL('1.')+'\nelse{reflectedLight.directSpecular*=.6;reflectedLight.directDiffuse*=.88;reflectedLight.indirectDiffuse*=.9;}')};// + faces tournées vers le bas plus sombres, tissu moins « brûlé » (17 nov. 2026)
  return m}
 // ---- vrai corps du joueur (16 novembre 2026, demande de Cyril : « un vrai corps, pas des morceaux collés ») ----
 // Maillage MakeHuman hm08 (CC0, makehumancommunity.org) avec les cibles « homme jeune, musclé, mince » et les poids d'os MakeHuman (CC0),
