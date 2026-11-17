@@ -5763,7 +5763,7 @@ function homeRender(){homeHeader();const sm=$('s-main'),c=CRS.cur,w=weekStats(),
  // les écrans Matériel, Garage et Vestiaire reviennent maintenant aux Réglages
  document.querySelector('#s-hw .back').dataset.b='s-reg';for(const id of['s-gar','s-kit'])document.querySelector('#'+id+' .back').onclick=()=>{regRender();showScr('s-reg')}}
 // ====================== préférences, commentateur vocal, écrans de résultat, célébrations, musique, météo, moment de la journée ======================
-const SET=Object.assign({corner:1,world:'real',arch:'neon',wkRel:1,spAmb:'neb',sprLen:150,sprGap:5,snap:1,profAll:0,voice:1,coach:1,mus:0,musV:.5,natV:1,tod:'real',fcmax:185,rkg:0,
+const SET=Object.assign({corner:1,brk:0,world:'real',arch:'neon',wkRel:1,spAmb:'neb',sprLen:150,sprGap:5,snap:1,profAll:0,voice:1,coach:1,mus:0,musV:.5,natV:1,tod:'real',fcmax:185,rkg:0,
  hud:['spd','pw','cad','grd','hr','dist','avg','rest','alt','dp','time','kcal','zone'],hudBig:0},(()=>{try{return JSON.parse(localStorage.v3set||'{}')}catch(e){return{}}})());
 const ssave=()=>{try{localStorage.v3set=JSON.stringify(SET)}catch(e){}};
 // HUD enregistré avant l'ajout de la vitesse moyenne, du D+ et de la jauge des zones : on les ajoute une fois
@@ -6206,7 +6206,7 @@ function prefRender(){const ch=(key,L)=>'<div class="chips" data-p="'+key+'">'+L
  $('pfb').innerHTML='<div class="gq">Sprints aux pancartes : longueur</div>'+ch('sprLen',[100,150,200,250,300,400,500].map(x=>[x,x+' m']))+
   '<div class="gq">Import des GPX : recaler le tracé sur les vraies routes</div>'+ch('snap',[[1,'Oui'],[0,'Non']])+
   '<div class="gq">Arches de sprint et de côte</div>'+ch('arch',[['neon','✨ Néon'],['led','Classiques (LED)']])+'<div class="gq">Sprints : écart minimal entre deux sprints</div>'+ch('sprGap',[[-1,'Aucun sprint'],[0,'Tous les villages'],[2,'2 km'],[5,'5 km'],[10,'10 km'],[20,'20 km'],[40,'40 km']])+
-  '<div class="gq">Commentateur vocal</div>'+ch('voice',[[1,'🔊 Activé'],[0,'Coupé']])+'<div class="gq">Coach pendant les séances</div>'+ch('coach',[[1,'Activé'],[0,'Coupé']])+'<div class="gq">Séances sur un parcours : vitesse à l\'écran</div>'+ch('wkRel',[[1,'Relief adouci (conseillé)'],[2,'Relief réel'],[0,'Comme sur le plat']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">En ERG la puissance est imposée : avec le relief réel, une montée à 10–15 % fait tomber la vitesse sous 5 km/h. Adouci : pente des montées divisée par 3 et au moins 12 km/h quand tu pédales.</div>'+'<div class="gq">Virages : vitesse adaptée et trajectoires</div>'+ch('corner',[[1,'Oui (conseillé)'],[0,'Non']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">Oui : tu ralentis avant les virages serrés (en descente surtout) et ton avatar prend la corde dans sa voie.</div>'+'<button id="pvt">▶ Tester la voix</button>'+
+  '<div class="gq">Commentateur vocal</div>'+ch('voice',[[1,'🔊 Activé'],[0,'Coupé']])+'<div class="gq">Coach pendant les séances</div>'+ch('coach',[[1,'Activé'],[0,'Coupé']])+'<div class="gq">Séances sur un parcours : vitesse à l\'écran</div>'+ch('wkRel',[[1,'Relief adouci (conseillé)'],[2,'Relief réel'],[0,'Comme sur le plat']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">En ERG la puissance est imposée : avec le relief réel, une montée à 10–15 % fait tomber la vitesse sous 5 km/h. Adouci : pente des montées divisée par 3 et au moins 12 km/h quand tu pédales.</div>'+'<div class="gq">Virages : vitesse adaptée et trajectoires</div>'+ch('corner',[[1,'Oui (conseillé)'],[0,'Non']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">Oui : tu ralentis avant les virages serrés (en descente surtout) et ton avatar prend la corde dans sa voie.</div><div class="gq">Home trainer : freiner la roue avant les virages</div>'+ch('brk',[[0,'Désactivé'],[1,'Doux (+8 % max)'],[2,'Fort (+12 % max)']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">Pendant que l\'avatar ralentit avant un virage, une pente positive est envoyée au home trainer pour freiner la roue libre, puis la vraie pente revient. Commence par « Doux » ; ne pas pédaler pendant le freinage.</div>'+'<button id="pvt">▶ Tester la voix</button>'+
   '<div class="gq">Musique d\'ambiance</div>'+ch('mus',[[0,'Aucune'],[1,'Calme'],[2,'Motivation'],[3,'Adaptée à l\'effort']])+'<label>Volume musique <input id="pmv" type="range" min="0" max="1" step=".05" value="'+SET.musV+'"></label>'+
   '<label>Sons de la nature <input id="pnv" type="range" min="0" max="1.5" step=".05" value="'+SET.natV+'"></label>'+
   '<div class="gq">Moment de la journée</div>'+ch('tod',TODS)+
@@ -12237,6 +12237,7 @@ let last=performance.now(),fA=16,dprT=0,hudT=0,skT=-1e9,clipT2=0,lean=0,yawR=0,s
 // d'avance à b = 3,2 m/s² (vitesse permise à d mètres : sqrt(vc² + 2·b·d)). Trajectoire : dans sa voie (de 0,55 m de l'axe au bord − 0,6 m), on part à l'extérieur,
 // on vise la corde (côté intérieur) au milieu du virage et on ressort à l'extérieur ; à gauche, la corde est au ras de la ligne médiane (on ne la franchit pas).
 // courbure signée DA > 0 = virage à gauche ; décalage latéral RLAT > 0 = vers la droite.
+const BRK={a:0,s:0};// freinage envoyé au home trainer (a : décélération du virage, s : pente de freinage ajoutée)
 const CRN={on:false,vmax:99,o:1.3,f:.5,dr:0,yd:0,a:4.6,b:3.2,ka:0,lp:0,cs:0,te:0};// a : accélération latérale tenue en virage (4,6 m/s² ≈ 25° d'inclinaison), b : freinage
 // trajectoire idéale (16 nov. 2026) : pour chaque route, ligne qui rend les virages les plus coulés possible sur toute la largeur de la chaussée
 // (y = décalage vers la gauche du sens a->b ; courbure de la ligne ≈ k + k²·y + y'' ; on minimise la somme des courbures au carré avec |y| ≤ demi-largeur − 0,6 m,
@@ -12305,10 +12306,12 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  else if(riding){const m=Math.max(40,(+$('kg').value||80)-EQ.mass),a=Math.atan(gP),cda=EQ.cda*(tuck?.82:stand?1.12:1)*(1-RDRAFT),va=v+WX.head,// vitesse de l'air (vent de face > 0)
   F=EQ.eff*P/Math.max(v,.6)-m*9.81*Math.sin(a)-.004*EQ.crr*m*9.81*Math.cos(a)-.5*1.2*.32*cda*va*Math.abs(va),
   gW=clamp(.5*1.2*.32*cda*(va*Math.abs(va)-v*v)/(m*9.81),-.08,.08);// le vent envoyé au home trainer sous forme de pente équivalente
-  v=Math.max(0,Math.min(25,v+F/(m+1.5)*dt));if(CRN.on&&v>CRN.vmax)v=Math.max(CRN.vmax,v-5.5*dt);/* freinage avant les virages */if(wkA&&P>30&&v<3.33)v=Math.min(3.33,v+dt*1.5);if(P<5&&v<.25&&gP>-.015)v=0;// séance adoucie : au moins 12 km/h quand on pédale
+  v=Math.max(0,Math.min(25,v+F/(m+1.5)*dt));{const vb=v;if(CRN.on&&v>CRN.vmax)v=Math.max(CRN.vmax,v-5.5*dt);/* freinage avant les virages */BRK.a+=((vb-v)/Math.max(dt,1e-3)-BRK.a)*Math.min(1,dt*6)}if(wkA&&P>30&&v<3.33)v=Math.min(3.33,v+dt*1.5);if(P<5&&v<.25&&gP>-.015)v=0;// séance adoucie : au moins 12 km/h quand on pédale
   const ah=riderAhead();if(ah&&ah.d<.6&&RLAT>1&&v>ah.o.v)v=ah.o.v;// on ne rentre pas dans la roue de devant
   const ds=v*dt;advance(RID,ds,riderChoose);histTick();s+=ds;PEMA=PEMA?PEMA+(P-PEMA)*Math.min(1,dt/180):P;
-  if(mode==='ride'){if(v>.1)tt+=dt;if(conn&&now-lastSim>1500&&(Math.abs(g+gW-lastG)>.002||Math.abs(RDRAFT-lastDr)>.06)){sim(g+gW,RDRAFT);lastG=g+gW;lastDr=RDRAFT;lastSim=now}}
+  if(mode==='ride'){if(v>.1)tt+=dt;if(conn){/* freinage avant un virage (17 nov. 2026) : pente positive ajoutée, montée en 0,5 s, plafond +8 % (doux) / +12 % (fort) ; envoi toutes les 120 ms pendant le freinage */
+   const cap=[0,.08,.12][SET.brk|0]||0,tg=cap*clamp((BRK.a-.4)/2.6,0,1)*(v>6?1:0),rt=cap/.5*dt;BRK.s+=clamp(tg-BRK.s,-rt,rt);if(!cap)BRK.s=0;
+   const gs=g+gW+BRK.s,fast=BRK.s>.002||tg>0;if(now-lastSim>(fast?120:1500)&&(Math.abs(gs-lastG)>(fast?.004:.002)||Math.abs(RDRAFT-lastDr)>.06)){sim(gs,RDRAFT);lastG=gs;lastDr=RDRAFT;lastSim=now}}}
  }else if(mode==='explore'){let ds=0;if(play)ds+=$('sp').value/3.6*dt;if(keys.ArrowUp)ds+=(keys.Shift?400:40)*dt;if(keys.ArrowDown&&!loop.ud){loop.ud=1;uTurn()}if(!keys.ArrowDown)loop.ud=0;
   advance(RID,ds,riderChoose);histTick();s+=ds;v=ds/Math.max(dt,1e-3)}
  else{v=7.5;if(!dr)yaw+=(Math.sin(now/7000)*.7-yaw)*.01}
