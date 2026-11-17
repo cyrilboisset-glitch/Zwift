@@ -12331,7 +12331,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  // le vélo penche un peu plus que le corps (on appuie sur la pédale extérieure)
  const cur=p2.da/Math.max(.3,1+RLAT*p2.da),yA=Math.atan2(tx,tz)-Math.atan2(CRN.yd,Math.max(v,3));let dyw=yA-(loop.yA===undefined?yA:loop.yA);dyw=Math.atan2(Math.sin(dyw),Math.cos(dyw));loop.yA=yA;
  const kA=v>2&&Math.abs(dyw)<.35&&dt>0?clamp(dyw/Math.max(v*dt,1e-3),-.1,.1):cur;CRN.ka+=(kA-CRN.ka)*Math.min(1,dt*8);
- const lt=CRN.on?-clamp(Math.atan(v*v*CRN.ka/9.81),-.7,.7)*DSC.w:0;lean+=(lt-lean)*Math.min(1,dt*(CRN.on?6:3));// hors descente : vélo droit
+ const ltF=hm?0:-clamp(Math.atan(v*v*cur/9.81)*1.05,-.5,.5),ltD=CRN.on?-clamp(Math.atan(v*v*CRN.ka/9.81),-.7,.7):ltF;const lt=ltF+(ltD-ltF)*DSC.w;lean+=(lt-lean)*Math.min(1,dt*(CRN.on?6:4));// hors descente : même inclinaison que les PNJ (courbure de la route) ; en descente : trajectoire réelle
  // virage : jambe intérieure en haut (manivelle intérieure à 12 h) dès que l'inclinaison, actuelle ou prévue, dépasse ~9°
  {const la=Math.abs(CRN.lp)>Math.abs(lean)?CRN.lp:lean;if(!CRN.on||hm||v<3||DSC.w<.6)CRN.cs=0;else if(Math.abs(la)>.16&&Math.sign(la)!==CRN.cs)CRN.cs=Math.sign(la);else if(CRN.cs&&Math.abs(la)<.09)CRN.cs=0}
  if(hm){R.position.set(0,.06,0);R.rotation.set(0,0,0)}else{R.position.set(x-tz*RLAT,y+roadLift(RID.e,p2.i,RLAT),z+tx*RLAT);R.rotation.set(-Math.atan(g),Math.atan2(tx,tz)-Math.atan2(CRN.yd,Math.max(v,3)),lean*.92)}
