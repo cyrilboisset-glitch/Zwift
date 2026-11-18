@@ -12738,7 +12738,7 @@ function introGlobe(){if(IN.G)return;const G=IN.G={sc:new T.Scene(),cam:new T.Pe
  if(!ll.some(q=>q[2])&&COURSE&&!(CRS.cur&&CRS.cur.gen))ll.push([LA,LO0,true]);
  const dot=new T.CanvasTexture((()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),r=x.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'#fff7d6');r.addColorStop(.25,'#f0cf73');r.addColorStop(1,'rgba(240,207,115,0)');x.fillStyle=r;x.fillRect(0,0,64,64);return c})());
  G.mk=[];for(const[la,lo,cur]of ll){const s=new T.Sprite(new T.SpriteMaterial({map:dot,transparent:true,depthWrite:false,blending:T.AdditiveBlending}));s.position.copy(llVec(la,lo,1.004));s.scale.setScalar(cur?.05:.03);s.userData.cur=cur;G.sc.add(s);G.mk.push(s)}
- G.home=ll.find(q=>q[2])||[LA,LO0];
+ G.home=ll.find(q=>q[2])||[LA,LO0];U.sun.value.copy(llVec(G.home[0]+18,G.home[1]-38,1)).normalize();// soleil sur le côté : le parcours est de jour, la nuit arrive au bord du globe
  G.rt=new T.WebGLRenderTarget(1024,560);G.rt.texture.encoding=T.sRGBEncoding}
 function introGR(rt){const c=ren.getClearColor(new T.Color()),a=ren.getClearAlpha();ren.setRenderTarget(rt);ren.setClearColor(0x02030a,1);ren.clear();ren.render(IN.G.sc,IN.G.cam);ren.setRenderTarget(null);ren.setClearColor(c,a)}
 function llVec(la,lo,r){const a=la*Math.PI/180,b=lo*Math.PI/180;return new T.Vector3(r*Math.cos(a)*Math.cos(b),r*Math.sin(a),-r*Math.cos(a)*Math.sin(b))}
