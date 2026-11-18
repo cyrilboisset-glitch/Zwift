@@ -985,6 +985,41 @@ svg.leaflet-image-layer.leaflet-interactive path {
 @media(max-aspect-ratio:1/1) and (max-width:520px){#home:not(.sub) #hh{grid-template-columns:1fr auto}#home:not(.sub) #pchip small{display:none}}
 /* écrans très peu hauts : on garde les règles compactes d'avant, mais l'accueil remplit quand même la largeur */
 @media(max-height:520px){#home:not(.sub) .hm{grid-template-columns:minmax(240px,.9fr) 1.5fr}#home:not(.sub) .tiles .card{flex-direction:row;align-items:center;justify-content:flex-start}#home:not(.sub) .tiles .card .ic{margin:0}#home:not(.sub) #zn{display:none}#home:not(.sub) .hero canvas{min-height:36px}}
+/* ---- comptes (« Qui roule ? ») et film d'ouverture (18 nov. 2026) ---- */
+#acc{position:fixed;inset:0;z-index:160;display:none;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 30%,rgba(40,33,22,.94),rgba(10,9,8,.98));color:#f4efe6;font-family:'Space Grotesk',system-ui,sans-serif;opacity:0;transition:opacity .35s;overflow-y:auto;padding:max(16px,env(safe-area-inset-top)) 16px 16px}
+#acc.on{opacity:1}#acc .ab{width:min(1000px,100%);text-align:center;margin:auto}
+#acc .logo{width:58px;height:58px;margin:0 auto 10px;border-radius:17px;background:linear-gradient(135deg,#f0cf73,#c99a34);color:#1a1405;display:flex;align-items:center;justify-content:center;font:900 19px 'Barlow Condensed',system-ui}#acc .logo b{color:#fff}
+#acc h2{font:700 clamp(24px,5vmin,42px)/1.1 'Space Grotesk',system-ui;margin:0 0 6px;letter-spacing:-.02em}#acc h2 span{color:#f0cf73}
+#acc p{color:#cfc8ba;margin:0 auto 22px;max-width:560px;font:500 clamp(13px,2.2vmin,16px)/1.45 system-ui}#acc p.er{color:#ff8a7a;margin-top:14px}
+#acc .al{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(10px,2vmin,18px)}
+#acc .ac{position:relative;width:clamp(140px,22vmin,190px);padding:18px 12px 14px;border-radius:18px;background:#1c1a17;border:1px solid #3a342c;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;animation:accIn .5s both}
+#acc .ac:nth-child(2){animation-delay:.06s}#acc .ac:nth-child(3){animation-delay:.12s}#acc .ac:nth-child(4){animation-delay:.18s}#acc .ac:nth-child(5){animation-delay:.24s}
+#acc .ac:hover,#acc .ac:focus{transform:translateY(-4px);border-color:var(--c,#f0cf73);box-shadow:0 10px 30px rgba(0,0,0,.45),0 0 0 1px var(--c,#f0cf73)}
+#acc .ac.cur{border-color:var(--c)}#acc .ac.cur:after{content:'actif';position:absolute;top:8px;left:10px;font:700 10px system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--c)}
+#acc .ac.go{transform:scale(1.08);box-shadow:0 0 0 3px var(--c),0 0 40px var(--c)}
+#acc .av{width:clamp(62px,11vmin,84px);height:clamp(62px,11vmin,84px);margin:0 auto 10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6,transparent 55%),var(--c,#f0cf73);color:#1a1405;display:flex;align-items:center;justify-content:center;font:700 clamp(28px,5vmin,40px) 'Space Grotesk',system-ui;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+#acc .ac.add .av{background:#27241f;color:#f0cf73;border:2px dashed #5a5040;box-shadow:none}
+#acc .ac b{display:block;font:700 17px/1.2 'Space Grotesk',system-ui;overflow-wrap:anywhere}#acc .ac small{display:block;margin-top:6px;color:#978e7f;font:500 12px/1.45 system-ui}
+#acc .ed{position:absolute;top:6px;right:8px;font-style:normal;font-size:15px;opacity:.65;padding:4px}#acc .ed:hover{opacity:1}
+#acc .af{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px}
+#acc .ap{width:min(420px,100%);background:#1c1a17;border:1px solid #3a342c;border-radius:18px;padding:18px;text-align:left;max-height:calc(100dvh - 32px);overflow-y:auto}
+#acc .ap h3{margin:0 0 12px;font:700 20px 'Space Grotesk',system-ui;color:#f0cf73}#acc .ap label{display:block;font:600 13px system-ui;color:#cfc8ba;margin:10px 0 0}
+#acc .ap input{display:block;width:100%;box-sizing:border-box;margin-top:5px;padding:10px 12px;border-radius:10px;border:1px solid #3a342c;background:#0f0e0d;color:#f4efe6;font:600 16px system-ui}
+#acc .r2{display:flex;gap:10px}#acc .r2 label{flex:1}#acc .sw{display:flex;gap:8px;margin:12px 0 2px;flex-wrap:wrap}#acc .sw i{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent}#acc .sw i.on{border-color:#fff}
+#acc .bt{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}#acc .bt button{flex:1;min-width:110px;padding:11px;border-radius:12px;border:1px solid #3a342c;background:#27241f;color:#f4efe6;font:700 15px system-ui;cursor:pointer}
+#acc .bt .ok{background:linear-gradient(135deg,#f0cf73,#c99a34);color:#1a1405;border:0}#acc .bt .del{flex-basis:100%;color:#ff8a7a}#acc .ap small{display:block;margin-top:10px;color:#978e7f}
+@keyframes accIn{from{opacity:0;transform:translateY(18px) scale(.96)}}
+#accb{display:flex;align-items:center;gap:7px;padding:5px 12px 5px 5px;border-radius:99px;border:1px solid #3a342c;background:#1c1a17;color:#f4efe6;font:700 13px 'Space Grotesk',system-ui;cursor:pointer;max-width:170px}
+#accb i{flex:0 0 26px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#1a1405;font-style:normal;font-weight:800}#accb span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#intro{position:fixed;inset:0;z-index:150;display:none;pointer-events:auto;cursor:pointer;overflow:hidden}
+#intro .lb{position:absolute;left:0;right:0;height:9vh;background:#000;transition:height .8s}#intro .lb.t{top:0}#intro .lb.b{bottom:0}
+#intro .fl{position:absolute;inset:0;background:#000;opacity:1}
+#intro .tt{position:absolute;left:0;right:0;bottom:16vh;text-align:center;color:#f4efe6;font:700 clamp(22px,5.4vmin,54px)/1.1 'Space Grotesk',system-ui;letter-spacing:.04em;text-shadow:0 3px 24px rgba(0,0,0,.8);opacity:0;transform:translateY(16px);transition:opacity 1s,transform 1s}
+#intro .tt span{color:#f0cf73}#intro .tt small{display:block;margin-top:12px;font:600 clamp(11px,1.9vmin,16px) system-ui;letter-spacing:.32em;color:#e9a178}
+#intro .tt.on{opacity:1;transform:none}
+#intro .sc{position:absolute;left:4vw;top:calc(9vh + 14px);color:#f0cf73;font:700 clamp(11px,1.8vmin,15px) 'Barlow Condensed',system-ui;letter-spacing:.2em;text-shadow:0 1px 6px #000;opacity:.85}
+#intro .sk{position:absolute;right:4vw;bottom:calc(9vh + 12px);color:#cfc8ba;font:600 clamp(11px,1.7vmin,14px) system-ui;opacity:.7;letter-spacing:.06em;text-shadow:0 1px 6px #000}
+body.intro #home,body.intro #hud,body.intro #top,body.intro #tb,body.intro #fsb,body.intro #map,body.intro #prof,body.intro #ld,body.intro #toast{visibility:hidden!important}
 </style></head><body><div id="lv"><i>📱</i><b>Touche l'écran</b><small>pour passer en plein écran, en paysage</small></div>
 <canvas id="c"></canvas>
 <div id="hud" class="p"><div class="m"><span data-f="spd"><b id="vs">0</b><i>km/h</i></span><span data-f="pw"><b id="vp">0</b><i>W</i></span><span data-f="p3"><b id="vp3">0</b><i>W 3 s</i></span><span data-f="wkg"><b id="vwk">0</b><i>W/kg</i></span><span data-f="cad"><b id="vc">0</b><i>tr/min</i></span><span data-f="grd"><b id="vg">0.0</b><i>%</i></span><span data-f="hr"><b id="vh">–</b><i>bpm</i></span><span data-f="np"><b id="vnp">0</b><i>NP</i></span></div><div class="n"><span data-f="dist"><span id="vd">0.0</span> km · </span><span data-f="avg">moy. <span id="vav">0,0</span> km/h · </span><span data-f="rest"><span id="vrl">reste</span> <span id="vr">0.0</span> <span id="vru">km</span> · </span><span data-f="alt"><span id="va">0</span> m · </span><span data-f="dp">D+ <span id="vdp">0</span> m · </span><span data-f="time"><span id="vt">0:00</span> · </span><span data-f="kcal"><span id="vk">0</span> kcal</span><span data-f="wind" id="vwd"></span><span id="vdrf" style="color:var(--ac);font-weight:700"></span></div><div id="zg" data-f="zone"><div class="zbar" id="zbar"><em id="zmk"></em></div><div class="zlab"><b id="zzn">Z1</b><span id="zzt">Récup</span><span id="zzp">0 % FTP</span><span id="zzm"></span></div></div></div>
@@ -1077,6 +1112,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <script>
 
 'use strict';
+// ====================== comptes utilisateurs (18 nov. 2026, demande de Cyril) ======================
+// Chaque compte a ses propres données : parcours, réglages, vestiaire, FTP, poids, points, records, historique, plans, Strava, sortie en cours.
+// Les données du compte actif sont dans les clés habituelles de localStorage (aucun changement pour le reste de l'appli) ; celles des autres comptes
+// sont rangées sous « p:<id>:<clé> ». Le changement de compte se fait AU DÉBUT du chargement suivant (sessionStorage.v3pnext), avant toute lecture :
+// ce que l'ancienne page écrit en partant (sortie en cours…) reste ainsi dans le bon compte. Historique complet des sorties : une base IndexedDB par compte.
+// Partagé entre les comptes : la liste des comptes, la qualité graphique, le dernier home trainer, le diagnostic, le fond de carte, le film d'ouverture.
+const PROF=(()=>{const SH=new Set(['v3prof','v3q2','v3tr','v3diag','v3mrb','v3mrv','v3hwt','v3intro']),P={list:[],cur:''};
+ const own=k=>!SH.has(k)&&!/^p:/.test(k);
+ try{Object.assign(P,JSON.parse(localStorage.v3prof||'{}'))}catch(e){}
+ if(!Array.isArray(P.list)||!P.list.length){P.list=[{id:'p1',name:'Compte 1',col:0,t:Date.now()}];P.cur='p1'}
+ if(!P.list.some(a=>a.id===P.cur))P.cur=P.list[0].id;
+ P.save=()=>{try{localStorage.v3prof=JSON.stringify({list:P.list,cur:P.cur})}catch(e){}};
+ // changement demandé par la page précédente
+ let nx='';try{nx=sessionStorage.v3pnext||'';delete sessionStorage.v3pnext}catch(e){}
+ if(nx&&nx!==P.cur&&P.list.some(a=>a.id===nx)){const done=[];
+  try{for(const k of Object.keys(localStorage))if(own(k)){localStorage['p:'+P.cur+':'+k]=localStorage[k];done.push(k)}
+   for(const k of done)localStorage.removeItem(k);
+   const pre='p:'+nx+':';for(const k of Object.keys(localStorage))if(k.startsWith(pre)){localStorage[k.slice(pre.length)]=localStorage[k];localStorage.removeItem(k)}
+   P.cur=nx;P.switched=1}
+  catch(e){// mémoire pleine : on annule, le compte actif ne change pas
+   for(const k of done)try{localStorage.removeItem('p:'+P.cur+':'+k)}catch(e2){}P.err='Mémoire du navigateur pleine : changement de compte annulé'}}
+ const a=P.list.find(x=>x.id===P.cur);a.last=Date.now();P.save();
+ P.me=()=>P.list.find(x=>x.id===P.cur);
+ P.db=()=>P.cur==='p1'?'velo3d-rides':'velo3d-rides-'+P.cur;// le premier compte garde la base d'origine
+ P.get=(id,k)=>{try{return id===P.cur?localStorage[k]:localStorage['p:'+id+':'+k]}catch(e){return undefined}};
+ P.go=id=>{try{sessionStorage.v3pnext=id;sessionStorage.v3skip='1'}catch(e){}location.reload()};
+ P.own=own;return P})();
 // ====================== parcours personnels : GPX importés (aucune route intégrée) ======================
 // Chaque GPX importé est gardé (v3crs : nom, points simplifiés « lat,lon,alt; »). Le parcours actif (v3cur) fixe l'origine du repère
 // (centre du tracé) et devient à lui seul le « réseau » de routes ; changer de parcours reconstruit le monde sans recharger (crsSwitch).
@@ -1901,7 +1963,7 @@ function skyFollow(){sky.position.copy(cam.position);stars.position.copy(cam.pos
  clouds.position.set(cam.position.x,(typeof CLOUD_Y!=='undefined'?CLOUD_Y:2600),cam.position.z);CLU.uCam.value.copy(cam.position)}
 let CLOUD_Y=2800;
 
-const SPLIT=260;
+const SPLIT=260;let RNEAR=.25;// RNEAR : plan proche de la passe rapprochée (film d'ouverture : gros plans à quelques cm)
 // ====================== effets visuels après le rendu : halo lumineux (bloom), rayons de soleil, couleurs plus riches, vignette ======================
 // l'image est rendue à l'écran comme avant, copiée dans une texture (copyFramebufferToTexture), puis retravaillée en quelques passes à 1/4 et 1/8 de la résolution ;
 // niveaux (SET.fx) : 0 = aucun, 1 = doux (couleurs + léger halo), 2 = max (halo fort, rayons du soleil) ; par défaut selon la qualité (Tablette / Basse : aucun)
@@ -1939,7 +2001,7 @@ function fxSet(v){SET.fx=v;ssave();say('Effets visuels : '+['aucun','doux','max'
 function renderScene(){fogSun();GU.uSunV.value.copy(SUN).transformDirection(cam.matrixWorldInverse);GU.uSunC.value.setRGB(1,.9,.62).multiplyScalar(SPACE.on?0:clamp(DAYF,0,1)*sm(-2,10,ELEV));TU.uDetQ.value=QK==='ultra'?1:QK==='high'?.8:0;const n0=cam.near,f0=cam.far;ren.autoClear=false;ren.clear();
  cam.near=SPLIT*.985;cam.far=160000;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=true;ren.render(sc,cam);
  ren.clearDepth();const sv=sky.visible,cv=clouds.visible,mv=moon.visible,tv=stars.visible;sky.visible=clouds.visible=moon.visible=stars.visible=false;
- cam.near=.25;cam.far=SPLIT;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=false;ren.render(sc,cam);
+ cam.near=RNEAR;cam.far=SPLIT;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=false;ren.render(sc,cam);
  sky.visible=sv;clouds.visible=cv;moon.visible=mv;stars.visible=tv;cam.near=n0;cam.far=f0;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=true;
  fxPost(mode==='home')}
 
@@ -5653,6 +5715,8 @@ function roulRender(){const box=document.querySelector('#s-roul .cards');box.inn
  hcard(box,'📚 Mes parcours',CRS.list.length?CRS.list.length+' parcours importé'+(CRS.list.length>1?'s':''):'Aucun parcours pour l\'instant',crsMenu);
  hcard(box,'🤖 Exploration','Pilote automatique sur le parcours choisi',()=>courseThen(()=>nav('explore'),'exploration'))}
 function regRender(){const box=document.querySelector('#s-reg .cards');box.innerHTML='';
+ hcard(box,'🎬 Film d\'ouverture','Au lancement : '+(localStorage.v3intro==='0'?'non':'oui')+' · touche pour revoir ou changer',()=>mod('Film d\'ouverture « le grand dézoom »<br><small>Environ 20 s au lancement, avant le choix du compte. Toucher l\'écran pour passer.</small>',[['▶ Revoir maintenant',()=>{showScr('s-main');nav('home');introStart()}],[(localStorage.v3intro==='0'?'✅ Activer':'⏸ Désactiver')+' au lancement',()=>{try{localStorage.v3intro=localStorage.v3intro==='0'?'1':'0'}catch(e){}regRender()}],['Fermer',()=>{}]]));
+ hcard(box,'👥 Comptes','Compte actif : '+esc(PROF.me().name)+' · '+PROF.list.length+' compte'+(PROF.list.length>1?'s':'')+' · changer, créer, modifier',()=>accOpen());
  hcard(box,'🔌 Matériel',(conn?'Home trainer connecté':'Home trainer non connecté')+' · '+(hr?'cardio connectée':'cardio non connectée'),()=>showScr('s-hw'));
  hcard(box,'🟧 Strava',STR.id&&STR.ref?'Connecté'+(STR.who?' · '+esc(STR.who):'')+' · '+GS.strv.length+' sortie'+(GS.strv.length>1?'s':'')+' envoyée'+(GS.strv.length>1?'s':''):'Non connecté · touche ici pour relier ton compte',()=>stravaPanel(()=>regRender()));
  hcard(box,'👕 Vestiaire','Maillots, casque, lunettes, couleurs du vélo, roues',()=>{kitRender();showScr('s-kit')});
@@ -5671,8 +5735,56 @@ function showMenu(){const n=SHOWK.filter(([k])=>!SHW(k)).length;
 // ---- accueil façon applis du commerce : carte « prochaine sortie » (profil coloré, gros bouton) + tuiles colorées + niveau ----
 const HTILES=[['wk','🏋️','S\'entraîner','Séances ERG guidées, créateur, test FTP',1],['vel','🏟️','Vélodrome','Piste UCI 250 m, lumière de rythme',4],['crs','📚','Mes parcours','',2],
  ['roul','🚴','Rouler','Importer, exploration, options',0],['sui','📈','Mon suivi','',3],['reg','⚙️','Réglages','Matériel, Strava, vestiaire, graphismes',5]];
+// ---- page « Qui roule ? » : choix, création, modification et suppression des comptes (après le film d'ouverture) ----
+const ACOL=['#f0cf73','#e9a178','#5cc8ff','#7be08a','#d58cff','#ff6b6b','#ffd23f','#9aa6b2'];
+function accInfo(id){const r={lvl:1,km:0,n:0,last:0,ftp:0,crs:0};
+ try{const g=JSON.parse(PROF.get(id,'vg3')||'{}');const xp=g.xp||0;r.lvl=Math.max(1,Math.floor((1+Math.sqrt(1+xp/62.5))/2));r.km=g.km||0;const h=g.hist||[];r.n=h.length;r.last=h.length?h[h.length-1].t:0}catch(e){}
+ r.ftp=+PROF.get(id,'ftp')||0;try{r.crs=JSON.parse(PROF.get(id,'v3crs')||'[]').length}catch(e){}return r}
+function accOpen(after){let o=$('acc');if(!o){o=document.createElement('div');o.id='acc';document.body.appendChild(o)}
+ const L=PROF.list;
+ o.innerHTML='<div class="ab"><div class="logo">VC<b>T</b></div><h2>Qui roule <span>aujourd\'hui</span> ?</h2><p>Chaque compte garde ses parcours, ses réglages, son vestiaire, sa FTP, ses records et tout son historique.</p>'+
+  '<div class="al">'+L.map(a=>{const i=accInfo(a.id),c=ACOL[a.col|0]||ACOL[0];
+   return '<div class="ac'+(a.id===PROF.cur?' cur':'')+'" data-id="'+a.id+'" style="--c:'+c+'"><div class="av">'+esc((a.name||'?').trim().slice(0,1).toUpperCase())+'</div><b>'+esc(a.name)+'</b>'+
+    '<small>Niveau '+i.lvl+' · '+nf(Math.round(i.km))+' km<br>'+i.n+' sortie'+(i.n>1?'s':'')+(i.ftp?' · FTP '+i.ftp+' W':'')+'<br>'+(i.last?'dernière : '+new Date(i.last).toLocaleDateString('fr-FR'):'aucune sortie')+'</small>'+
+    '<i class="ed" data-ed="'+a.id+'">✏️</i></div>'}).join('')+
+  '<div class="ac add" data-new="1"><div class="av">+</div><b>Nouveau compte</b><small>pour un autre cycliste</small></div></div>'+
+  (PROF.err?'<p class="er">'+esc(PROF.err)+'</p>':'')+'</div>';
+ o.style.display='flex';requestAnimationFrame(()=>o.classList.add('on'));
+ o.onclick=e=>{const ed=e.target.closest('[data-ed]');if(ed){e.stopPropagation();accEdit(ed.dataset.ed,after);return}
+  const c=e.target.closest('.ac');if(!c)return;if(c.dataset.new){accEdit(null,after);return}
+  const id=c.dataset.id;if(id===PROF.cur){accClose(after);return}
+  c.classList.add('go');setTimeout(()=>PROF.go(id),260)}}
+function accBusy(){const a=$('acc');return IN.on||!!(a&&a.style.display==='flex')}
+function afterAcc(f){if(accBusy())setTimeout(()=>afterAcc(f),800);else f()}
+function accClose(after){const o=$('acc');if(!o)return;o.classList.remove('on');setTimeout(()=>{o.style.display='none';if(after)after()},350)}
+function accEdit(id,after){const a=id?PROF.list.find(x=>x.id===id):{name:'',col:(PROF.list.length)%ACOL.length};const cur=id===PROF.cur;
+ const ftp0=id?(+PROF.get(id,'ftp')||200):200,kg0=id?(+PROF.get(id,'kg')||75):75;
+ const sw=ACOL.map((c,k)=>'<i data-c="'+k+'" style="background:'+c+'" class="'+((a.col|0)===k?'on':'')+'"></i>').join('');
+ const o=$('acc');let f=o.querySelector('.af');if(f)f.remove();f=document.createElement('div');f.className='af';
+ f.innerHTML='<div class="ap"><h3>'+(id?'Modifier le compte':'Nouveau compte')+'</h3>'+
+  '<label>Prénom<input id="acn" maxlength="24" value="'+esc(a.name)+'" placeholder="Prénom"></label>'+
+  '<div class="sw">'+sw+'</div>'+
+  '<div class="r2"><label>FTP (W)<input id="acf" type="number" min="50" max="600" value="'+ftp0+'"></label><label>Poids (kg)<input id="ack" type="number" min="30" max="200" step=".5" value="'+kg0+'"></label></div>'+
+  '<label>Adresse mail pour l\'envoi des sorties (facultatif)<input id="acm" type="email" value="'+esc(a.mail!=null?a.mail:(id==='p1'?MAIL0:''))+'" placeholder="nom@exemple.fr"></label>'+
+  '<div class="bt"><button class="ok">'+(id?'Enregistrer':'Créer et rouler')+'</button><button class="no">Annuler</button>'+(id&&!cur&&PROF.list.length>1?'<button class="del">🗑 Supprimer</button>':'')+'</div>'+
+  (cur?'<small>Compte en cours d\'utilisation.</small>':'')+'</div>';
+ o.appendChild(f);let col=a.col|0;
+ f.querySelector('.sw').onclick=e=>{const t=e.target.closest('[data-c]');if(!t)return;col=+t.dataset.c;f.querySelectorAll('.sw i').forEach(x=>x.classList.toggle('on',x===t))};
+ f.onclick=e=>e.stopPropagation();
+ f.querySelector('.no').onclick=()=>f.remove();
+ const dl=f.querySelector('.del');if(dl)dl.onclick=()=>{if(dl.dataset.k){accDelete(id);f.remove();accOpen(after)}else{dl.dataset.k=1;dl.textContent='Confirmer : tout son historique sera effacé'}};
+ f.querySelector('.ok').onclick=()=>{const nm=$('acn').value.trim()||('Compte '+(PROF.list.length+1)),fv=clamp(+$('acf').value||200,50,600)|0,kv=clamp(+$('ack').value||75,30,200),ml=$('acm').value.trim();
+  if(id){Object.assign(a,{name:nm,col,mail:ml});PROF.save();
+   if(cur){MAIL_TO=ml;FTP=fv;localStorage.ftp=fv;$('ftp').value=fv;$('kg').value=kv;localStorage.kg=kv;f.remove();accOpen(after)}
+   else{try{localStorage['p:'+id+':ftp']=fv;localStorage['p:'+id+':kg']=kv}catch(e){}f.remove();accOpen(after)}}
+  else{let n=1;while(PROF.list.some(x=>x.id==='p'+n))n++;const nid='p'+n;PROF.list.push({id:nid,name:nm,col,mail:ml,t:Date.now()});PROF.save();
+   try{localStorage['p:'+nid+':ftp']=fv;localStorage['p:'+nid+':kg']=kv}catch(e){}PROF.go(nid)}};
+ setTimeout(()=>$('acn').focus(),50)}
+function accDelete(id){if(id===PROF.cur)return;const pre='p:'+id+':';for(const k of Object.keys(localStorage))if(k.startsWith(pre))localStorage.removeItem(k);
+ try{indexedDB.deleteDatabase(id==='p1'?'velo3d-rides':'velo3d-rides-'+id)}catch(e){}PROF.list=PROF.list.filter(x=>x.id!==id);PROF.save()}
 function homeHeader(){let c=$('pchip');if(!c){const hh=$('hh'),h1=hh.querySelector('h1'),sub=hh.querySelector('.sub'),br=document.createElement('div');br.className='brand';
-  br.innerHTML='<div class="logo">VC<b>T</b></div><div style="min-width:0"></div>';br.lastChild.append(h1,sub);hh.prepend(br);c=document.createElement('div');c.id='pchip';hh.insertBefore(c,hh.querySelector('.ftp'))}
+  br.innerHTML='<div class="logo">VC<b>T</b></div><div style="min-width:0"></div>';br.lastChild.append(h1,sub);hh.prepend(br);c=document.createElement('div');c.id='pchip';hh.insertBefore(c,hh.querySelector('.ftp'));const ab=document.createElement('button');ab.id='accb';ab.onclick=()=>accOpen();hh.insertBefore(ab,c)}
+ {const a=PROF.me(),ab=$('accb');ab.innerHTML='<i style="background:'+(ACOL[a.col|0]||ACOL[0])+'">'+esc((a.name||'?').slice(0,1).toUpperCase())+'</i><span>'+esc(a.name)+'</span>';ab.title='Changer de compte'}
  const L=LVL,a=lvlXP(L),b=lvlXP(L+1),p=Math.max(0,Math.min(100,(GS.xp-a)/(b-a)*100));
  c.innerHTML='<div class="lv" style="--p:'+p.toFixed(0)+'">'+L+'</div><div><b>Niveau '+L+'</b><small>'+nf(Math.max(0,b-GS.xp))+' XP avant le niveau '+(L+1)+' · '+(FTP/riderKg()).toFixed(1).replace('.',',')+' W/kg</small></div>'}
 function heroDraw(cv){const g=cv.getContext('2d'),f=devicePixelRatio||1,W=cv.width=cv.clientWidth*f,H=cv.height=cv.clientHeight*f;if(!W||!H||!COURSE||!NET.ready)return;
@@ -6773,6 +6885,125 @@ const TR=new T.Group();{const G=LM(0x2b2f37,{metalness:.5,roughness:.4}),Y=LM(0x
   const ft=new T.Mesh(new T.BoxGeometry(.08,.02,.08),LM(0x111111));ft.position.copy(b);TR.add(ft)}
  const led=new T.Mesh(new T.BoxGeometry(.03,.012,.03),new T.MeshBasicMaterial({color:0x37e07a}));led.position.set(-.06,.32,-.33);TR.add(led);
  TR.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=true})}
+// ---- salle plus réaliste (18 nov. 2026, demande de Cyril) : parquet, murs peints, plinthes, fenêtre avec vue et rayon de soleil, rideaux, radiateur,
+//      étagère, éclairage du plafond, rétroéclairage du bureau, ombres de contact, reflets propres à la pièce (environnement calculé une fois) ----
+const ROOMQ=WEAK_GPU||QK==='tab'||QK==='low'?512:1024;
+const RRND=(a=>()=>(a=(a*16807)%2147483647)/2147483647)(12345);
+const ROOMX={};
+{// parquet chêne : lames de 1,2 m × 14 cm décalées, veinage, nœuds, joints sombres ; carte de rugosité et de relief assorties
+ const S=ROOMQ,cv=document.createElement('canvas');cv.width=cv.height=S;const g=cv.getContext('2d'),rc=document.createElement('canvas');rc.width=rc.height=S;const r=rc.getContext('2d');
+ const rows=8,ph=S/rows;r.fillStyle='#7a7a7a';r.fillRect(0,0,S,S);
+ for(let j=0;j<rows;j++){let x=-RRND()*S*.6;while(x<S){const L=S*(.45+RRND()*.4),h=24+RRND()*10,s=40+RRND()*14,l=46+RRND()*14;
+   for(const ox of[0,-S,S]){const x0=x+ox;g.fillStyle='hsl('+h+','+s+'%,'+l+'%)';g.fillRect(x0,j*ph,L,ph);
+    for(let k=0;k<16;k++){const yy=j*ph+RRND()*ph;g.strokeStyle='hsla('+(h-4)+','+s+'%,'+(l-14-RRND()*10)+'%,'+(.18+RRND()*.25)+')';g.lineWidth=.6+RRND()*1.4;g.beginPath();g.moveTo(x0,yy);
+     for(let q=1;q<=10;q++)g.lineTo(x0+L*q/10,yy+Math.sin(q*1.3+k)*ph*.06*RRND());g.stroke()}
+    if(RRND()<.35){const kx=x0+RRND()*L,ky=j*ph+ph*(.25+RRND()*.5);g.fillStyle='hsla('+(h-6)+',45%,'+(l-22)+'%,.6)';g.beginPath();g.ellipse(kx,ky,3+RRND()*4,2+RRND()*2,0,0,6.3);g.fill()}
+    r.fillStyle='rgb('+(100+RRND()*50|0)+','+0+','+0+')';r.fillStyle='hsl(0,0%,'+(38+RRND()*14)+'%)';r.fillRect(x0,j*ph,L,ph);
+    g.fillStyle='rgba(25,14,6,.75)';g.fillRect(x0,j*ph,2,ph);r.fillStyle='#d0d0d0';r.fillRect(x0,j*ph,2,ph)}
+   x+=L}
+  g.fillStyle='rgba(25,14,6,.8)';g.fillRect(0,j*ph,S,1.5);r.fillStyle='#d0d0d0';r.fillRect(0,j*ph,S,1.5)}
+ const mk=c=>{const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(7.6/1.25,9.2/1.12);t.anisotropy=8;return t};
+ const wood=mk(cv);wood.encoding=T.sRGBEncoding;const rough=mk(rc);
+ ROOMX.floor=new T.MeshStandardMaterial({map:wood,roughnessMap:rough,roughness:.75,bumpMap:rough,bumpScale:.004,metalness:0,envMapIntensity:.9})}
+{// peinture : léger grain de rouleau (relief) commun à tous les murs
+ const S=256,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d'),im=g.createImageData(S,S);for(let i=0;i<S*S;i++){const v=118+(RRND()*22+RRND()*22-22)|0;im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=v;im.data[i*4+3]=255}g.putImageData(im,0,0);
+ const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(6,3);ROOMX.paint=t}
+const RPAINT=c=>new T.MeshStandardMaterial({color:c,roughness:.92,metalness:0,bumpMap:ROOMX.paint,bumpScale:.0015,envMapIntensity:.35});
+RM.traverse(o=>{if(!o.isMesh)return;const p=o.geometry&&o.geometry.parameters;
+ if(o.material&&o.material.map&&p&&p.width===7.6&&p.height===9.2&&o.rotation.x<0){o.material=ROOMX.floor}// sol
+ else if(p&&p.height===3&&(p.width===7.6||p.width===9.4)&&o.material&&o.material.side===T.DoubleSide){const c=o.material.color.getHex();o.material=RPAINT(c===0x1d3a52?0x22384a:c===0x24323f?0x3a4652:c===0xd9d3c8?0xd8d2c6:0xe9e4da)}// murs
+ else if(p&&p.width===7.6&&p.height===9.2&&o.rotation.x>0){o.material=RPAINT(0xf3f0ea)}});// plafond
+{const W=LM(0xf4f2ee,{roughness:.45}),A=[[7.6,0,3.59,Math.PI],[7.6,0,-5.49,0],[9.2,-3.79,-.9,Math.PI/2],[9.2,3.79,-.9,-Math.PI/2]];
+ for(const[w,x,z,ry]of A){const g=new T.Group();g.position.set(x,0,z);g.rotation.y=ry;RM.add(g);bx(w,.11,.018,0,.055,0,W,g);bx(w,.012,.024,0,.11,0,W,g);bx(w,.07,.05,0,2.965,.02,W,g);
+  // ombre de contact au pied du mur
+  const ao=new T.Mesh(new T.PlaneGeometry(w,.5),new T.MeshBasicMaterial({map:ROOMX.ao||(ROOMX.ao=cv2(8,64,(q,W2,H)=>{const gr=q.createLinearGradient(0,0,0,H);gr.addColorStop(0,'rgba(0,0,0,.32)');gr.addColorStop(1,'rgba(0,0,0,0)');q.fillStyle=gr;q.fillRect(0,0,W2,H)})),transparent:true,depthWrite:false}));
+  ao.rotation.x=-Math.PI/2;ao.position.set(0,.003,.25);g.add(ao)}}
+// fenêtre : vue sur la montagne (lumineuse), châssis à deux vantaux, appui, rideaux, radiateur, tache de soleil au sol et rayon dans la poussière
+{const vw=cv2(1024,768,(g,w,h)=>{const s=g.createLinearGradient(0,0,0,h*.7);s.addColorStop(0,'#3f86d6');s.addColorStop(.6,'#8ec1ec');s.addColorStop(1,'#e3eef5');g.fillStyle=s;g.fillRect(0,0,w,h);
+  for(let i=0;i<9;i++){const cx=RRND()*w,cy=60+RRND()*200,rw=80+RRND()*160;const gr=g.createRadialGradient(cx,cy,0,cx,cy,rw);gr.addColorStop(0,'rgba(255,255,255,.85)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(cx-rw,cy-rw,rw*2,rw*2)}
+  const ridge=(y0,amp,col,snow,seed)=>{let a=seed;const R2=()=>(a=(a*16807)%2147483647)/2147483647;const P=[];let y=y0;for(let x=0;x<=w;x+=8){y+=(R2()-.5)*amp;y=y0+(y-y0)*.94;P.push([x,y])}
+   g.fillStyle=col;g.beginPath();g.moveTo(0,h);for(const[x,y]of P)g.lineTo(x,y);g.lineTo(w,h);g.fill();
+   if(snow){g.fillStyle='rgba(250,252,255,.92)';g.beginPath();for(const[x,y]of P)g.lineTo(x,y);for(let k=P.length-1;k>=0;k--)g.lineTo(P[k][0],P[k][1]+14+Math.abs(Math.sin(k*1.7))*26);g.fill()}};
+  ridge(330,70,'#93a7bd',1,7);ridge(420,50,'#6f8aa0',0,11);ridge(500,36,'#4f6e52',0,19);ridge(570,26,'#3c5a36',0,23);
+  for(let i=0;i<70;i++){const x=RRND()*w,y=560+RRND()*160,s2=10+RRND()*22;g.fillStyle='hsl('+(95+RRND()*30)+',35%,'+(18+RRND()*12)+'%)';g.beginPath();g.moveTo(x,y-s2*2.2);g.lineTo(x+s2*.6,y);g.lineTo(x-s2*.6,y);g.fill()}
+  g.fillStyle='#9ab36a';g.fillRect(0,700,w,68);g.fillStyle='rgba(255,236,200,.18)';g.fillRect(0,0,w,h)});
+ vw.encoding=T.sRGBEncoding;const vm=new T.MeshBasicMaterial({map:vw,toneMapped:false,color:0xf2f2f2});
+ RM.traverse(o=>{if(o.isMesh&&o.material&&o.material.map&&o.geometry.parameters&&o.geometry.parameters.width===1.7&&o.geometry.parameters.height===1.3){o.material=vm;o.position.x=-3.785}});
+ const F=LM(0xf6f6f4,{roughness:.35}),gx=-3.76,y0=.92,y1=2.22,z0=-.65,z1=1.05,zm=(z0+z1)/2,yc=(y0+y1)/2;
+ RM.traverse(o=>{if(o.isMesh&&o.geometry.parameters&&o.geometry.parameters.width===.06&&o.geometry.parameters.height===1.4)o.visible=false});
+ for(const z of[z0,zm,z1])bx(.08,y1-y0+.08,.07,gx,yc,z,F);for(const y of[y0,y1])bx(.08,.07,z1-z0+.07,gx,y,zm,F);
+ bx(.26,.035,z1-z0+.3,-3.68,y0-.05,zm,LM(0xe8e6e0,{roughness:.4}));
+ const gl=new T.Mesh(new T.PlaneGeometry(z1-z0,y1-y0),new T.MeshPhysicalMaterial({color:0xffffff,roughness:.05,metalness:0,transparent:true,opacity:.12,envMapIntensity:1.4,depthWrite:false}));gl.position.set(-3.745,yc,zm);gl.rotation.y=Math.PI/2;RM.add(gl);
+ for(const z of[zm-.14,zm+.14]){const h=new T.Mesh(new T.BoxGeometry(.03,.12,.02),LM(0xbfc3c8,{metalness:.8,roughness:.3}));h.position.set(-3.71,yc,z);RM.add(h)}
+ // rideaux (lin clair, plis)
+ const cm=new T.MeshStandardMaterial({color:0xe9e2d3,roughness:.95,side:T.DoubleSide,transparent:true,opacity:.96});
+ for(const s of[-1,1]){const g=new T.PlaneGeometry(.55,2.5,28,1),pa=g.attributes.position;for(let i=0;i<pa.count;i++){const u=pa.getX(i);pa.setZ(i,Math.sin(u*38)*.035+Math.sin(u*13)*.02)}g.computeVertexNormals();
+  const c=new T.Mesh(g,cm);c.rotation.y=Math.PI/2;c.position.set(-3.66,1.43,s<0?z0-.32:z1+.32);c.castShadow=true;RM.add(c)}
+ bx(.03,.03,2.9,-3.64,2.72,zm,LM(0x2a2a2a,{metalness:.7,roughness:.35}));
+ // radiateur sous la fenêtre
+ const RW2=LM(0xf1f1ef,{roughness:.4});for(let i=0;i<14;i++)bx(.07,.55,.05,-3.72,.47,z0+.08+i*(z1-z0-.16)/13,RW2);bx(.05,.04,z1-z0,-3.72,.2,zm,RW2);bx(.05,.04,z1-z0,-3.72,.75,zm,RW2);
+ // tache de soleil au sol et rayon (direction de la lumière de la pièce)
+ const Ld=V(-.5,.75,.42).normalize(),pr=(y,z)=>V(gx-Ld.x*(y/Ld.y),0.004,z-Ld.z*(y/Ld.y)),c4=[pr(y0,z0),pr(y0,z1),pr(y1,z1),pr(y1,z0)];
+ const sp=cv2(256,256,(g,w,h)=>{g.fillStyle='rgba(255,236,196,.55)';g.filter='blur(6px)';g.fillRect(10,10,w-20,h-20);g.filter='none';g.fillStyle='rgba(0,0,0,1)';g.globalCompositeOperation='destination-out';g.fillRect(w/2-5,0,10,h);g.fillRect(0,0,w,8);g.fillRect(0,h-8,w,8)});
+ const pg=new T.BufferGeometry();pg.setAttribute('position',new T.Float32BufferAttribute([...c4[0].toArray(),...c4[1].toArray(),...c4[2].toArray(),...c4[3].toArray()],3));pg.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));pg.setIndex([0,1,2,0,2,3]);
+ ROOMX.patch=new T.Mesh(pg,new T.MeshBasicMaterial({map:sp,transparent:true,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false}));RM.add(ROOMX.patch);
+ const w4=[V(gx,y0,z0),V(gx,y0,z1),V(gx,y1,z1),V(gx,y1,z0)],bp=[],bu=[],bi=[];const fq=(a,b,c,d)=>{const n=bp.length/3;for(const q of[a,b,c,d])bp.push(q.x,q.y,q.z);bu.push(0,0,1,0,1,1,0,1);bi.push(n,n+1,n+2,n,n+2,n+3)};
+ for(let k=0;k<4;k++){const k2=(k+1)%4;fq(w4[k],w4[k2],c4[k2],c4[k])}
+ const bg=new T.BufferGeometry();bg.setAttribute('position',new T.Float32BufferAttribute(bp,3));bg.setAttribute('uv',new T.Float32BufferAttribute(bu,2));bg.setIndex(bi);
+ const bt=cv2(4,128,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'rgba(255,240,210,.0)');gr.addColorStop(.15,'rgba(255,240,210,.07)');gr.addColorStop(1,'rgba(255,240,210,.0)');g.fillStyle=gr;g.fillRect(0,0,w,h)});
+ ROOMX.beam=new T.Mesh(bg,new T.MeshBasicMaterial({map:bt,transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,toneMapped:false}));RM.add(ROOMX.beam)}
+// plafond : spots encastrés et plafonnier LED
+{const em=new T.MeshBasicMaterial({color:0xfff4e0,toneMapped:false}),ri=LM(0xdedad2,{roughness:.4});
+ for(const[x,z]of[[-2,2],[2,2],[-2,-1.2],[2,-1.2],[-2,-4],[2,-4]]){const d=new T.Mesh(new T.CircleGeometry(.06,20),em);d.rotation.x=Math.PI/2;d.position.set(x,2.995,z);RM.add(d);const r=new T.Mesh(new T.RingGeometry(.06,.085,20),ri);r.rotation.x=Math.PI/2;r.position.set(x,2.994,z);RM.add(r)}
+ const pn=new T.Mesh(new T.BoxGeometry(1.2,.03,.3),em);pn.position.set(0,2.97,.2);RM.add(pn);bx(1.26,.025,.36,0,2.985,.2,LM(0x2a2a2a,{metalness:.6}))}
+// bureau : plateau bois, clavier, souris, lampe, rétroéclairage de l'écran
+{const dw=cv2(512,128,(g,w,h)=>{g.fillStyle='#6b4a32';g.fillRect(0,0,w,h);for(let i=0;i<60;i++){g.strokeStyle='rgba(40,24,12,'+(.15+RRND()*.25)+')';g.lineWidth=.6+RRND()*1.5;const y=RRND()*h;g.beginPath();g.moveTo(0,y);for(let x=0;x<=w;x+=32)g.lineTo(x,y+Math.sin(x*.02+i)*3);g.stroke()}});
+ DK.map=dw;DK.roughness=.45;DK.color.setHex(0xffffff);DK.needsUpdate=true;
+ const kb=LM(0x1a1b1f,{roughness:.5});bx(.44,.02,.14,0,.795,2.95,kb);for(let r2=0;r2<4;r2++)for(let c=0;c<13;c++)bx(.026,.008,.026,-.19+c*.0315,.808,2.9+r2*.032,LM(0x2a2c31,{roughness:.6}));
+ const ms=new T.Mesh(new T.SphereGeometry(.035,16,10),kb);ms.scale.set(1,.45,1.5);ms.position.set(.34,.795,2.97);RM.add(ms);
+ const glow=new T.Mesh(new T.PlaneGeometry(2.4,1.6),new T.MeshBasicMaterial({map:cv2(128,96,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,4,w/2,h/2,w*.5);gr.addColorStop(0,'rgba(80,170,255,.55)');gr.addColorStop(1,'rgba(80,170,255,0)');g.fillStyle=gr;g.fillRect(0,0,w,h)}),transparent:true,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false}));
+ glow.position.set(0,1.24,3.585);glow.rotation.y=Math.PI;RM.add(glow);
+ const lp=LM(0x22252b,{metalness:.6,roughness:.35});bx(.12,.015,.12,-.95,.785,2.85,lp);const ar=new T.Mesh(cyl(.008,.008,8),lp);ar.scale.y=.42;ar.position.set(-.95,.99,2.85);ar.rotation.z=.25;RM.add(ar);
+ const hd=new T.Mesh(new T.ConeGeometry(.07,.11,20,1,true),lp);hd.position.set(-.9,1.2,2.82);hd.rotation.z=2.4;RM.add(hd);
+ const ll=new T.PointLight(0xffd9a0,.6,2.2);ll.position.set(-.86,1.12,2.8);RM.add(ll)}
+// étagère de livres et casque sur le mur droit
+{const sh=LM(0x5a3d28,{roughness:.55});for(const y of[.45,.9])bx(.3,.03,1.6,3.62,y,-3.2,sh);bx(.3,.95,.03,3.62,.48,-4.01,sh);bx(.3,.95,.03,3.62,.48,-2.39,sh);
+ const cols=[0x8a2b2b,0x2b4a8a,0xd9c9a0,0x2f6b4a,0x1d1d1d,0xb5651d,0x6a3d8a,0xe0e0e0];for(const y of[.47,.92]){let z=-3.98;while(z<-2.45){const w=.025+RRND()*.035,h=.2+RRND()*.12;bx(.2+RRND()*.05,h,w,3.64,y+.015+h/2,z+w/2,LM(cols[RRND()*cols.length|0],{roughness:.7}));z+=w+.004}}}
+// tapis du home trainer : caoutchouc texturé + logo
+{const mt=cv2(512,384,(g,w,h)=>{g.fillStyle='#141518';g.fillRect(0,0,w,h);for(let i=0;i<9000;i++){g.fillStyle='rgba(255,255,255,'+(RRND()*.05)+')';g.fillRect(RRND()*w,RRND()*h,1.5,1.5)}
+  g.strokeStyle='#f0cf73';g.lineWidth=6;g.strokeRect(14,14,w-28,h-28);g.font='900 64px Arial Black,Arial';g.textAlign='center';g.fillStyle='rgba(240,207,115,.85)';g.fillText('VCT',w/2,h-46)});
+ RM.traverse(o=>{if(o.isMesh&&o.geometry.parameters&&o.geometry.parameters.width===2.4&&o.geometry.parameters.depth===1.8){o.material=new T.MeshStandardMaterial({map:mt,roughness:.9})}
+  else if(o.isMesh&&o.geometry.parameters&&o.geometry.parameters.width===.06&&o.geometry.parameters.depth===1.8&&o.geometry.parameters.height===.016)o.visible=false})}
+// plante : grandes feuilles découpées au lieu de boules
+{RM.traverse(o=>{if(o.isMesh&&o.geometry.type==='SphereGeometry'&&o.geometry.parameters.radius===.2)o.visible=false});
+ const lf=cv2(128,256,(g,w,h)=>{g.fillStyle='#2f7a3a';g.beginPath();g.moveTo(w/2,4);g.bezierCurveTo(w*1.05,h*.3,w*.9,h*.8,w/2,h-4);g.bezierCurveTo(w*.1,h*.8,-w*.05,h*.3,w/2,4);g.fill();
+  g.strokeStyle='#9bd08a';g.lineWidth=3;g.beginPath();g.moveTo(w/2,8);g.lineTo(w/2,h-8);g.stroke();g.lineWidth=1.2;for(let i=1;i<9;i++){const y=i*h/9.5;g.beginPath();g.moveTo(w/2,y);g.lineTo(w*.12,y-18);g.moveTo(w/2,y);g.lineTo(w*.88,y-18);g.stroke()}});
+ const lm=new T.MeshStandardMaterial({map:lf,alphaTest:.5,side:T.DoubleSide,roughness:.6});
+ for(let i=0;i<16;i++){const a=i*2.39,el=.35+RRND()*.9,L=.32+RRND()*.22,g=new T.PlaneGeometry(.17,L);g.translate(0,L/2,0);const m=new T.Mesh(g,lm);m.position.set(-3.2,.32,3);m.rotation.set(0,a,0);m.rotateX(-el*.9);m.castShadow=true;RM.add(m);
+  const st=new T.Mesh(cyl(.006,.006,5),LM(0x3d6b2e));st.scale.y=.32;st.position.set(-3.2,.42,3);RM.add(st)}}
+// home trainer refait : carter arrondi, volant d'inertie, pieds en arc, écran du boîtier
+{TR.children.slice().forEach(o=>TR.remove(o));const G=new T.MeshStandardMaterial({color:0x1d2025,metalness:.35,roughness:.42}),Y=new T.MeshStandardMaterial({color:0xf0cf73,metalness:.7,roughness:.3}),Bk=LM(0x0c0d0f,{roughness:.8});
+ const pr=[];for(let i=0;i<=16;i++){const t=i/16;pr.push(new T.Vector2(.05+.18*Math.sin(t*Math.PI)**.6,(t-.5)*.11))}
+ const hub=new T.Mesh(new T.LatheGeometry(pr,48),G);hub.rotation.z=Math.PI/2;hub.position.set(.02,.31,-.43);TR.add(hub);
+ const ring=new T.Mesh(new T.TorusGeometry(.2,.012,10,64),Y);ring.rotation.y=Math.PI/2;ring.position.set(-.035,.31,-.43);TR.add(ring);
+ const cs=new T.Mesh(new T.CylinderGeometry(.13,.13,.012,48),new T.MeshStandardMaterial({color:0x2a2d33,metalness:.85,roughness:.25}));cs.rotation.z=Math.PI/2;cs.position.set(-.04,.31,-.43);TR.add(cs);
+ const ax=new T.Mesh(cyl(.02,.02,16),Y);ax.scale.y=.16;ax.rotation.z=Math.PI/2;ax.position.set(.02,.31,-.43);TR.add(ax);
+ // pieds en arc (tubes) et patins
+ for(const s2 of[-1,1]){const c=new T.CatmullRomCurve3([V(s2*.04,.26,-.6),V(s2*.22,.14,-.75),V(s2*.36,.02,-.86)]);TR.add(new T.Mesh(new T.TubeGeometry(c,16,.022,10),G));
+  const c2=new T.CatmullRomCurve3([V(s2*.04,.24,-.3),V(s2*.2,.12,-.18),V(s2*.38,.02,-.08)]);TR.add(new T.Mesh(new T.TubeGeometry(c2,16,.022,10),G));
+  for(const z of[-.86,-.08]){const f=new T.Mesh(new T.CylinderGeometry(.035,.04,.025,16),Bk);f.position.set(s2*.37,.012,z);TR.add(f)}}
+ const bd=new T.Mesh(new T.BoxGeometry(.1,.18,.38),G);bd.position.set(.0,.21,-.45);TR.add(bd);
+ const led=new T.Mesh(new T.BoxGeometry(.004,.03,.08),new T.MeshBasicMaterial({color:0x37e07a,toneMapped:false}));led.position.set(-.052,.26,-.36);TR.add(led);
+ const hdl=new T.Mesh(new T.TorusGeometry(.05,.012,8,20,Math.PI),Bk);hdl.position.set(0,.31,-.66);hdl.rotation.x=-Math.PI/2;TR.add(hdl);
+ TR.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=true})}
+// ombres douces sous le home trainer et le bureau
+{const sh=cv2(128,128,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);gr.addColorStop(0,'rgba(0,0,0,.45)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,w,h)});
+ for(const[x,z,a,b]of[[0,-.45,.9,.8],[0,3.1,2.8,1.1],[-3.2,3,.6,.6]]){const m=new T.Mesh(new T.PlaneGeometry(a,b),new T.MeshBasicMaterial({map:sh,transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x,.017,z);RM.add(m)}}
+// reflets : environnement propre à la pièce (calculé une fois, au premier affichage de l'accueil)
+let ROOMENV=null;function roomEnv(){if(ROOMENV!==null)return ROOMENV;ROOMENV=false;try{const s=new T.Scene(),b=new T.Mesh(new T.BoxGeometry(7.6,3,9.2),new T.MeshBasicMaterial({color:0x6d6a64,side:T.BackSide}));b.position.set(0,1.5,-.9);s.add(b);
+  const add=(w,h,x,y,z,ry,rx,c)=>{const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({color:c,side:T.DoubleSide}));m.position.set(x,y,z);m.rotation.set(rx||0,ry,0);s.add(m)};
+  add(1.7,1.3,-3.75,1.57,.2,Math.PI/2,0,0xe9f2ff);add(1.2,.3,0,2.96,.2,0,Math.PI/2,0xfff1d6);add(7.6,9.2,0,.01,-.9,0,-Math.PI/2,0x5a4130);add(7.6,3,0,1.5,3.58,Math.PI,0,0x22384a);add(1.24,.68,0,1.22,3.36,Math.PI,0,0x6f9fd0);
+  if(!pmrem)pmrem=new T.PMREMGenerator(ren);ROOMENV=pmrem.fromScene(s,0,.1,30).texture}catch(e){console.warn('env pièce',e);ROOMENV=false}return ROOMENV}
 RM.visible=false;
 
 // ====================== navigation sur le réseau : déplacement, carrefours (écran partagé), itinéraire GPX ======================
@@ -7242,7 +7473,7 @@ async function strUpload(fit,name,desc,onStep){const tok=await strAccess();const
  return j.activity_id}
 // ---- historique des sorties complètes (IndexedDB « velo3d-rides ») : export .fit, Strava, analyse, à tout moment ----
 const RDB={p:null};
-function rdb(){return RDB.p||(RDB.p=new Promise((ok,ko)=>{try{const q=indexedDB.open('velo3d-rides',1);q.onupgradeneeded=()=>q.result.createObjectStore('r',{keyPath:'t0'});q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)}catch(e){ko(e)}}))}
+function rdb(){return RDB.p||(RDB.p=new Promise((ok,ko)=>{try{const q=indexedDB.open(PROF.db(),1);q.onupgradeneeded=()=>q.result.createObjectStore('r',{keyPath:'t0'});q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)}catch(e){ko(e)}}))}
 async function rdbDo(mode,f){const db=await rdb();return new Promise((ok,ko)=>{const tx=db.transaction('r',mode),r=f(tx.objectStore('r'));tx.oncomplete=()=>ok(r&&r.result);tx.onerror=()=>ko(tx.error)})}
 function rideStore(R,n){if(!R||!R.pts||R.pts.length<10)return;rdbDo('readwrite',st=>st.put({t0:R.t0,mode:R.mode,asc:Math.round(R.asc||0),wkn:R.wkn||'',n:n||R.n||'',
  bl:R.bl||null,p:R.pts.map(q=>[q.t,+q.lat.toFixed(6),+q.lon.toFixed(6),+(+q.alt).toFixed(1),+(+q.dist).toFixed(1),+(+q.spd).toFixed(2),q.pw,q.hr,q.cad])})).catch(e=>say('Historique : sortie non gardée ('+e.message+')'))}
@@ -7280,7 +7511,7 @@ function offerStrava(R){const S=rideSummary(R),fit=fitEncode(R),d=new Date(R.t0)
  btn.push(['✉️ Envoyer par mail',()=>mailRide(R,S)],['Télécharger le .fit',()=>downloadFit(fit,fname)],['Ne pas envoyer',()=>{}]);
  finShow(R,S,btn)}
 // ---- export par mail (15 nov. 2026, demande de Cyril) : adresse prérenseignée, résumé, et image du graphique (séance : blocs + puissance réelle) ----
-const MAIL_TO='cyril.boisset@gmail.com';
+const MAIL0='cyril.boisset@gmail.com';let MAIL_TO=(()=>{const a=PROF.me();return a.mail!=null?a.mail:(PROF.cur==='p1'?MAIL0:'')})();// adresse propre à chaque compte (Réglages → Comptes)
 function rideGraphCanvas(R,S,A){const sea=R.mode==='wk',p=R.pts,n=p.length,W=1200,H=sea?700:640,k=mkCanvas(W,H),g=k.getContext('2d'),F="'Space Grotesk',system-ui,sans-serif",C="'Barlow Condensed','Arial Narrow',sans-serif";
  g.fillStyle='#0f0e0d';g.fillRect(0,0,W,H);const gl=g.createRadialGradient(W,0,0,W,0,W*.7);gl.addColorStop(0,'rgba(240,207,115,.16)');gl.addColorStop(1,'rgba(240,207,115,0)');g.fillStyle=gl;g.fillRect(0,0,W,H);
  g.fillStyle='#f0cf73';g.fillRect(0,0,6,H);
@@ -12277,6 +12508,7 @@ const RS2={cad:0,P:0,v:0,g:0,coast:false,stand:false,tuck:false,steer:0,cside:0,
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;if(!N)return;fA+=((now-(loop.p||now))-fA)*.05;loop.p=now;
  const hm=mode==='home',riding=mode==='ride'||mode==='wk';RM.visible=TR.visible=hm;WORLD.visible=!hm;sky.visible=!hm;clouds.visible=!hm&&!!QP.clouds&&SHW('clouds');stars.visible=!hm&&DAYF<.6;moon.visible=!hm&&MD.y>-.04;sc.background=hm?BGC:null;sc.fog.density=hm?0:1/42000;
  if(SPACE.on&&!hm){sky.visible=clouds.visible=stars.visible=moon.visible=false;sc.fog.density=0}
+ {const ev=hm?roomEnv():null,ew=envRT&&envRT.texture,e2=ev||ew;if(e2&&sc.environment!==e2)sc.environment=e2}
  RIDER.bike.wr.visible=!hm;
  GU.uTime.value=now/1000;
  let P=conn?pw:+$('dem').value;
@@ -12374,7 +12606,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
   $('vk').textContent=SES.on?nf(SES.kcal):'0';$('vp').style.color=mode==='explore'?'':ZN[zi(P/FTP)][1];// puissance colorée selon la zone
   if(BIGM.on&&now-BIGM.t>300){BIGM.t=now;drawBig()}
   nearWater=DATA.n.w?clamp(1-((()=>{let m=1e9;for(const o of[-30,0,30]){const w=waterAt(x-tz*o,z+tx*o);if(w>.3)m=Math.min(m,Math.abs(o))}return m})())/60,0,1):0}
- firstFrames++;renderScene()}
+ firstFrames++;let irr=false;if(IN.on){try{irr=introFrame(dt,now)}catch(e){console.warn('film d\'ouverture',e);introEnd()}}if(!irr)renderScene()}
 // résolution adaptative (partagée avec le vélodrome)
 function dprTick(now){
  if(now-dprT>2500){dprT=now;const fps=1000/fA,mn=Math.min(QP.minPR||.75,PRMAX())*(SET.autoQ!==0&&QK==='tab'&&AQ.low?.75:1);
@@ -12446,19 +12678,132 @@ $('map').onclick=()=>bigMapToggle();$('bmap').onpointerdown=e=>{e.preventDefault
 $('bmap').onwheel=e=>{BIGM.zoom=clamp(BIGM.zoom*Math.exp(-e.deltaY*.001),.3,4);drawBig();e.preventDefault()};
 addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;if((e.key==='m'||e.key==='M')&&mode!=='home')bigMapToggle();else if(e.key==='Escape'&&BIGM.on)bigMapToggle(false)});
 addEventListener('resize',()=>{if(BIGM.on)bigMapToggle(true)});
+// ====================== film d'ouverture « le grand dézoom » (18 nov. 2026, demande de Cyril) ======================
+// Un seul recul de caméra, sans coupe visible : grain de la jante → roue → virage en descente → vue du ciel → vallée → région → la Terre,
+// et la Terre n'était que l'écran du bureau, dans la pièce où le cycliste roule sur son home trainer. Tout est calculé par le moteur 3D
+// (vrai vélo, vrai cycliste, vrai relief et vraies photos du parcours actif) ; seul le globe est ajouté (tuiles ArcGIS z3, sinon globe stylisé).
+// Toucher l'écran = passer. Ensuite : page « Qui roule ? ». Désactivable : Réglages → Préférences (clé partagée v3intro).
+const IN={on:false,t:0,wait:0,ph:null,seq:[],sk:0};
+const INTRO_P=[// [clé, durée en s]
+ ['macro',1.1],['back',2.4],['crn',2.6],['rise',2.1],['val',2.1],['reg',2.0],['globe',2.6],['room',4.6]];
+function introWanted(){try{if(sessionStorage.v3skip){delete sessionStorage.v3skip;return 0}}catch(e){}try{return localStorage.v3intro==='0'?1:2}catch(e){return 2}}
+function introGo(){const w=introWanted();if(!w)return;if(w===1){accOpen();return}introStart()}
+function introStart(){if(IN.on)return;Object.assign(IN,{on:true,t:0,wait:0,ph:null,sk:0,fov:cam.fov,tod:SET.tod,ready:false,t0:performance.now(),lean:0});
+ let o=$('intro');if(!o){o=document.createElement('div');o.id='intro';o.innerHTML='<div class="fl"></div><div class="lb t"></div><div class="lb b"></div><div class="sc"></div><div class="tt">TOUT LE MONDE. <span>DEPUIS TON SALON.</span><small>VIRTUAL CYCLING TRAINING</small></div><div class="sk">Toucher pour passer ›</div>';document.body.appendChild(o)}
+ o.style.display='block';o.querySelector('.tt').classList.remove('on');o.querySelector('.fl').style.cssText='opacity:1;background:#000';
+ o.onpointerdown=e=>{e.preventDefault();introEnd()};document.body.classList.add('intro');
+ IN.keyH=e=>{if(e.key==='Escape'||e.key===' '||e.key==='Enter')introEnd()};addEventListener('keydown',IN.keyH);
+ // la Terre : chargement des tuiles pendant le film
+ introGlobe();
+ // virage le plus marqué (en descente de préférence) dans les 3 premiers km devant le cycliste
+ IN.world=!!(COURSE&&NET.ready&&RID&&NET.E[RID.e]);IN.seq=IN.world?(SPACE.on?INTRO_P.filter(p=>!['val','reg'].includes(p[0])):INTRO_P):INTRO_P.filter(p=>['globe','room'].includes(p[0]));
+ if(IN.world){const E=NET.E[RID.e],d=RID.dir,P={};let best=-1,bu=RID.u;IN.rid={e:RID.e,u:RID.u,dir:RID.dir};
+  for(let s=90;s<3000;s+=10){const u=RID.u+d*s;if(u<70||u>E.len-110)continue;let k=0;for(let j=-30;j<=30;j+=5){posAt(RID.e,u+d*j,d,P);k+=P.da}
+   posAt(RID.e,u,d,P);const sc=Math.abs(k)*(P.g<-.02?1.4:1)/(1+s/2500);if(sc>best){best=sc;bu=u}}
+  IN.u0=bu;IN.e=RID.e;IN.d=d;IN.v=13;RID.u=bu;// le monde se charge autour du virage
+  IN.ap=(INTRO_P[0][1]+INTRO_P[1][1]+INTRO_P[2][1]*.55)}// instant du passage au sommet du virage
+ SET.tod='afternoon';todApply();IN.skT=0}
+function introEnd(){if(!IN.on)return;IN.on=false;const o=$('intro');o.onpointerdown=null;removeEventListener('keydown',IN.keyH);
+ if(IN.rid)Object.assign(RID,IN.rid);RNEAR=.25;cam.fov=IN.fov;cam.updateProjectionMatrix();CAM.snap=true;SET.tod=IN.tod;todApply();
+ if(IN.mon)IN.mon.material.map=MT2,IN.mon.material.needsUpdate=true;
+ const fl=o.querySelector('.fl');fl.style.transition='opacity .45s';fl.style.background='#000';fl.style.opacity=1;
+ setTimeout(()=>{document.body.classList.remove('intro');o.style.display='none';fl.style.transition='';accOpen()},460)}
+// ---- le globe ----
+function introGlobe(){if(IN.G)return;const G=IN.G={sc:new T.Scene(),cam:new T.PerspectiveCamera(32,16/9,.01,100)};
+ const cv=document.createElement('canvas');cv.width=cv.height=2048;const g=cv.getContext('2d');
+ // globe de secours (hors ligne) : océan profond + quadrillage doré
+ const gr=g.createLinearGradient(0,0,0,2048);gr.addColorStop(0,'#0b1f3a');gr.addColorStop(.5,'#0f3460');gr.addColorStop(1,'#0b1f3a');g.fillStyle=gr;g.fillRect(0,0,2048,2048);
+ g.strokeStyle='rgba(240,207,115,.25)';g.lineWidth=2;for(let i=0;i<=16;i++){g.beginPath();g.moveTo(i*128,0);g.lineTo(i*128,2048);g.stroke();g.beginPath();g.moveTo(0,i*128);g.lineTo(2048,i*128);g.stroke()}
+ const tx=new T.CanvasTexture(cv);tx.minFilter=T.LinearFilter;tx.generateMipmaps=false;G.tx=tx;let n=0;
+ for(let y=0;y<8;y++)for(let x=0;x<8;x++){const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{g.drawImage(im,x*256,y*256);if(++n%8===0||n===64)tx.needsUpdate=true};
+  im.src='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/3/'+y+'/'+x}
+ const U={map:{value:tx},sun:{value:new T.Vector3(-.55,.35,.75).normalize()}};
+ const m=new T.ShaderMaterial({uniforms:U,vertexShader:'varying vec3 vP;varying vec3 vN;varying vec3 vW;void main(){vP=normalize(position);vN=normalize(normalMatrix*normal);vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
+  fragmentShader:'uniform sampler2D map;uniform vec3 sun;varying vec3 vP;varying vec3 vN;varying vec3 vW;void main(){float la=asin(clamp(vP.y,-1.,1.)),lo=atan(-vP.z,vP.x);la=clamp(la,-1.48,1.48);'+
+   'float u=(lo+3.14159265)/6.2831853,v=.5-log(tan(.785398+la*.5))/6.2831853;vec3 c=texture2D(map,vec2(u,1.-v)).rgb;'+
+   'vec3 n=normalize(vW);float d=dot(n,sun);float day=smoothstep(-.12,.25,d);vec3 V=normalize(cameraPosition-vW);float fr=pow(1.-max(dot(n,V),0.),3.);'+
+   'float sea=step(c.b,c.r*.9+.08)<.5?1.:0.;vec3 H=normalize(sun+V);float sp=pow(max(dot(n,H),0.),40.)*.5*sea*day;'+
+   'vec3 col=c*(.06+1.05*day)+vec3(.35,.6,1.)*fr*.55*(.25+day)+sp;gl_FragColor=vec4(col,1.);}'});
+ G.earth=new T.Mesh(new T.SphereGeometry(1,96,64),m);G.sc.add(G.earth);
+ const at=new T.Mesh(new T.SphereGeometry(1.06,64,40),new T.ShaderMaterial({uniforms:{sun:U.sun},transparent:true,depthWrite:false,side:T.BackSide,blending:T.AdditiveBlending,
+  vertexShader:'varying vec3 vN;varying vec3 vW;void main(){vN=normalize(mat3(modelMatrix)*normal);vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
+  fragmentShader:'uniform vec3 sun;varying vec3 vN;varying vec3 vW;void main(){vec3 V=normalize(cameraPosition-vW);float r=pow(max(0.,.78-dot(-vN,V)),2.4)*1.9;float d=smoothstep(-.4,.5,dot(normalize(vW),sun));gl_FragColor=vec4(vec3(.35,.62,1.)*r*(.25+d),r);}'}));
+ G.sc.add(at);
+ // étoiles
+ const sp=[];for(let i=0;i<1800;i++){const a=Math.random()*6.283,b=Math.acos(2*Math.random()-1),r=40;sp.push(r*Math.sin(b)*Math.cos(a),r*Math.cos(b),r*Math.sin(b)*Math.sin(a))}
+ const sg=new T.BufferGeometry();sg.setAttribute('position',new T.Float32BufferAttribute(sp,3));G.sc.add(new T.Points(sg,new T.PointsMaterial({color:0xffffff,size:.07,sizeAttenuation:true,transparent:true,opacity:.85})));
+ // parcours du compte : un point doré par parcours, le parcours actif clignote
+ const ll=[];try{for(const c of JSON.parse(localStorage.v3crs||'[]')){const p=(c.pts||'').split(';')[0].split(',');if(p.length>1&&!c.gen)ll.push([+p[0],+p[1],c.id===localStorage.v3cur])}}catch(e){}
+ if(!ll.some(q=>q[2])&&COURSE&&!(CRS.cur&&CRS.cur.gen))ll.push([LA,LO0,true]);
+ const dot=new T.CanvasTexture((()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),r=x.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'#fff7d6');r.addColorStop(.25,'#f0cf73');r.addColorStop(1,'rgba(240,207,115,0)');x.fillStyle=r;x.fillRect(0,0,64,64);return c})());
+ G.mk=[];for(const[la,lo,cur]of ll){const s=new T.Sprite(new T.SpriteMaterial({map:dot,transparent:true,depthWrite:false,blending:T.AdditiveBlending}));s.position.copy(llVec(la,lo,1.004));s.scale.setScalar(cur?.05:.03);s.userData.cur=cur;G.sc.add(s);G.mk.push(s)}
+ G.home=ll.find(q=>q[2])||[LA,LO0];
+ G.rt=new T.WebGLRenderTarget(1024,560);G.rt.texture.encoding=T.sRGBEncoding}
+function llVec(la,lo,r){const a=la*Math.PI/180,b=lo*Math.PI/180;return new T.Vector3(r*Math.cos(a)*Math.cos(b),r*Math.sin(a),-r*Math.cos(a)*Math.sin(b))}
+function introGlobeCam(s){// s : 0 → 1 pendant le recul ; la France reste au centre puis la Terre entière apparaît
+ const G=IN.G,[la,lo]=G.home,d=lerp(1.09,3.7,Math.pow(s,1.5)),c=G.cam,h=llVec(la+lerp(0,-14,s),lo+lerp(0,28,s),1);
+ c.position.copy(h).multiplyScalar(d);const tg=llVec(la,lo,1).multiplyScalar(1-sm(0,.7,s));c.up.set(0,1,0);c.lookAt(tg);c.fov=32;c.updateProjectionMatrix();
+ const ph=performance.now()/1000;for(const m of G.mk)if(m.userData.cur)m.scale.setScalar((.045+.02*Math.sin(ph*5))*lerp(.5,1.6,s))}
+const _iv=new T.Vector3(),_iw=new T.Vector3();
+function introFmt(m){return m<1?Math.round(m*100)+' cm':m<1000?Math.round(m)+' m':nf(Math.round(m/1000))+' km'}
+// appelée par loop() juste avant le rendu ; renvoie true si elle a fait le rendu elle-même
+function introFrame(dt,now){const o=$('intro'),fl=o.querySelector('.fl'),sc2=o.querySelector('.sc');
+ if(!IN.ready){// attendre relief + données près du virage (10 s au plus), écran noir
+  IN.wait+=dt;const lv=$('lv');if(lv&&lv.style.display==='flex'){IN.wait=0;return false}
+  const ok=!IN.world||SPACE.on?IN.wait>1.2:(DEMOK&&tileReady(R.position.x,R.position.z)&&JOBS.length<60&&IN.wait>1.5);if(ok||IN.wait>10){IN.ready=true;IN.t=0}else{sc2.textContent=IN.wait>2?'chargement du paysage…':'';return false}}
+ IN.t+=Math.min(dt,.05);let t=IN.t,k=0,t0=0;while(k<IN.seq.length&&t>t0+IN.seq[k][1]){t0+=IN.seq[k][1];k++}
+ if(k>=IN.seq.length){introEnd();return false}
+ const ph=IN.seq[k][0],s=(t-t0)/IN.seq[k][1];
+ fl.style.background=ph==='globe'&&s<.12||ph==='reg'&&s>.9?'#fff':'#000';
+ fl.style.opacity=t<.6?1-t/.6:ph==='reg'&&s>.9?(s-.9)*10:ph==='globe'&&s<.12?1-s/.12:ph==='room'&&s>.93?(s-.93)/.07:0;
+ if(ph==='globe'||ph==='room'){introGlobeCam(ph==='globe'?s*.82:.82+s*.18);
+  if(ph==='globe'){ren.setRenderTarget(null);ren.render(IN.G.sc,IN.G.cam);sc2.textContent='la Terre';return true}
+  // retour dans la pièce : le globe passe sur l'écran du bureau
+  if(!IN.mon){IN.mon=RM.children.find(q=>q.material&&q.material.map===MT2)}
+  if(IN.mon&&IN.mon.material.map!==IN.G.rt.texture){IN.mon.material.map=IN.G.rt.texture;IN.mon.material.needsUpdate=true}
+  ren.setRenderTarget(IN.G.rt);ren.render(IN.G.sc,IN.G.cam);ren.setRenderTarget(null);
+  const e=1-Math.pow(1-s,2.2),a=_iv.set(0,1.22,3.375-.52),b=_iw.set(1.85,1.62,-2.5);cam.position.lerpVectors(a,b,e);cam.position.x+=Math.sin(Math.PI*e)*.9;cam.position.y+=Math.sin(Math.PI*e)*.15;
+  const lk=V(0,1.22,3.375).lerp(V(0,1.0,1.4),sm(.1,.9,e));cam.lookAt(lk);cam.fov=lerp(50,52,e);RNEAR=.05;cam.updateProjectionMatrix();cam.updateMatrixWorld();
+  o.querySelector('.tt').classList.toggle('on',s>.32);sc2.textContent=s<.3?'ton salon':'';return false}
+ // ---- dans le monde du parcours ----
+ const P=_PS2;const u=IN.u0+IN.d*IN.v*(t-IN.ap),E=NET.E[IN.e];posAt(IN.e,clamp(u,0,E.len),IN.d,P);
+ const tx=P.tx,tz=P.tz,lat=1.3,x=P.x-tz*lat,z=P.z+tx*lat,y=P.y+roadLift(IN.e,P.i,lat);
+ let kk=0;for(let j=-10;j<=10;j+=5){const Q=posAt(IN.e,clamp(u+IN.d*j,0,E.len),IN.d,_PS3);kk+=Q.da}kk/=5;
+ const lt=-clamp(Math.atan(IN.v*IN.v*kk/9.81),-.6,.6);IN.lean+=(lt-IN.lean)*Math.min(1,dt*5);const ln=IN.lean;
+ WORLD.visible=true;RM.visible=TR.visible=false;sc.background=null;sc.fog.density=SPACE.on?0:1/42000;sky.visible=!SPACE.on;clouds.visible=!SPACE.on&&!!QP.clouds&&SHW('clouds');stars.visible=!SPACE.on&&DAYF<.6;
+ RIDER.bike.wr.visible=true;if(envRT)sc.environment=envRT.texture;R.position.set(x,y,z);R.rotation.set(-Math.atan(P.g),Math.atan2(tx,tz),ln*.92);
+ riderAnim(dt,{cad:0,P:0,v:IN.v,g:P.g,coast:true,stand:false,tuck:false,steer:clamp(ln*1.8,-1,1),cside:Math.abs(ln)>.12?Math.sign(ln):0,blean:ln*.26,hyaw:clamp(-ln*.55,-.3,.3)});
+ if(now-IN.skT>1500){IN.skT=now;skyUpdate(LA,LO0);IN.ld=LD.clone();IN.si=SUNL.intensity;IN.sc=SUNL.color.clone();IN.hl=HL.intensity}
+ if(IN.ld){LD.copy(IN.ld);SUNL.intensity=IN.si;SUNL.color.copy(IN.sc);HL.intensity=IN.hl}
+ shadowFollow(R.position);
+ R.updateMatrixWorld(true);const fw=V(tx,0,tz),lf=V(tz,0,-tx),F=(a,b,c)=>R.position.clone().addScaledVector(lf,a).add(V(0,b,0)).addScaledVector(fw,c);
+ let cp,lk,fov=40;RNEAR=.25;
+ if(ph==='macro'||ph==='back'){const q=ph==='macro'?s*.12:.12+.88*s,e=q*q*(3-2*q);
+  // depuis 13 cm du flanc de la roue avant jusqu'au trois-quarts avant du vélo
+  const d=.16*Math.pow(4.5/.16,e),an=lerp(.18,.85,e);cp=F(-Math.sin(an)*d*.9-.1*(1-e),lerp(.2,1.25,e),.62+Math.cos(an)*d);lk=F(0,lerp(.14,.85,e),lerp(.6,.2,e));fov=lerp(20,38,e);RNEAR=lerp(.012,.2,e)}
+ else if(ph==='crn'){// caméra plantée au bord, à l'extérieur du virage : le cycliste passe en trombe
+  if(!IN.cw){const cl=w=>clamp(IN.u0+IN.d*w,0,E.len),A=posAt(IN.e,cl(-12),IN.d,{}),B=posAt(IN.e,cl(12),IN.d,{}),Pa=posAt(IN.e,cl(14),IN.d,{});let ix=B.tx-A.tx,iz=B.tz-A.tz,l=Math.hypot(ix,iz);if(l<.05){ix=Pa.tz;iz=-Pa.tx}else{ix/=l;iz/=l}
+   const ox=Pa.x-ix*5.2,oz=Pa.z-iz*5.2;IN.cw=V(ox,Math.max(hT(ox,oz),Pa.y)+.9,oz);IN.cs=cam.position.clone()}
+  const w=sm(0,.3,s);cp=IN.cs.clone().lerp(IN.cw,w);lk=F(0,.9,lerp(1.5,0,s));fov=lerp(38,46,s)}
+ else{const q=ph==='rise'?s:ph==='val'?1+s:2+s,hgt=[2.2,260,2600,14000],j=Math.min(2,Math.floor(q)),f=q-j,ef=f*f*(3-2*f),H2=hgt[j]*Math.pow(hgt[j+1]/hgt[j],ef);
+  const bk=H2*lerp(.25,1.1,sm(0,2.5,q)),sd=H2*.35*sm(.5,3,q);cp=F(sd,H2,-bk);if(IN.cw&&ph==='rise'&&s<.25)cp.lerp(IN.cw,1-s/.25);
+  lk=R.position.clone().addScaledVector(fw,H2*.05);fov=lerp(46,55,sm(0,1,q))}
+ cam.position.copy(cp);cam.up.set(0,1,0);cam.lookAt(lk);cam.fov=fov;cam.updateProjectionMatrix();cam.updateMatrixWorld();skyFollow();TU.uCam.value.copy(cam.position);
+ sc2.textContent=introFmt(cam.position.distanceTo(R.position));return false}
+const _PS2={},_PS3={};
 // ---- démarrage ----
 {landVeil();ftpLog(FTP);$('ftp').value=FTP;R.add(TR);progTick(true);applyKit();hudApply();todApply();wxApply();nav('home');rs();initNPCs();if(!NET.ready)initNetwork();if(!NOVEG&&!TREEG.b)initTreeGeos();
  // dernier parcours choisi (ou ancien GPX) ; sinon le monde attend qu'un parcours soit choisi
  let okC=false;try{for(const k of['v3gpxe','v3gpxn','v3gpx'])delete localStorage[k];if(CRS.cur)okC=setCourse(NET.E.map(E=>[E.id,1]),CRS.cur.name)}catch(e){console.warn('parcours',e)}
  if(!okC)ldSet('crs','Aucun parcours : Rouler → Importer un GPX',0);
- recOfferSaved();netCheck();try{if(localStorage.v3diag==='1')diagStart()}catch(e){}requestAnimationFrame(loop)}
+ afterAcc(recOfferSaved);netCheck();try{if(localStorage.v3diag==='1')diagStart()}catch(e){}requestAnimationFrame(loop);try{introGo()}catch(e){console.warn('film',e)}if(PROF.switched)setTimeout(()=>say('Compte : '+PROF.me().name),1500);if(PROF.err)setTimeout(()=>say(PROF.err),1500)}
 // accès Internet et Bluetooth : un aperçu de fichier (appli Claude, gestionnaire de fichiers…) bloque souvent les deux
 async function netCheck(){let net=false;try{await fetchT('https://s3.amazonaws.com/elevation-tiles-prod/terrarium/0/0/0.png',{},12000);net=true}catch(e){}
  const bt=!!navigator.bluetooth;if(net&&bt)return;
  if(!net)ldSet('net',navigator.onLine===false?'Pas de connexion Internet : relief, photos et bâtiments simulés':'Internet bloqué ici : ouvre le fichier dans Chrome',-1);
  if(!bt)ldSet('bt','Bluetooth indisponible ici : home trainer et cardio impossibles',-1);
  if(navigator.onLine===false)return;
- while($('res').style.display==='block')await new Promise(ok=>setTimeout(ok,1500));// ne pas masquer une autre fenêtre (sortie interrompue…)
+ while($('res').style.display==='block'||accBusy())await new Promise(ok=>setTimeout(ok,1500));// ne pas masquer une autre fenêtre (sortie interrompue…)
  mod('⚠️ Ce navigateur bloque '+(!net&&!bt?'Internet et le Bluetooth':!net?'Internet':'le Bluetooth')+'<br><small style="display:block;text-align:left;margin-top:8px;line-height:1.5">'+
   (!net?'Sans Internet : relief, photos aériennes et bâtiments sont <span style="font-weight:800;color:#fff">simulés</span>.<br>':'')+(!bt?'Sans Bluetooth : le home trainer et la ceinture cardio ne peuvent pas se connecter.<br>':'')+
   '<br><span style="font-weight:800;color:#fff">Solution :</span><br>1. Si le fichier est ouvert dans un aperçu (appli Claude, Fichiers…), touche ⬇ pour le <span style="font-weight:800;color:#fff">télécharger</span>.<br>2. Ouvre l\'appli <span style="font-weight:800;color:#fff">Fichiers</span> → Téléchargements.<br>3. Appui long sur <span style="font-weight:800;color:#fff">Index.html</span> → Ouvrir avec → <span style="font-weight:800;color:#fff">Chrome</span>.</small>',[['Compris',()=>{}]])}
