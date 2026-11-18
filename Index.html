@@ -12688,7 +12688,7 @@ const INTRO_P=[// [clé, durée en s]
  ['macro',1.1],['back',2.4],['crn',2.6],['rise',2.1],['val',2.1],['reg',2.0],['globe',2.6],['room',4.6]];
 function introWanted(){try{if(sessionStorage.v3skip){delete sessionStorage.v3skip;return 0}}catch(e){}try{return localStorage.v3intro==='0'?1:2}catch(e){return 2}}
 function introGo(){const w=introWanted();if(!w)return;if(w===1){accOpen();return}introStart()}
-function introStart(){if(IN.on)return;Object.assign(IN,{on:true,t:0,wait:0,ph:null,sk:0,fov:cam.fov,tod:SET.tod,ready:false,t0:performance.now(),lean:0});
+function introStart(){if(IN.on)return;Object.assign(IN,{on:true,t:0,wait:0,ph:null,sk:0,cw:null,lc:null,mon:IN.mon,fov:cam.fov,tod:SET.tod,ready:false,t0:performance.now(),lean:0});
  let o=$('intro');if(!o){o=document.createElement('div');o.id='intro';o.innerHTML='<div class="fl"></div><div class="lb t"></div><div class="lb b"></div><div class="sc"></div><div class="tt">TOUT LE MONDE. <span>DEPUIS TON SALON.</span><small>VIRTUAL CYCLING TRAINING</small></div><div class="sk">Toucher pour passer ›</div>';document.body.appendChild(o)}
  o.style.display='block';o.querySelector('.tt').classList.remove('on');o.querySelector('.fl').style.cssText='opacity:1;background:#000';
  o.onpointerdown=e=>{e.preventDefault();introEnd()};document.body.classList.add('intro');
@@ -12779,16 +12779,18 @@ function introFrame(dt,now){const o=$('intro'),fl=o.querySelector('.fl'),sc2=o.q
  R.updateMatrixWorld(true);const fw=V(tx,0,tz),lf=V(tz,0,-tx),F=(a,b,c)=>R.position.clone().addScaledVector(lf,a).add(V(0,b,0)).addScaledVector(fw,c);
  let cp,lk,fov=40;RNEAR=.25;
  if(ph==='macro'||ph==='back'){const q=ph==='macro'?s*.12:.12+.88*s,e=q*q*(3-2*q);
-  // depuis 13 cm du flanc de la roue avant jusqu'au trois-quarts avant du vélo
-  const d=.16*Math.pow(4.5/.16,e),an=lerp(.18,.85,e);cp=F(-Math.sin(an)*d*.9-.1*(1-e),lerp(.2,1.25,e),.62+Math.cos(an)*d);lk=F(0,lerp(.14,.85,e),lerp(.6,.2,e));fov=lerp(20,38,e);RNEAR=lerp(.012,.2,e)}
+  // depuis ~12 cm du haut de la jante avant (logo qui défile) jusqu'au trois-quarts avant du vélo : recul exponentiel
+  const l0=F(0,.5,.66),l1=F(0,.95,.25),c0=F(-.11,.53,.79),c1=F(-2.5,1.35,3.5);lk=l0.clone().lerp(l1,e);
+  const d0=c0.distanceTo(l0),d1=c1.distanceTo(l1),dv=c0.clone().sub(l0).normalize().lerp(c1.clone().sub(l1).normalize(),e).normalize();
+  cp=lk.clone().addScaledVector(dv,d0*Math.pow(d1/d0,e));fov=lerp(24,38,e);RNEAR=lerp(.012,.2,e)}
  else if(ph==='crn'){// caméra plantée au bord, à l'extérieur du virage : le cycliste passe en trombe
   if(!IN.cw){const cl=w=>clamp(IN.u0+IN.d*w,0,E.len),A=posAt(IN.e,cl(-12),IN.d,{}),B=posAt(IN.e,cl(12),IN.d,{}),Pa=posAt(IN.e,cl(14),IN.d,{});let ix=B.tx-A.tx,iz=B.tz-A.tz,l=Math.hypot(ix,iz);if(l<.05){ix=Pa.tz;iz=-Pa.tx}else{ix/=l;iz/=l}
-   const ox=Pa.x-ix*5.2,oz=Pa.z-iz*5.2;IN.cw=V(ox,Math.max(hT(ox,oz),Pa.y)+.9,oz);IN.cs=cam.position.clone()}
+   const ox=Pa.x-ix*5.2,oz=Pa.z-iz*5.2;IN.cw=V(ox,Math.max(hT(ox,oz),Pa.y)+.9,oz);IN.cs=(IN.lc||cam.position).clone()}
   const w=sm(0,.3,s);cp=IN.cs.clone().lerp(IN.cw,w);lk=F(0,.9,lerp(1.5,0,s));fov=lerp(38,46,s)}
  else{const q=ph==='rise'?s:ph==='val'?1+s:2+s,hgt=[2.2,260,2600,14000],j=Math.min(2,Math.floor(q)),f=q-j,ef=f*f*(3-2*f),H2=hgt[j]*Math.pow(hgt[j+1]/hgt[j],ef);
   const bk=H2*lerp(.25,1.1,sm(0,2.5,q)),sd=H2*.35*sm(.5,3,q);cp=F(sd,H2,-bk);if(IN.cw&&ph==='rise'&&s<.25)cp.lerp(IN.cw,1-s/.25);
   lk=R.position.clone().addScaledVector(fw,H2*.05);fov=lerp(46,55,sm(0,1,q))}
- cam.position.copy(cp);cam.up.set(0,1,0);cam.lookAt(lk);cam.fov=fov;cam.updateProjectionMatrix();cam.updateMatrixWorld();skyFollow();TU.uCam.value.copy(cam.position);
+ cam.position.copy(cp);IN.lc=(IN.lc||V(0,0,0)).copy(cp);cam.up.set(0,1,0);cam.lookAt(lk);cam.fov=fov;cam.updateProjectionMatrix();cam.updateMatrixWorld();skyFollow();TU.uCam.value.copy(cam.position);
  sc2.textContent=introFmt(cam.position.distanceTo(R.position));return false}
 const _PS2={},_PS3={};
 // ---- démarrage ----
