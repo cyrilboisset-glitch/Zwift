@@ -12584,7 +12584,8 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  if(riding)recTick(now,P,R.position.x,R.position.z,y);
  // lumière, ciel
  if(now-skT>1500){skT=now;skyUpdate(LA,LO0);if(SPACE.on&&!hm)spaceLight();GU.uNight.value=sm(.25,.85,NIGHT);HEAD.intensity=NIGHT>.3?3.4*NIGHT:0;HEAD.distance=NIGHT>.3?120:70;HEAD.angle=NIGHT>.3?.5:.42}// phare renforcé la nuit
- if(hm){LD.set(-.5,.75,.42).normalize();SUNL.intensity=.55;SUNL.color.setHex(0xfff2dd);HL.intensity=.75;shadowFollow(V(0,0,0))}else shadowFollow(R.position);
+ if(hm){LD.set(-.5,.75,.42).normalize();SUNL.intensity=.55;SUNL.color.setHex(0xfff2dd);HL.intensity=.75;if(!loop.hlc)loop.hlc=[HL.color.clone(),HL.groundColor.clone()];HL.color.setHex(0xfff3e4);HL.groundColor.setHex(0xa08a70);shadowFollow(V(0,0,0))}// pièce : lumière d'ambiance chaude (le « sol » vert du ciel teintait le plafond)
+ else{if(loop.hlc){HL.color.copy(loop.hlc[0]);HL.groundColor.copy(loop.hlc[1]);loop.hlc=null}shadowFollow(R.position)}
  skyFollow();CLU.uT.value=now/1000;
  // niveaux de détail et chargements
  if(SPACE.on){spaceTick(now,hm);villagesTick(now)}else{
@@ -12739,6 +12740,7 @@ function introGlobe(){if(IN.G)return;const G=IN.G={sc:new T.Scene(),cam:new T.Pe
  G.mk=[];for(const[la,lo,cur]of ll){const s=new T.Sprite(new T.SpriteMaterial({map:dot,transparent:true,depthWrite:false,blending:T.AdditiveBlending}));s.position.copy(llVec(la,lo,1.004));s.scale.setScalar(cur?.05:.03);s.userData.cur=cur;G.sc.add(s);G.mk.push(s)}
  G.home=ll.find(q=>q[2])||[LA,LO0];
  G.rt=new T.WebGLRenderTarget(1024,560);G.rt.texture.encoding=T.sRGBEncoding}
+function introGR(rt){const c=ren.getClearColor(new T.Color()),a=ren.getClearAlpha();ren.setRenderTarget(rt);ren.setClearColor(0x02030a,1);ren.clear();ren.render(IN.G.sc,IN.G.cam);ren.setRenderTarget(null);ren.setClearColor(c,a)}
 function llVec(la,lo,r){const a=la*Math.PI/180,b=lo*Math.PI/180;return new T.Vector3(r*Math.cos(a)*Math.cos(b),r*Math.sin(a),-r*Math.cos(a)*Math.sin(b))}
 function introGlobeCam(s){// s : 0 → 1 pendant le recul ; la France reste au centre puis la Terre entière apparaît
  const G=IN.G,[la,lo]=G.home,d=lerp(1.09,3.7,Math.pow(s,1.5)),c=G.cam,h=llVec(la+lerp(0,-14,s),lo+lerp(0,28,s),1);
@@ -12757,11 +12759,11 @@ function introFrame(dt,now){const o=$('intro'),fl=o.querySelector('.fl'),sc2=o.q
  fl.style.background=ph==='globe'&&s<.12||ph==='reg'&&s>.9?'#fff':'#000';
  fl.style.opacity=t<.6?1-t/.6:ph==='reg'&&s>.9?(s-.9)*10:ph==='globe'&&s<.12?1-s/.12:ph==='room'&&s>.93?(s-.93)/.07:0;
  if(ph==='globe'||ph==='room'){introGlobeCam(ph==='globe'?s*.82:.82+s*.18);
-  if(ph==='globe'){ren.setRenderTarget(null);ren.render(IN.G.sc,IN.G.cam);sc2.textContent='la Terre';return true}
+  if(ph==='globe'){IN.G.cam.aspect=innerWidth/Math.max(1,innerHeight);IN.G.cam.updateProjectionMatrix();introGR(null);sc2.textContent='la Terre';return true}
   // retour dans la pièce : le globe passe sur l'écran du bureau
   if(!IN.mon){IN.mon=RM.children.find(q=>q.material&&q.material.map===MT2)}
   if(IN.mon&&IN.mon.material.map!==IN.G.rt.texture){IN.mon.material.map=IN.G.rt.texture;IN.mon.material.needsUpdate=true}
-  ren.setRenderTarget(IN.G.rt);ren.render(IN.G.sc,IN.G.cam);ren.setRenderTarget(null);
+  IN.G.cam.aspect=1024/560;IN.G.cam.updateProjectionMatrix();introGR(IN.G.rt);
   const e=1-Math.pow(1-s,2.2),a=_iv.set(0,1.22,3.375-.52),b=_iw.set(1.85,1.62,-2.5);cam.position.lerpVectors(a,b,e);cam.position.x+=Math.sin(Math.PI*e)*.9;cam.position.y+=Math.sin(Math.PI*e)*.15;
   const lk=V(0,1.22,3.375).lerp(V(0,1.0,1.4),sm(.1,.9,e));cam.lookAt(lk);cam.fov=lerp(50,52,e);RNEAR=.05;cam.updateProjectionMatrix();cam.updateMatrixWorld();
   o.querySelector('.tt').classList.toggle('on',s>.32);sc2.textContent=s<.3?'ton salon':'';return false}
@@ -12774,18 +12776,18 @@ function introFrame(dt,now){const o=$('intro'),fl=o.querySelector('.fl'),sc2=o.q
  RIDER.bike.wr.visible=true;if(envRT)sc.environment=envRT.texture;R.position.set(x,y,z);R.rotation.set(-Math.atan(P.g),Math.atan2(tx,tz),ln*.92);
  riderAnim(dt,{cad:0,P:0,v:IN.v,g:P.g,coast:true,stand:false,tuck:false,steer:clamp(ln*1.8,-1,1),cside:Math.abs(ln)>.12?Math.sign(ln):0,blean:ln*.26,hyaw:clamp(-ln*.55,-.3,.3)});
  if(now-IN.skT>1500){IN.skT=now;skyUpdate(LA,LO0);IN.ld=LD.clone();IN.si=SUNL.intensity;IN.sc=SUNL.color.clone();IN.hl=HL.intensity}
- if(IN.ld){LD.copy(IN.ld);SUNL.intensity=IN.si;SUNL.color.copy(IN.sc);HL.intensity=IN.hl}
+ if(IN.ld){LD.copy(IN.ld);SUNL.intensity=IN.si;SUNL.color.copy(IN.sc);HL.intensity=IN.hl}if(loop.hlc){HL.color.copy(loop.hlc[0]);HL.groundColor.copy(loop.hlc[1])}
  shadowFollow(R.position);
  R.updateMatrixWorld(true);const fw=V(tx,0,tz),lf=V(tz,0,-tx),F=(a,b,c)=>R.position.clone().addScaledVector(lf,a).add(V(0,b,0)).addScaledVector(fw,c);
  let cp,lk,fov=40;RNEAR=.25;
  if(ph==='macro'||ph==='back'){const q=ph==='macro'?s*.12:.12+.88*s,e=q*q*(3-2*q);
   // depuis ~12 cm du haut de la jante avant (logo qui défile) jusqu'au trois-quarts avant du vélo : recul exponentiel
-  const l0=F(0,.5,.66),l1=F(0,.95,.25),c0=F(-.11,.53,.79),c1=F(-2.5,1.35,3.5);lk=l0.clone().lerp(l1,e);
+  const l0=F(0,.36,.94),l1=F(0,.95,.25),c0=F(-.13,.39,1.03),c1=F(-2.5,1.35,3.5);lk=l0.clone().lerp(l1,e);
   const d0=c0.distanceTo(l0),d1=c1.distanceTo(l1),dv=c0.clone().sub(l0).normalize().lerp(c1.clone().sub(l1).normalize(),e).normalize();
   cp=lk.clone().addScaledVector(dv,d0*Math.pow(d1/d0,e));fov=lerp(24,38,e);RNEAR=lerp(.012,.2,e)}
  else if(ph==='crn'){// caméra plantée au bord, à l'extérieur du virage : le cycliste passe en trombe
-  if(!IN.cw){const cl=w=>clamp(IN.u0+IN.d*w,0,E.len),A=posAt(IN.e,cl(-12),IN.d,{}),B=posAt(IN.e,cl(12),IN.d,{}),Pa=posAt(IN.e,cl(14),IN.d,{});let ix=B.tx-A.tx,iz=B.tz-A.tz,l=Math.hypot(ix,iz);if(l<.05){ix=Pa.tz;iz=-Pa.tx}else{ix/=l;iz/=l}
-   const ox=Pa.x-ix*5.2,oz=Pa.z-iz*5.2;IN.cw=V(ox,Math.max(hT(ox,oz),Pa.y)+.9,oz);IN.cs=(IN.lc||cam.position).clone()}
+  if(!IN.cw){const cl=w=>clamp(IN.u0+IN.d*w,0,E.len),A=posAt(IN.e,cl(-12),IN.d,{}),B=posAt(IN.e,cl(12),IN.d,{}),Pa=posAt(IN.e,cl(7),IN.d,{});let ix=B.tx-A.tx,iz=B.tz-A.tz,l=Math.hypot(ix,iz);if(l<.05){ix=Pa.tz;iz=-Pa.tx}else{ix/=l;iz/=l}
+   const ox=Pa.x-ix*3.4,oz=Pa.z-iz*3.4;IN.cw=V(ox,Math.max(hT(ox,oz),Pa.y)+.9,oz);IN.cs=(IN.lc||cam.position).clone()}
   const w=sm(0,.3,s);cp=IN.cs.clone().lerp(IN.cw,w);lk=F(0,.9,lerp(1.5,0,s));fov=lerp(38,46,s)}
  else{const q=ph==='rise'?s:ph==='val'?1+s:2+s,hgt=[2.2,260,2600,14000],j=Math.min(2,Math.floor(q)),f=q-j,ef=f*f*(3-2*f),H2=hgt[j]*Math.pow(hgt[j+1]/hgt[j],ef);
   const bk=H2*lerp(.25,1.1,sm(0,2.5,q)),sd=H2*.35*sm(.5,3,q);cp=F(sd,H2,-bk);if(IN.cw&&ph==='rise'&&s<.25)cp.lerp(IN.cw,1-s/.25);
