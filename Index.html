@@ -2480,6 +2480,17 @@ function boxSmooth(E,r,pass){const n=E.length;if(n<3)return E;const P=Math.min(n
 function altClean(E){const n=E.length,M=new Float32Array(n),w=[];for(let q=0;q<n;q++){w.length=0;for(let m=-4;m<=4;m++)w.push(E[clamp(q+m,0,n-1)]);w.sort((a,b)=>a-b);M[q]=w[4]}
  const S=boxSmooth(Float32Array.from(M),20,2);let r=0;for(let q=0;q<n;q++)r+=(M[q]-S[q])**2;r=Math.sqrt(r/Math.max(1,n));
  E.set(M);return clamp(Math.round(5+r*6),5,16)}
+// passages superposés (19 nov. 2026) : quand le parcours emprunte deux fois la même route (aller-retour, boucle qui repasse), deux chaussées presque
+// confondues avaient des altitudes un peu différentes (lissage, GPS) : le terrain et la bande de bord de l'une recouvraient l'autre. Même altitude
+// pour les deux passages (moyenne), raccord progressif sur ±40 m ; seulement si les deux routes sont à moins de 4,5 m et dans le même axe (pas les ponts).
+function overlapFix(){if(typeof RHM==='undefined'||!RHM||!RHM.size)return 0;const D=new Float32Array(N),M=new Uint8Array(N);let n=0;
+ for(let it=0;it<2;it++){D.fill(0);M.fill(0);
+  for(let i=0;i<N-1;i++){if(!LNK[i])continue;const r=roadQ2(X[i],Z[i],i,EOF[i]);if(!r||r.d>4.5)continue;const j=r.i;if(Math.abs(TX[i]*TX[j]+TZ[i]*TZ[j])<.85)continue;
+   if(Math.abs(r.y-H[i])>25)continue;D[i]=(r.y-H[i])/2;M[i]=1;n++}
+  for(const Ed of NET.E){const i0=Ed.i0,i1=Ed.i1,L=i1-i0+1,S=new Float32Array(L);let any=false;for(let k=0;k<L;k++)if(M[i0+k]){any=true;break}if(!any)continue;
+   for(let k=0;k<L;k++){let s2=0,c=0;for(let q=Math.max(0,k-8);q<=Math.min(L-1,k+8);q++){s2+=D[i0+q];c++}S[k]=s2/c}
+   for(let k=1;k<L-1;k++)H[i0+k]+=S[k]}}
+ return n}
 function finishTrack(demFn){
  for(const Ed of NET.E){const i0=Ed.i0,i1=Ed.i1,n=i1-i0+1,E=E0.slice(i0,i1+1),sig=altClean(E);
   if(demFn){const off=new Float32Array(n);for(let q=0;q<n;q++){const d=demFn(X[i0+q],Z[i0+q]);off[q]=isFinite(d)?d-E[q]:0}
@@ -2493,6 +2504,7 @@ function finishTrack(demFn){
  // carrefours trop éloignés en hauteur pour la route qui les relie : on les rapproche
  for(let it=0;it<40;it++){let bad=0;for(const Ed of NET.E){if(Ed.a===Ed.b)continue;const na=NET.ND[Ed.a],nb=NET.ND[Ed.b],d=nb.y-na.y,m=GMAX*(SD[Ed.i1]-SD[Ed.i0])*.98;
    if(Math.abs(d)>m){bad++;const ex=(d-Math.sign(d)*m)/2;na.y+=ex;nb.y-=ex}}if(!bad)break}
+ try{overlapFix()}catch(e){console.warn('passages superposés',e)}
  for(const Ed of NET.E){H[Ed.i0]=NET.ND[Ed.a].y;H[Ed.i1]=NET.ND[Ed.b].y;slopeLimit(Ed.i0,Ed.i1,true)}
  for(const Ed of NET.E){const i0=Ed.i0,i1=Ed.i1;
   for(let i=i0;i<=i1;i++){const a=Math.max(i0,i-5),b=Math.min(i1,i+5);G[i]=clamp((H[b]-H[a])/((SD[b]-SD[a])||1),-GMAX,GMAX);
@@ -2858,7 +2870,8 @@ function buildNearTile(a,b,lod){const step=[16,32,64][lod],n=NT/step,S=n+3,x0=a*
 // chaque couloir s'arrête à mi-chemin d'une autre route (pas de recouvrement aux carrefours)
 const CO=[-60,-44,-32,-23,-16,-11,-7.6,-5.6,-4.4,4.4,5.6,7.6,11,16,23,32,44,60];
 const _nv=V(),_RQ3={d:0,i:0,t:0,y:0,lat:0,end:false,e:-1};
-function foreignAt(x,z,own,od){const r=roadQ(x,z,_RQ3);return r&&r.e!==own&&r.d<od-.5}
+// une autre route… ou une autre partie de la même (lacet, passage superposé : 19 nov. 2026)
+function foreignAt(x,z,own,od,ir){const r=roadQ(x,z,_RQ3);return r&&(r.e!==own||(ir!=null&&Math.abs(r.i-ir)>24))&&r.d<od-.5}
 function buildCorridor(c){const ch=CHUNKS[c],own=ch.e,i0=ch.i0,i1=ch.i1,rows=[];
  for(let i=i0;i<i1;i+=(Math.abs(DA[i])>.0125||Math.abs(DA[Math.min(i1,i+1)])>.0125)?1:2)rows.push(i);rows.push(i1);
  const R=rows.length,C=CO.length,cols=C+2,P=new Float32Array(R*cols*3),Nn=new Float32Array(R*cols*3),idx=[];
@@ -2867,8 +2880,9 @@ function buildCorridor(c){const ch=CHUNKS[c],own=ch.e,i0=ch.i0,i1=ch.i1,rows=[];
   const ri=4.1*roadScale(i,NET.E[own])+.1,offs=CO.map(o=>{if(Math.abs(o)<5)o=Math.sign(o)*ri;return(o*DA[i]<0&&Math.abs(o)>lim)?Math.sign(o)*lim:o});
   // rognage côté gauche (indices décroissants depuis le centre) et côté droit
   for(const[a,b,st]of[[C/2-1,-1,-1],[C/2,C,1]]){let prev=offs[a]*0;for(let k=a;k!==b;k+=st){const o=offs[k],x=X[i]-TZ[i]*o,z=Z[i]+TX[i]*o;
-    if(foreignAt(x,z,own,Math.abs(o))){let lo=prev,hi=o;for(let it=0;it<5;it++){const m=(lo+hi)/2;if(foreignAt(X[i]-TZ[i]*m,Z[i]+TX[i]*m,own,Math.abs(m)))hi=m;else lo=m}
-     const ob=(lo+hi)/2+Math.sign(o)*.6;for(let k2=k;k2!==b;k2+=st)offs[k2]=Math.abs(ob)<Math.abs(o)?ob:o;break}
+    if(foreignAt(x,z,own,Math.abs(o),i)){let lo=prev,hi=o;for(let it=0;it<5;it++){const m=(lo+hi)/2;if(foreignAt(X[i]-TZ[i]*m,Z[i]+TX[i]*m,own,Math.abs(m),i))hi=m;else lo=m}
+     const ob=(lo+hi)/2+Math.sign(o)*.6;if(Math.abs(ob)<ri+.4)break;// passages confondus : jamais de coupe dans la chaussée
+     for(let k2=k;k2!==b;k2+=st)offs[k2]=Math.abs(ob)<Math.abs(o)?ob:o;break}
     prev=o}}
   for(let k=0;k<C;k++){const o=offs[k],x=X[i]-TZ[i]*o,z=Z[i]+TX[i]*o,y=hT(x,z);nT(x,z,_nv);
    const q=(r*cols+k+1)*3;P[q]=x;P[q+1]=y;P[q+2]=z;Nn[q]=_nv.x;Nn[q+1]=_nv.y;Nn[q+2]=_nv.z;
