@@ -2858,20 +2858,21 @@ const _RQ2={d:0,i:0,t:0,y:0,lat:0,end:false};
 // tuile proche : lod 0 = 16 m (trouée sous le couloir), 1 = 32 m, 2 = 64 m
 // trou jusqu'à 52 m de la route (le couloir va jusqu'à 60 m) ; 36 m seulement dans les virages serrés (couloir rogné côté intérieur) et aux 20 derniers mètres avant un carrefour
 const CUT_D=52;
-function buildNearTile(a,b,lod){const step=[16,32,64][lod],n=NT/step,S=n+3,x0=a*NT,z0=b*NT,H2=new Float32Array(S*S),DD=new Float32Array(S*S),RY=new Float32Array(S*S),EE=new Int32Array(S*S),CU=new Uint8Array(S*S);
+function buildNearTile(a,b,lod){const step=[16,32,64][lod],n=NT/step,S=n+3,x0=a*NT,z0=b*NT,H2=new Float32Array(S*S),DD=new Float32Array(S*S),RY=new Float32Array(S*S),EE=new Int32Array(S*S),RI=new Int32Array(S*S),LM=new Float32Array(S*S),CU=new Uint8Array(S*S);
  for(let j=0;j<S;j++)for(let i=0;i<S;i++){const x=x0+(i-1)*step,z=z0+(j-1)*step,q=j*S+i,g=ground(x,z),r=roadQ(x,z,_RQ2);
-  H2[q]=r&&r.d<=32&&!(BRG&&BRG[r.i])?hT(x,z):g;DD[q]=r?r.d:999;RY[q]=r?r.y:1e9;EE[q]=r?r.e:-1;CU[q]=r&&(Math.abs(DA[r.i])*CUT_D>.9||r.i-NET.E[r.e].i0<4||NET.E[r.e].i1-r.i<4)?1:0}
+  H2[q]=r&&r.d<=32&&!(BRG&&BRG[r.i])?hT(x,z):g;if(r&&!(BRG&&BRG[r.i])&&r.d<3.5*roadScale(r.i,NET.E[r.e])+1.2)H2[q]=Math.min(H2[q],r.y-.22);DD[q]=r?r.d:999;RI[q]=r?r.i:-1e6;LM[q]=r&&r.lat*DA[r.i]>0&&Math.abs(DA[r.i])>1e-5?Math.max(0,.92/Math.abs(DA[r.i])-3):CUT_D;RY[q]=r?r.y:1e9;EE[q]=r?r.e:-1;CU[q]=r&&(Math.abs(DA[r.i])*CUT_D>.9||r.i-NET.E[r.e].i0<4||NET.E[r.e].i1-r.i<4)?1:0}
  const H3=H2.slice();
  for(let j=1;j<S-1;j++)for(let i=1;i<S-1;i++){const q=j*S+i,dd=DD[q];if(dd>=66)continue;let m=Math.min(H2[q],RY[q]-.6);
-  for(let v=-1;v<=1;v++)for(let u=-1;u<=1;u++)m=Math.min(m,H2[q+v*S+u]);const k=1-sm(56,66,dd);H3[q]=H2[q]+(m-1.05-H2[q])*k}
- const skip=lod===0?(i,j)=>{const q=(j+1)*S+i+1;const lim=CU[q]|CU[q+1]|CU[q+S]|CU[q+S+1]?36:CUT_D;return DD[q]<lim&&DD[q+1]<lim&&DD[q+S]<lim&&DD[q+S+1]<lim&&EE[q]===EE[q+1]&&EE[q]===EE[q+S]&&EE[q]===EE[q+S+1]}:null;
+  for(let v=-1;v<=1;v++)for(let u=-1;u<=1;u++){const q2=q+v*S+u;if(EE[q2]===EE[q]&&Math.abs(RI[q2]-RI[q])*SEG<60)m=Math.min(m,H2[q2])}const k=1-sm(56,66,dd);H3[q]=H2[q]+(m-1.05-H2[q])*k}// voisins de la même branche seulement (19 nov. 2026 : entre deux routes superposées, l'abaissement sur la route la plus basse creusait des trous de 8 à 10 m)
+ const skip=lod===0?(i,j)=>{const q=(j+1)*S+i+1;const lim=Math.min(CU[q]|CU[q+1]|CU[q+S]|CU[q+S+1]?36:CUT_D,LM[q],LM[q+1],LM[q+S],LM[q+S+1]);if(!(DD[q]<lim&&DD[q+1]<lim&&DD[q+S]<lim&&DD[q+S+1]<lim&&EE[q]===EE[q+1]&&EE[q]===EE[q+S]&&EE[q]===EE[q+S+1]))return false;
+  const a=RI[q],mx=Math.max(Math.abs(RI[q+1]-a),Math.abs(RI[q+S]-a),Math.abs(RI[q+S+1]-a));return mx*SEG<40}:null;// 4 coins sur la même branche (19 nov. 2026 : sinon trou entre deux branches de lacet)
  return gridMesh(x0,z0,step,n,H3,skip,4)}
 // couloir le long de la route : vraie hauteur hT à des décalages fins (la bande de la chaussée est laissée à la route)
 // chaque couloir s'arrête à mi-chemin d'une autre route (pas de recouvrement aux carrefours)
 const CO=[-60,-44,-32,-23,-16,-11,-7.6,-5.6,-4.4,4.4,5.6,7.6,11,16,23,32,44,60];
 const _nv=V(),_RQ3={d:0,i:0,t:0,y:0,lat:0,end:false,e:-1};
 // une autre route… ou une autre partie de la même (lacet, passage superposé : 19 nov. 2026)
-function foreignAt(x,z,own,od,ir){const r=roadQ(x,z,_RQ3);return r&&(r.e!==own||(ir!=null&&Math.abs(r.i-ir)>24))&&r.d<od-.5}
+function foreignAt(x,z,own,od,ir){const r=roadQ(x,z,_RQ3);return r&&(r.e!==own||(ir!=null&&Math.abs(r.i-ir)>2))&&r.d<od-.5}// partage « au plus proche » entre branches
 function buildCorridor(c){const ch=CHUNKS[c],own=ch.e,i0=ch.i0,i1=ch.i1,rows=[];
  for(let i=i0;i<i1;i+=(Math.abs(DA[i])>.0125||Math.abs(DA[Math.min(i1,i+1)])>.0125)?1:2)rows.push(i);rows.push(i1);
  const R=rows.length,C=CO.length,cols=C+2,P=new Float32Array(R*cols*3),Nn=new Float32Array(R*cols*3),idx=[];
@@ -2884,10 +2885,16 @@ function buildCorridor(c){const ch=CHUNKS[c],own=ch.e,i0=ch.i0,i1=ch.i1,rows=[];
      const ob=(lo+hi)/2+Math.sign(o)*.6;if(Math.abs(ob)<ri+.4)break;// passages confondus : jamais de coupe dans la chaussée
      for(let k2=k;k2!==b;k2+=st)offs[k2]=Math.abs(ob)<Math.abs(o)?ob:o;break}
     prev=o}}
-  for(let k=0;k<C;k++){const o=offs[k],x=X[i]-TZ[i]*o,z=Z[i]+TX[i]*o,y=hT(x,z);nT(x,z,_nv);
+  for(let k=0;k<C;k++){const o=offs[k],x=X[i]-TZ[i]*o,z=Z[i]+TX[i]*o;let y=hT(x,z);nT(x,z,_nv);
+   {const rq=roadQ(x,z,_RQ3);if(rq&&!(BRG&&BRG[rq.i])&&rq.d<3.5*roadScale(rq.i,NET.E[rq.e])+1.2)y=Math.min(y,rq.y-.22)}// jamais au-dessus d'une chaussée, quelle que soit la route (19 nov. 2026)
    const q=(r*cols+k+1)*3;P[q]=x;P[q+1]=y;P[q+2]=z;Nn[q]=_nv.x;Nn[q+1]=_nv.y;Nn[q+2]=_nv.z;
    if(k===0||k===C-1){const s2=(r*cols+(k===0?0:cols-1))*3;P[s2]=x;P[s2+1]=y-5;P[s2+2]=z;Nn[s2]=_nv.x;Nn[s2+1]=_nv.y;Nn[s2+2]=_nv.z}}}
- for(let r=0;r<R-1;r++)for(let k=0;k<cols-1;k++){if(k===C/2)continue;const A=r*cols+k,B=A+1,Cc=A+cols,D=Cc+1;idx.push(A,B,Cc,B,D,Cc)}
+ // 19 nov. 2026 : un morceau de bande qui enjambe la chaussée d'une autre branche (épingle, passage superposé) n'est pas dessiné
+ const _cq={d:0,i:0,t:0,y:0,lat:0,end:false,e:-1};
+ for(let r=0;r<R-1;r++)for(let k=0;k<cols-1;k++){if(k===C/2)continue;const A=r*cols+k,B=A+1,Cc=A+cols,D=Cc+1;
+  if(k>0&&k<cols-2){const cx=(P[A*3]+P[B*3]+P[Cc*3]+P[D*3])/4,cz=(P[A*3+2]+P[B*3+2]+P[Cc*3+2]+P[D*3+2])/4,cy=(P[A*3+1]+P[B*3+1]+P[Cc*3+1]+P[D*3+1])/4,rq=roadQ(cx,cz,_cq);
+   if(rq&&(rq.e!==own||Math.abs(rq.i-rows[r])>3)&&!(BRG&&BRG[rq.i])&&rq.d<3.5*roadScale(rq.i,NET.E[rq.e])+.3&&cy>rq.y-.12)continue}
+  idx.push(A,B,Cc,B,D,Cc)}
  return mkGeo(P,Nn,idx)}
 // tuile moyenne (2048 m) : 64 m ou 128 m, trouée là où la grille proche existe
 // (générateurs : on rend la main à l'affichage toutes les 4 ms environ)
@@ -12857,7 +12864,7 @@ function introFrame(dt,now){const o=$('intro'),fl=o.querySelector('.fl'),sc2=o.q
  const lt=-clamp(Math.atan(IN.v*IN.v*kk/9.81),-.6,.6);IN.lean+=(lt-IN.lean)*Math.min(1,dtc*introRate(ph,s)*5);const ln=IN.lean;
  WORLD.visible=true;RM.visible=TR.visible=false;sc.background=null;sc.fog.density=SPACE.on?0:1/42000;sky.visible=!SPACE.on;clouds.visible=!SPACE.on&&!!QP.clouds&&SHW('clouds');stars.visible=!SPACE.on&&DAYF<.6;
  RIDER.bike.wr.visible=true;if(envRT)sc.environment=envRT.texture;R.position.set(x,y,z);R.rotation.set(-Math.atan(P.g),Math.atan2(tx,tz),ln*.92);
- riderAnim(dtc*introRate(ph,s),{cad:0,P:0,v:vr,g:P.g,coast:true,stand:false,tuck:false,steer:clamp(ln*1.8,-1,1),cside:Math.abs(ln)>.12?Math.sign(ln):0,blean:ln*.26,hyaw:clamp(-ln*.55,-.3,.3)});
+ riderAnim(dtc*introRate(ph,s),{cad:0,P:0,v:IN.v,g:P.g,coast:true,stand:false,tuck:false,steer:clamp(ln*1.8,-1,1),cside:Math.abs(ln)>.12?Math.sign(ln):0,blean:ln*.26,hyaw:clamp(-ln*.55,-.3,.3)});
  if(now-IN.skT>1500){IN.skT=now;skyUpdate(LA,LO0);IN.ld=LD.clone();IN.si=SUNL.intensity;IN.sc=SUNL.color.clone();IN.hl=HL.intensity}
  if(IN.ld){LD.copy(IN.ld);SUNL.intensity=IN.si;SUNL.color.copy(IN.sc);HL.intensity=IN.hl}if(loop.hlc){HL.color.copy(loop.hlc[0]);HL.groundColor.copy(loop.hlc[1])}
  shadowFollow(R.position);
