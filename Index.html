@@ -1012,11 +1012,16 @@ svg.leaflet-image-layer.leaflet-interactive path {
 #accb{display:flex;align-items:center;gap:7px;padding:5px 12px 5px 5px;border-radius:99px;border:1px solid #3a342c;background:#1c1a17;color:#f4efe6;font:700 13px 'Space Grotesk',system-ui;cursor:pointer;max-width:170px}
 #accb i{flex:0 0 26px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#1a1405;font-style:normal;font-weight:800}#accb span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #intro{position:fixed;inset:0;z-index:150;display:none;pointer-events:auto;cursor:pointer;overflow:hidden}
-#intro .lb{position:absolute;left:0;right:0;height:9vh;background:#000;transition:height .8s}#intro .lb.t{top:0}#intro .lb.b{bottom:0}
+#intro .lb{position:absolute;left:0;right:0;height:9vh;background:#000;transition:height .7s cubic-bezier(.6,0,.2,1);z-index:2}#intro .lb.t{top:0}#intro .lb.b{bottom:0}
 #intro .fl{position:absolute;inset:0;background:#000;opacity:1}
 #intro .tt{position:absolute;left:0;right:0;bottom:16vh;text-align:center;color:#f4efe6;font:700 clamp(22px,5.4vmin,54px)/1.1 'Space Grotesk',system-ui;letter-spacing:.04em;text-shadow:0 3px 24px rgba(0,0,0,.8);opacity:0;transform:translateY(16px);transition:opacity 1s,transform 1s}
 #intro .tt span{color:#f0cf73}#intro .tt small{display:block;margin-top:12px;font:600 clamp(11px,1.9vmin,16px) system-ui;letter-spacing:.32em;color:#e9a178}
 #intro .tt.on{opacity:1;transform:none}
+#intro .tt .ch{display:inline-block;font-style:normal;opacity:0;transform:translateY(.45em) scale(1.35);filter:blur(7px);transition:opacity .45s,transform .6s cubic-bezier(.2,.9,.2,1.2),filter .5s;transition-delay:calc(var(--i)*38ms)}
+#intro .tt b.g .ch{color:#f0cf73;transition-delay:calc(.55s + var(--i)*42ms)}#intro .tt.on .ch{opacity:1;transform:none;filter:none}
+#intro .tt.on b.g{animation:ttglow 2.2s 1.4s ease-in-out infinite}@keyframes ttglow{50%{text-shadow:0 0 22px rgba(240,207,115,.75),0 3px 24px rgba(0,0,0,.8)}}
+#intro .tt b{font-weight:700}#intro .cl{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;transform-origin:50% 50%}
+#intro .scn{position:absolute;inset:0;opacity:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.32) 0 2px,rgba(80,170,255,.06) 2px 4px);box-shadow:inset 0 0 120px rgba(80,170,255,.35)}
 #intro .sc{position:absolute;left:4vw;top:calc(9vh + 14px);color:#f0cf73;font:700 clamp(11px,1.8vmin,15px) 'Barlow Condensed',system-ui;letter-spacing:.2em;text-shadow:0 1px 6px #000;opacity:.85}
 #intro .sk{position:absolute;right:4vw;bottom:calc(9vh + 12px);color:#cfc8ba;font:600 clamp(11px,1.7vmin,14px) system-ui;opacity:.7;letter-spacing:.06em;text-shadow:0 1px 6px #000}
 body.intro #home,body.intro #hud,body.intro #top,body.intro #tb,body.intro #fsb,body.intro #map,body.intro #prof,body.intro #ld,body.intro #toast{visibility:hidden!important}
@@ -1954,7 +1959,7 @@ function skyUpdate(lat,lon){const d=new Date(),D=Math.PI/180,doy=(d-new Date(d.g
 let FORCE_SUN=null;
 // ombre portée qui suit le cycliste, calée sur les texels (pas de scintillement)
 const _sx=V(),_sy=V(),_sp=V();
-function shadowFollow(p){const z=LD,size=QP.sh,tex=2*size/SUNL.shadow.mapSize.x;
+function shadowFollow(p){const z=LD,size=QP.sh,tex=2*size/SUNL.shadow.mapSize.x;SUNL.shadow.normalBias=Math.max(.035,tex*1.3);// acné d'ombre sur les pentes raides (damier) : biais au moins égal au texel
  _sx.crossVectors(UP,z);if(_sx.lengthSq()<1e-6)_sx.set(1,0,0);_sx.normalize();_sy.crossVectors(z,_sx);
  let px=p.dot(_sx),py=p.dot(_sy);const pz=p.dot(z);px=Math.round(px/tex)*tex;py=Math.round(py/tex)*tex;
  _sp.copy(_sx).multiplyScalar(px).addScaledVector(_sy,py).addScaledVector(z,pz);
@@ -2361,7 +2366,7 @@ function crsSwitch0(id){if(id===undefined){try{id=localStorage.v3cur||null}catch
  COURSE=null;// pour que le changement de monde ne reconstruise pas l'ancien parcours
  if(c&&c.gen&&(WORLDK==='real'||WORLDK==='mont'))worldSwitch('adv');
  const o=crsOrigin();LA=o[0];LO0=o[1];KX=111320*Math.cos(LA*Math.PI/180);
- RDW=RMK=CHK_OF=null;RDIRTY.clear();BRG=null;JC.clear();COLS.list=null;COLS.busy=false;KOM=null;SP=null;ROUTE=null;ACT=null;RHIST.length=0;
+ RDW=RMK=CHK_OF=null;RDIRTY.clear();BRG=null;RCOR.ok=false;RCOR.B.clear();JC.clear();COLS.list=null;COLS.busy=false;KOM=null;SP=null;ROUTE=null;ACT=null;RHIST.length=0;
  CPF.d=null;CPF.t=-1e9;MC.v=-1;MC.cx=MC.cz=1e9;C3D.d=null;skT=-1e9;
  for(const a of M3D.act){if(a.pending)a.dead=true;else if(!a.dead)m3dFree(a)}M3D.act=[];
  spReset();sprReset();if(typeof npcReset==='function'){npcReset();pedReset()}
@@ -2570,12 +2575,43 @@ function groundDem(x,z){let h=NaN;
 // mer : le relief SRTM vaut ~0 m sur la mer (et devient négatif au large) ; rien à décider tant que le vrai relief n'est pas chargé
 function seaAt(x,z){for(let k=0;k<DEMS.length;k++){const h=demBil(DEMS[k],x,z);if(h===h)return h<.6}return false}
 // couches éloignées (moyen, lointain, horizon) : relief seul, sans creusement de l'eau ni micro-relief (invisibles de si loin ; le calcul de l'eau était très coûteux)
-const groundFar=(x,z)=>groundDem(x,z);
-function ground(x,z){let h=groundDem(x,z);
+const groundFar=(x,z)=>groundDem(x,z)+rcorAt(x,z);
+function ground(x,z){let h=groundDem(x,z)+rcorAt(x,z);
  if(WATERM){const w=waterAt(x,z);if(w>0)h-=3.6*w}
  return h+(vn(x/37,z/37)-.5)*1.4+(vn(x/9.3,z/9.3)-.5)*.3}
+// ---- relief raccordé à la route (19 nov. 2026, signalé par Cyril : « murs » le long des routes de montagne) ----
+// Le relief SRTM (maille ≈ 30 m) lisse les lacets : la route du GPX est par endroits 15 à 20 m au-dessus ou au-dessous du relief, et le raccord
+// sur 25 m (hT) faisait un mur. On ajoute au relief un champ de correction : l'écart route − relief (lissé sur ±40 m, nul sur les ponts),
+// mélangé entre routes voisines (moyenne pondérée par la distance) et qui s'estompe jusqu'à 150 m : le versant garde sa pente naturelle.
+const RCOR={ok:false,B:new Map(),C:12,R:150,lk:NaN,lb:null};
+function rcorKey(bx,bz){return (bx+50000)*100003+(bz+50000)}
+function rcorCell(i,j){const k=rcorKey(i>>3,j>>3);let b;if(k===RCOR.lk)b=RCOR.lb;else{b=RCOR.B.get(k);RCOR.lk=k;RCOR.lb=b}return b?b[(j&7)*8+(i&7)]:0}
+function rcorAt(x,z){if(!RCOR.ok)return 0;const C=RCOR.C,fx=x/C-.5,fz=z/C-.5,ix=Math.floor(fx),iz=Math.floor(fz),tx=fx-ix,tz=fz-iz;
+ const a=rcorCell(ix,iz),b=rcorCell(ix+1,iz),c=rcorCell(ix,iz+1),d=rcorCell(ix+1,iz+1);return (a+(b-a)*tx)+((c+(d-c)*tx)-(a+(b-a)*tx))*tz}
+function rcorBuild(){RCOR.ok=false;RCOR.B.clear();RCOR.lk=NaN;if(!NET.ready||!DEMOK||SPACE.on)return;
+ const C=RCOR.C,R=RCOR.R,cr=Math.ceil(R/C),acc=new Map();let mx=0;
+ for(const E of NET.E){if(!E||E.i1-E.i0<2)continue;const n=E.i1-E.i0+1;let d=new Float32Array(n);
+  for(let k=0;k<n;k++){const i=E.i0+k;d[k]=BRG&&BRG[i]?0:clamp(H[i]-.18-groundDem(X[i],Z[i]),-45,45)}
+  for(let pass=0;pass<2;pass++){const e=new Float32Array(n);for(let k=0;k<n;k++){let s=0,c=0;for(let q=Math.max(0,k-8);q<=Math.min(n-1,k+8);q++){s+=d[q];c++}e[k]=s/c}d=e}
+  for(let k=0;k<n;k+=3){const i=E.i0+k,x=X[i],z=Z[i],dv=d[k];mx=Math.max(mx,Math.abs(dv));const ci=Math.floor(x/C),cj=Math.floor(z/C);
+   for(let v=-cr;v<=cr;v++)for(let u=-cr;u<=cr;u++){const gx=(ci+u+.5)*C-x,gz=(cj+v+.5)*C-z,dd=Math.sqrt(gx*gx+gz*gz);if(dd>=R)continue;
+    const f=1-sm(10,R,dd),w=f/(dd*dd+150),key=rcorKey((ci+u)>>3,(cj+v)>>3);let b=acc.get(key);if(!b){b=new Float32Array(192);acc.set(key,b)}
+    const q=(((cj+v)&7)*8+((ci+u)&7))*3;b[q]+=w*dv;b[q+1]+=w;if(f>b[q+2])b[q+2]=f}}}
+ for(const[k,b]of acc){const o=new Float32Array(64);for(let q=0;q<64;q++)o[q]=b[q*3+1]>0?b[q*3+2]*b[q*3]/b[q*3+1]:0;RCOR.B.set(k,o)}
+ RCOR.ok=true;RCOR.max=mx;return mx}
 let BRG=null; // tronçons en pont (pas de remblai sous la route)
-function hT(x,z){const g=ground(x,z),r=roadQ(x,z);if(!r||r.d>32||(BRG&&BRG[r.i]))return g;const t=sm(5.6,31,r.d);return (r.y-.18)*(1-t)+g*t}
+// 2e route la plus proche, sur une autre branche (lacet) que l'échantillon i1
+const _RQ2b={d:0,i:0,y:0};
+function roadQ2(x,z,i1,e1){const ix=Math.floor(x/RCS),iz=Math.floor(z/RCS);let best=1e18,bi=-1,bt=0;
+ for(let u=-1;u<=1;u++)for(let w=-1;w<=1;w++){const a=RHM.get(rkey(ix+u,iz+w));if(!a)continue;
+  for(let n=0;n<a.length;n++){const i=a[n];if(EOF[i]===e1&&Math.abs(i-i1)<14)continue;const ax=X[i],az=Z[i],dx=X[i+1]-ax,dz=Z[i+1]-az,l2=dx*dx+dz*dz||1;let t=((x-ax)*dx+(z-az)*dz)/l2;t=t<0?0:t>1?1:t;
+   const ex=ax+dx*t-x,ez=az+dz*t-z,d2=ex*ex+ez*ez;if(d2<best){best=d2;bi=i;bt=t}}}
+ if(bi<0)return null;_RQ2b.d=Math.sqrt(best);_RQ2b.i=bi;_RQ2b.y=H[bi]+(H[bi+1]-H[bi])*bt;return _RQ2b}
+// relief près des routes : raccordé à la route la plus proche ; entre deux branches d'un lacet, mélange des deux (19 nov. 2026 : avant, le terrain sautait
+// d'une hauteur à l'autre sur la ligne du milieu, ce qui faisait un mur vertical)
+function hT(x,z){const g=ground(x,z),r=roadQ(x,z);if(!r||r.d>32||(BRG&&BRG[r.i]))return g;const t=sm(5.6,31,r.d),h1=(r.y-.18)*(1-t)+g*t;
+ const i1=r.i,d1=r.d,e1=r.e,r2=roadQ2(x,z,i1,e1);if(!r2||r2.d>32||(BRG&&BRG[r2.i]))return h1;
+ const t2=sm(5.6,31,r2.d),h2=(r2.y-.18)*(1-t2)+g*t2,w1=1/(d1*d1+4),w2=1/(r2.d*r2.d+4);return (h1*w1+h2*w2)/(w1+w2)}
 // normale analytique
 function nT(x,z,out){const e=1.5,a=hT(x+e,z),b=hT(x-e,z),c=hT(x,z+e),d=hT(x,z-e);out.set(-(a-b)/(2*e),1,-(c-d)/(2*e)).normalize();return out}
 // ---- position sur le réseau : (route e, abscisse u en m depuis son début, sens dir ±1) ----
@@ -2644,14 +2680,14 @@ function buildJunction(n){const J=jcOf(n),nd=NET.ND[n];if(J.arms.length<2)return
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('uv',new T.Float32BufferAttribute(U,2));g.setIndex(idx);g.computeVertexNormals();g.computeBoundingSphere();return g}
 
 // ====================== terrain : grilles monde (proche/moyen/lointain/horizon) + couloir + imagerie ======================
-const TU={uDetQ:{value:0},tDet:{value:TXR.det},uSnow:{value:2600},uCam:{value:new T.Vector3()},uPhoto:{value:0},uCurv:{value:6.83e-8},
+const TU={uDetQ:{value:0},uDesnow:{value:1},tDet:{value:TXR.det},uSnow:{value:2600},uCam:{value:new T.Vector3()},uPhoto:{value:0},uCurv:{value:6.83e-8},
  tR:{value:null},uRU:{value:new T.Vector2(0,1e-9)},uRV:{value:new T.Vector3()},
  tF:{value:null},uFU:{value:new T.Vector2(0,1e-9)},uFV:{value:new T.Vector3()},
  tM:{value:null},uMU:{value:new T.Vector2(0,1e-9)},uMV:{value:new T.Vector3()},
  tN:{value:null},uNU:{value:new T.Vector2(0,1e-9)},uNV:{value:new T.Vector3()},uNearOn:{value:0}};
 // courbure terrestre (au-delà de 3 km), appliquée à tout ce qui est lointain
 const CURV_GLSL=`{vec2 cd=transformed.xz-uCam.xz;float cl=max(length(cd)-3000.,0.);transformed.y-=uCurv*cl*cl;}`;
-const TFRAG_PARS=(GL2?'#define TG(t,u,a,b) textureGrad(t,u,a,b)\n':'#define TG(t,u,a,b) texture2D(t,u)\n')+`uniform sampler2D tR,tF,tM,tN,tDet;uniform vec2 uRU,uFU,uMU,uNU;uniform vec3 uRV,uFV,uMV,uNV,uCam;uniform float uNearOn,uSnow,uPhoto,uDetQ;varying vec3 vW;varying vec3 vNw;
+const TFRAG_PARS=(GL2?'#define TG(t,u,a,b) textureGrad(t,u,a,b)\n':'#define TG(t,u,a,b) texture2D(t,u)\n')+`uniform sampler2D tR,tF,tM,tN,tDet;uniform vec2 uRU,uFU,uMU,uNU;uniform vec3 uRV,uFV,uMV,uNV,uCam;uniform float uNearOn,uSnow,uPhoto,uDetQ,uDesnow;varying vec3 vW;varying vec3 vNw;
 float dh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float dn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(dh(i),dh(i+vec2(1,0)),f.x),mix(dh(i+vec2(0,1)),dh(i+vec2(1,1)),f.x),f.y);}
 vec2 tuv(vec2 U,vec3 Vv){return vec2((vW.x-U.x)*U.y,Vv.x+Vv.y*vW.z+Vv.z*vW.z*vW.z);}
@@ -2672,6 +2708,11 @@ const TFRAG=`{
  // Élevée / Ultra : grain de sol près de la caméra (herbe, cailloux), plus marqué sur le vert, estompé au loin
  if(uDetQ>0.){float dc=distance(vW.xz,uCam.xz),k=uDetQ*(1.-smoothstep(40.,320.,dc));if(k>0.){float g=dn(vW.xz*1.7)*.55+dn(vW.xz*5.3)*.3+dn(vW.xz*17.)*.15;
   float veg=clamp((base.g-max(base.r,base.b))*6.,0.,1.);base*=1.+(g-.5)*k*(.34+.26*veg);}}
+ // photos IGN prises en hiver (19 nov. 2026) : sous la limite de la neige de la saison, les pixels blancs et peu colorés deviennent prairie / forêt
+ {float L2=dot(base,vec3(.3,.59,.11)),sat=max(base.r,max(base.g,base.b))-min(base.r,min(base.g,base.b));
+  float slD=uSnow+dn(vW.xz*.004)*260.-130.+dn(vW.xz*.0009)*300.-150.;// même limite irrégulière que la neige dessinée plus bas
+  float sw=uDesnow*smoothstep(.56,.8,L2)*(1.-smoothstep(.06,.15,sat))*(1.-smoothstep(slD-220.,slD-60.,vW.y));
+  if(sw>0.){float nn=dn(vW.xz*.03)*.6+dn(vW.xz*.17)*.4;vec3 gc=mix(vec3(.24,.30,.15),vec3(.42,.46,.25),nn)*(.86+.28*dn(vW.xz*1.1));base=mix(base,gc,sw);}}
  // neige au-dessus de la limite de la saison (TU.uSnow), seulement sur les pentes douces ; rocher gris dans les pentes raides au-dessus (13 novembre 2026)
  if(vW.y>uSnow-500.){float sl=uSnow+dn(vW.xz*.004)*260.-130.+dn(vW.xz*.0009)*300.-150.;float up=clamp(vNw.y,0.,1.);
   float sn=smoothstep(sl-90.,sl+120.,vW.y)*smoothstep(.45,.8,up),rock=smoothstep(.75,.45,up)*smoothstep(sl-400.,sl+300.,vW.y);
@@ -2681,7 +2722,7 @@ function mkTerrMat(){const m=new T.MeshLambertMaterial({color:0xffffff,side:T.Do
  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,TU);
   sh.vertexShader='uniform vec3 uCam;uniform float uCurv;varying vec3 vW;varying vec3 vNw;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvW=(modelMatrix*vec4(position,1.)).xyz;vNw=normal;\n'+CURV_GLSL);
   sh.fragmentShader=TFRAG_PARS+sh.fragmentShader.replace('#include <map_fragment>',TFRAG)};
- m.customProgramCacheKey=()=>'terrain3';return m}
+ m.customProgramCacheKey=()=>'terrain4';return m}
 const TMAT=mkTerrMat();
 // même courbure pour d'autres matériaux (eau…)
 function addCurv(m,key){const ob=m.onBeforeCompile;m.onBeforeCompile=(sh,r)=>{if(ob)ob(sh,r);sh.uniforms.uCam=TU.uCam;sh.uniforms.uCurv=TU.uCurv;
@@ -2804,7 +2845,7 @@ const _RQ2={d:0,i:0,t:0,y:0,lat:0,end:false};
 const CUT_D=52;
 function buildNearTile(a,b,lod){const step=[16,32,64][lod],n=NT/step,S=n+3,x0=a*NT,z0=b*NT,H2=new Float32Array(S*S),DD=new Float32Array(S*S),RY=new Float32Array(S*S),EE=new Int32Array(S*S),CU=new Uint8Array(S*S);
  for(let j=0;j<S;j++)for(let i=0;i<S;i++){const x=x0+(i-1)*step,z=z0+(j-1)*step,q=j*S+i,g=ground(x,z),r=roadQ(x,z,_RQ2);
-  if(r&&r.d<=32&&!(BRG&&BRG[r.i])){const t=sm(5.6,31,r.d);H2[q]=(r.y-.18)*(1-t)+g*t}else H2[q]=g;DD[q]=r?r.d:999;RY[q]=r?r.y:1e9;EE[q]=r?r.e:-1;CU[q]=r&&(Math.abs(DA[r.i])*CUT_D>.9||r.i-NET.E[r.e].i0<4||NET.E[r.e].i1-r.i<4)?1:0}
+  H2[q]=r&&r.d<=32&&!(BRG&&BRG[r.i])?hT(x,z):g;DD[q]=r?r.d:999;RY[q]=r?r.y:1e9;EE[q]=r?r.e:-1;CU[q]=r&&(Math.abs(DA[r.i])*CUT_D>.9||r.i-NET.E[r.e].i0<4||NET.E[r.e].i1-r.i<4)?1:0}
  const H3=H2.slice();
  for(let j=1;j<S-1;j++)for(let i=1;i<S-1;i++){const q=j*S+i,dd=DD[q];if(dd>=66)continue;let m=Math.min(H2[q],RY[q]-.6);
   for(let v=-1;v<=1;v++)for(let u=-1;u<=1;u++)m=Math.min(m,H2[q+v*S+u]);const k=1-sm(56,66,dd);H3[q]=H2[q]+(m-1.05-H2[q])*k}
@@ -2833,8 +2874,12 @@ function buildCorridor(c){const ch=CHUNKS[c],own=ch.e,i0=ch.i0,i1=ch.i1,rows=[];
  return mkGeo(P,Nn,idx)}
 // tuile moyenne (2048 m) : 64 m ou 128 m, trouée là où la grille proche existe
 // (générateurs : on rend la main à l'affichage toutes les 4 ms environ)
+const _RQM={d:0,i:0,t:0,y:0,lat:0,end:false};
 function* buildMidTile(a,b,lod){const step=lod?128:64,n=MT/step,S=n+3,x0=a*MT,z0=b*MT,H2=new Float32Array(S*S);let t0=performance.now();
- for(let j=0;j<S;j++){for(let i=0;i<S;i++)H2[j*S+i]=groundFar(x0+(i-1)*step,z0+(j-1)*step);if(performance.now()-t0>4){yield;t0=performance.now()}}
+ // 19 nov. 2026 : près de la route, ce terrain grossier (cases de 64/128 m, sans la découpe de la route) passait par-dessus la chaussée et son talus
+ // (« murs » et damiers quand le terrain fin n'est pas encore construit ou au-delà de sa portée) : on le fait passer sous la route ; la bande fine le recouvre
+ for(let j=0;j<S;j++){for(let i=0;i<S;i++){const x=x0+(i-1)*step,z=z0+(j-1)*step;let h=groundFar(x,z);const r=roadQ(x,z,_RQM);
+   if(r&&r.d<step*1.2&&!(BRG&&BRG[r.i])){const k=1-sm(step*.55,step*1.2,r.d);h=Math.min(h,h+(r.y-1.8-h)*k)}H2[j*S+i]=h}if(performance.now()-t0>4){yield;t0=performance.now()}}
  return gridMesh(x0,z0,step,n,H2,(i,j)=>nearCov(x0+(i+.5)*step,z0+(j+.5)*step),14)}
 function* buildFar(){let t0=performance.now();const F=REG.far,M=REG.mid,S=QK==='ultra'||QK==='high'?400:520,nx=Math.ceil((F.x1-F.x0)/S)+1,nz=Math.ceil((F.z1-F.z0)/S)+1;
  const P=new Float32Array(nx*nz*3),Nn=new Float32Array(nx*nz*3),idx=[],h=new Float32Array(nx*nz),ins=new Uint8Array(nx*nz);
@@ -3177,7 +3222,7 @@ function computeBridges(){const B=new Uint8Array(N);let any=0;
  const wAt=(x,z)=>{const a=Math.floor(x/VC),b=Math.floor(z/VC),M=waterCell(a,b);return M?M[clamp(Math.floor((z-b*VC)/MS4),0,MRES-1)*MRES+clamp(Math.floor((x-a*VC)/MS4),0,MRES-1)]:0};
  for(let i=0;i<N;i++){if(!inWorld(EOF[i])||!WIDX.has(vck(Math.floor(X[i]/VC),Math.floor(Z[i]/VC))))continue;let w=0;for(const o of[-3,0,3])w=Math.max(w,wAt(X[i]-TZ[i]*o,Z[i]+TX[i]*o));if(w){B[i]=1;any=1}}
  if(!any){BRG=null;return false}
- const D=B.slice();for(let i=0;i<N;i++)if(B[i])for(let k=-5;k<=5;k++){const j=i+k;if(j>=0&&j<N&&EOF[j]===EOF[i])D[j]=1}BRG=D;return true}
+ const D=B.slice();for(let i=0;i<N;i++)if(B[i])for(let k=-5;k<=5;k++){const j=i+k;if(j>=0&&j<N&&EOF[j]===EOF[i])D[j]=1}BRG=D;if(RCOR.ok){try{rcorBuild();terrInvalidate(true,true)}catch(e){}}return true}
 function buildBridgeGeo(i0,i1,gb){// tablier, parapets, piles
  const deckCol=CA(0xb9b5ac),parCol=CA(0xc9c5bb),rail=CA(0x8a9096),pile=CA(0xa8a399);
  for(let i=i0;i<i1;i++){if(!BRG[i]||!BRG[i+1])continue;const P=(j,o,dy)=>[X[j]-TZ[j]*o,H[j]+dy,Z[j]+TX[j]*o];
@@ -7601,7 +7646,7 @@ const rearLight=new T.Mesh(new T.BoxGeometry(.03,.05,.012),new T.MeshBasicMateri
 // ---- caméras ----
 const CAM={view:0,snap:true,head:0,tvp:null,names:['Poursuite','Côté','Face','Vue cycliste','Drone','Bord de route','Gros plan visage']};
 const VCAMN=['Poursuite','Télé','Vue des tribunes','Vue cycliste','Gros plan visage'];
-function nextView(){const NM=VEL.on?VCAMN:CAM.names;CAM.view=(CAM.view+1)%NM.length;CAM.snap=true;CAM.tvp=null;yaw=0;pit=.28;if(CAM.view===0)dist=7;say('Vue : '+NM[CAM.view]);
+function nextView(){const NM=VEL.on?VCAMN:CAM.names;if(!VEL.on&&mode!=='home')CAM.bl={o:cam.position.clone().sub(R.position),q:cam.quaternion.clone(),t:0,f:cam.fov};CAM.view=(CAM.view+1)%NM.length;CAM.snap=true;CAM.tvp=null;yaw=0;pit=.28;if(CAM.view===0)dist=7;say('Vue : '+NM[CAM.view]);
  RIDER.bones[BI.head].children.forEach(o=>o.visible=CAM.view!==3)}
 $('vb').onclick=nextView;$('fsb').onclick=fullScreen;
 document.addEventListener('fullscreenchange',()=>{const b=$('fsb');b.style.opacity=document.fullscreenElement?.55:1;b.title=document.fullscreenElement?'Quitter le plein écran':'Plein écran'});
@@ -7624,7 +7669,12 @@ function camUpdate(dt,P,tx,tz,hm){const fwd=_fw.set(tx,0,tz),left=V(tz,0,-tx);le
   want.set(CAM.tvp.x,0,CAM.tvp.z);want.y=hT(want.x,want.z)+1.7;look.copy(P);look.y+=1}
  if(V2!==3){const gy=hT(want.x,want.z)+.9;if(want.y<gy)want.y=gy}
  if(CAM.snap||V2===3||V2===5||V2===6){cam.position.copy(want);CAM.snap=false}else cam.position.lerp(want,Math.min(1,dt*(V2===0&&dr?20:6)));
- cam.lookAt(look)}
+ cam.lookAt(look);
+ // changement de vue (19 nov. 2026) : au lieu d'une coupe sèche, la caméra glisse en arc vers la nouvelle vue (0,9 s), orientation mélangée en douceur
+ if(CAM.bl){const B=CAM.bl;B.t+=dt;const k=Math.min(1,B.t/.9),e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2,to=_cbt.copy(cam.position).sub(P),dd=B.o.distanceTo(to);
+  cam.position.copy(P).add(_cbo.copy(B.o).lerp(to,e));cam.position.y+=Math.sin(Math.PI*e)*Math.min(6,dd*.35);const gy=hT(cam.position.x,cam.position.z)+.6;if(cam.position.y<gy)cam.position.y=gy;
+  _cbq.copy(cam.quaternion);cam.quaternion.copy(B.q).slerp(_cbq,e);if(k>=1)CAM.bl=null}}
+const _cbt=new T.Vector3(),_cbo=new T.Vector3(),_cbq=new T.Quaternion();
 // ---- monde ----
 let JOB_BOOST=0,WID=0,dataDirty=0,waterDirty=0,dataT=0,lodT=0;
 function resetWorld(){{const kp=JOBS.filter(j=>j.key&&/^(face|helmvents)/.test(j.key));JOBS.length=0;JKEYS.clear();for(const j of kp){JOBS.push(j);JKEYS.add(j.key)}}// on garde la peinture du visage et du casque du coureur
@@ -7667,7 +7717,7 @@ async function startWorld(){const id=++WID;resetWorld();if(!NOVEG&&!TREEG.b)init
  const dz=async(z,Rg,maxT)=>{const[s2,w,n,e]=llOf(Rg);return loadDEMLevel(z,s2,w,n,e,maxT,(ok,tot)=>{if(id===WID&&z===12)ldSet('dem','Relief '+Math.round(ok/tot*100)+' %',0)})};
  if(CRS.cur&&CRS.cur.gen){DEMOK=true;courseClimbs();ldSet('dem','Parcours imaginaire : altitudes du tracé',1);ldSet('vil','Monde '+(ADV?'Aventure':TRON?'Néon':'Space'),1);const at=$('att');if(at)at.textContent='Parcours imaginaire · '+(ADV?'Monde Aventure':TRON?'Mode Néon':'Mode Space');return}
  let ok12=false;try{const L=await dz(12,{x0:REG.mid.x0-1500,x1:REG.mid.x1+1500,z0:REG.mid.z0-1500,z1:REG.mid.z1+1500},160);if(id!==WID)return;DEMS.push(L);ok12=true}catch(e){console.warn('MNT z12',e)}
- if(ok12){finishTrack(groundDem);buildCoarse();DEMOK=true;waterInvalidate();courseClimbs();ldSet('dem','Relief réel (SRTM 30 m)',0)}else ldSet('dem','Relief simulé (hors ligne)',-1);
+ if(ok12){finishTrack(groundDem);buildCoarse();DEMOK=true;try{rcorBuild();terrInvalidate(true,true)}catch(e){console.warn('relief',e)}waterInvalidate();courseClimbs();ldSet('dem','Relief réel (SRTM 30 m)',0)}else ldSet('dem','Relief simulé (hors ligne)',-1);
  terrInvalidate();roadInvalidate();bldInvalidate();vegInvalidate();
  if(SPACE.on){ldSet('vil',ADV?'Monde Aventure':TRON?'Mode Néon':'Mode Space',1);const at=$('att');if(at)at.textContent='Parcours : ton GPX · Altitudes © AWS Terrain Tiles (SRTM) · '+(ADV?'Monde Aventure':TRON?'Mode Néon':'Mode Space');return}
  PHOTO.dead=MONT;if(!MONT){PHOTO.fail=0;PHOTO.ok=0}{const at=$('att');if(at)at.textContent=MONT?'Parcours : ton GPX · Relief © AWS Terrain Tiles (SRTM) · Montagne stylisée':ATT0}
@@ -12686,11 +12736,17 @@ addEventListener('resize',()=>{if(BIGM.on)bigMapToggle(true)});
 // Toucher l'écran = passer. Ensuite : page « Qui roule ? ». Désactivable : Réglages → Préférences (clé partagée v3intro).
 const IN={on:false,t:0,wait:0,ph:null,seq:[],sk:0};
 const INTRO_P=[// [clé, durée en s]
- ['macro',1.1],['back',2.4],['crn',2.6],['rise',2.1],['val',2.1],['reg',2.0],['globe',2.6],['room',4.6]];
+ ['macro',1.3],['back',2.3],['crn',3.6],['rise',2.0],['val',2.0],['reg',1.7],['cloud',1.0],['globe',2.4],['room',4.8]];
+// vitesse du temps pour le cycliste : ralenti « bullet-time » au sommet du virage (la caméra tourne autour de lui)
+function introRate(ph,s){return ph==='crn'?1-.8*sm(.16,.36,s)*(1-sm(.64,.84,s)):1}
 function introWanted(){try{if(sessionStorage.v3skip){delete sessionStorage.v3skip;return 0}}catch(e){}try{return localStorage.v3intro==='0'?1:2}catch(e){return 2}}
 function introGo(){const w=introWanted();if(!w)return;if(w===1){accOpen();return}introStart()}
-function introStart(){if(IN.on)return;Object.assign(IN,{on:true,t:0,wait:0,ph:null,sk:0,cw:null,lc:null,mon:IN.mon,fov:cam.fov,tod:SET.tod,ready:false,t0:performance.now(),lean:0});
- let o=$('intro');if(!o){o=document.createElement('div');o.id='intro';o.innerHTML='<div class="fl"></div><div class="lb t"></div><div class="lb b"></div><div class="sc"></div><div class="tt">TOUT LE MONDE. <span>DEPUIS TON SALON.</span><small>VIRTUAL CYCLING TRAINING</small></div><div class="sk">Toucher pour passer ›</div>';document.body.appendChild(o)}
+function introStart(){if(IN.on)return;Object.assign(IN,{on:true,t:0,wait:0,ph:null,sk:0,cw:null,lc:null,cs:null,lc0:null,out:undefined,rt:0,mon:IN.mon,fov:cam.fov,tod:SET.tod,ready:false,t0:performance.now(),lean:0});
+ let o=$('intro');if(!o){o=document.createElement('div');o.id='intro';const L=(t,c)=>[...t].map((ch,i)=>'<i class="ch'+(c||'')+'" style="--i:'+i+'">'+(ch===' '?'&nbsp;':ch)+'</i>').join('');
+  o.innerHTML='<canvas class="cl" width="1024" height="576"></canvas><div class="scn"></div><div class="fl"></div><div class="lb t"></div><div class="lb b"></div><div class="sc"></div><div class="tt"><b>'+L('TOUT LE MONDE.')+'</b> <b class="g">'+L('DEPUIS TON SALON.')+'</b><small>VIRTUAL CYCLING TRAINING</small></div><div class="sk">Toucher pour passer ›</div>';document.body.appendChild(o);
+  // couche de nuages traversée par la caméra (dessinée une fois)
+  {const g=o.querySelector('.cl').getContext('2d');for(let i=0;i<150;i++){const x=Math.random()*1024,y=Math.random()*576,r=50+Math.random()*230,a=.18+Math.random()*.42,gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,'rgba(255,255,255,'+a+')');gr.addColorStop(.6,'rgba(236,242,250,'+a*.5+')');gr.addColorStop(1,'rgba(230,238,248,0)');g.fillStyle=gr;g.fillRect(x-r,y-r,r*2,r*2)}}}
+ o.querySelectorAll('.lb').forEach(b=>b.style.height='');o.querySelector('.cl').style.opacity=0;o.querySelector('.scn').style.opacity=0;
  o.style.display='block';o.querySelector('.tt').classList.remove('on');o.querySelector('.fl').style.cssText='opacity:1;background:#000';
  o.onpointerdown=e=>{e.preventDefault();introEnd()};document.body.classList.add('intro');
  IN.keyH=e=>{if(e.key==='Escape'||e.key===' '||e.key==='Enter')introEnd()};addEventListener('keydown',IN.keyH);
@@ -12698,17 +12754,23 @@ function introStart(){if(IN.on)return;Object.assign(IN,{on:true,t:0,wait:0,ph:nu
  introGlobe();
  // virage le plus marqué (en descente de préférence) dans les 3 premiers km devant le cycliste
  IN.world=!!(COURSE&&NET.ready&&RID&&NET.E[RID.e]);IN.seq=IN.world?(SPACE.on?INTRO_P.filter(p=>!['val','reg'].includes(p[0])):INTRO_P):INTRO_P.filter(p=>['globe','room'].includes(p[0]));
- if(IN.world){const E=NET.E[RID.e],d=RID.dir,P={};let best=-1,bu=RID.u;IN.rid={e:RID.e,u:RID.u,dir:RID.dir};
-  for(let s=90;s<3000;s+=10){const u=RID.u+d*s;if(u<70||u>E.len-110)continue;let k=0;for(let j=-30;j<=30;j+=5){posAt(RID.e,u+d*j,d,P);k+=P.da}
-   posAt(RID.e,u,d,P);const sc=Math.abs(k)*(P.g<-.02?1.4:1)/(1+s/2500);if(sc>best){best=sc;bu=u}}
-  IN.u0=bu;IN.e=RID.e;IN.d=d;IN.v=13;RID.u=bu;// le monde se charge autour du virage
-  IN.ap=(INTRO_P[0][1]+INTRO_P[1][1]+INTRO_P[2][1]*.55)}// instant du passage au sommet du virage
+ if(IN.world){IN.rid={e:RID.e,u:RID.u,dir:RID.dir};const P={},Q={};let best=-1,b2=-1,pick=null,pick2=null;
+  // 19 nov. 2026 : le virage le plus marqué EN DESCENTE (pente moyenne < −3 % sur ±60 m), sur tout le parcours et dans les deux sens ; à défaut le plus marqué, pris dans le sens qui descend
+  for(const E of NET.E){if(!E||E.len<300)continue;for(let u=140;u<E.len-160;u+=15){let k=0;for(let j=-30;j<=30;j+=5){posAt(E.id,u+j,1,P);k+=P.da}
+    posAt(E.id,u-60,1,P);posAt(E.id,u+60,1,Q);const g=(Q.y-P.y)/120,d=g>0?-1:1,gd=g*d,sc=Math.abs(k);
+    if(gd<-.03&&sc*(1+Math.min(3,-gd*20))>best){best=sc*(1+Math.min(3,-gd*20));pick={e:E.id,u,d}}if(sc>b2){b2=sc;pick2={e:E.id,u,d}}}}
+  const pk=pick||pick2||{e:RID.e,u:RID.u,d:RID.dir};
+  IN.u0=pk.u;IN.e=pk.e;IN.d=pk.d;IN.v=13;RID.e=pk.e;RID.u=pk.u;RID.dir=pk.d;// le monde se charge autour du virage
+  // instant (en « temps du cycliste ») du passage au sommet du virage, au milieu du ralenti
+  {let tt=0,rt=0;for(const[k2,du]of IN.seq){if(k2==='crn'){for(let q=0;q<.5;q+=.005)rt+=introRate('crn',q)*du*.005;break}tt+=du;rt+=du}IN.ap=rt}}
+ IN.rt=0;
  SET.tod='afternoon';todApply();IN.skT=0}
 function introEnd(){if(!IN.on)return;IN.on=false;const o=$('intro');o.onpointerdown=null;removeEventListener('keydown',IN.keyH);
  if(IN.rid)Object.assign(RID,IN.rid);RNEAR=.25;cam.fov=IN.fov;cam.updateProjectionMatrix();CAM.snap=true;SET.tod=IN.tod;todApply();
  if(IN.mon)IN.mon.material.map=MT2,IN.mon.material.needsUpdate=true;
- const fl=o.querySelector('.fl');fl.style.transition='opacity .45s';fl.style.background='#000';fl.style.opacity=1;
- setTimeout(()=>{document.body.classList.remove('intro');o.style.display='none';fl.style.transition='';accOpen()},460)}
+ ren.domElement.style.filter='';o.querySelector('.cl').style.opacity=0;o.querySelectorAll('.lb').forEach(b=>b.style.height='0');
+ const fl=o.querySelector('.fl');fl.style.transition='opacity .55s';fl.style.background='#000';fl.style.opacity=.85;
+ setTimeout(()=>{document.body.classList.remove('intro');o.style.display='none';fl.style.transition='';accOpen()},560)}
 // ---- le globe ----
 function introGlobe(){if(IN.G)return;const G=IN.G={sc:new T.Scene(),cam:new T.PerspectiveCamera(32,16/9,.01,100)};
  const cv=document.createElement('canvas');cv.width=cv.height=2048;const g=cv.getContext('2d');
@@ -12753,47 +12815,56 @@ function introFrame(dt,now){const o=$('intro'),fl=o.querySelector('.fl'),sc2=o.q
  if(!IN.ready){// attendre relief + données près du virage (10 s au plus), écran noir
   IN.wait+=dt;const lv=$('lv');if(lv&&lv.style.display==='flex'){IN.wait=0;return false}
   const ok=!IN.world||SPACE.on?IN.wait>1.2:(DEMOK&&tileReady(R.position.x,R.position.z)&&JOBS.length<60&&IN.wait>1.5);if(ok||IN.wait>10){IN.ready=true;IN.t=0}else{sc2.textContent=IN.wait>2?'chargement du paysage…':'';return false}}
- IN.t+=Math.min(dt,.05);let t=IN.t,k=0,t0=0;while(k<IN.seq.length&&t>t0+IN.seq[k][1]){t0+=IN.seq[k][1];k++}
+ const dtc=Math.min(dt,.05);IN.t+=dtc;let t=IN.t,k=0,t0=0;while(k<IN.seq.length&&t>t0+IN.seq[k][1]){t0+=IN.seq[k][1];k++}
  if(k>=IN.seq.length){introEnd();return false}
- const ph=IN.seq[k][0],s=(t-t0)/IN.seq[k][1];
- fl.style.background=ph==='globe'&&s<.12||ph==='reg'&&s>.9?'#fff':'#000';
- fl.style.opacity=t<.6?1-t/.6:ph==='reg'&&s>.9?(s-.9)*10:ph==='globe'&&s<.12?1-s/.12:ph==='room'&&s>.93?(s-.93)/.07:0;
- if(ph==='globe'||ph==='room'){introGlobeCam(ph==='globe'?s*.82:.82+s*.18);
-  if(ph==='globe'){IN.G.cam.aspect=innerWidth/Math.max(1,innerHeight);IN.G.cam.updateProjectionMatrix();introGR(null);sc2.textContent='la Terre';return true}
+ const ph=IN.seq[k][0],s=(t-t0)/IN.seq[k][1],cv=ren.domElement,cl=o.querySelector('.cl'),scn=o.querySelector('.scn');IN.rt+=dtc*introRate(ph,s);
+ // mise au point de cinéma au début (flou → net), sinon net
+ const bl=ph==='macro'?(1-sm(.05,.9,s))*9:0,fs=bl>.05?'blur('+bl.toFixed(1)+'px)':'';if(cv.style.filter!==fs)cv.style.filter=fs;
+ fl.style.background='#000';fl.style.opacity=t<.5?1-t/.5:ph==='room'&&s>.94?(s-.94)/.06*.6:0;
+ // traversée des nuages : la couche grossit et s'épaissit, la Terre apparaît derrière
+ const cop=ph==='cloud'?Math.sin(Math.PI*Math.min(1,s*1.05)):ph==='reg'&&s>.75?(s-.75)*1.2:0;cl.style.opacity=cop.toFixed(3);cl.style.transform='scale('+(ph==='cloud'?1+s*1.8:ph==='reg'?1:1).toFixed(3)+')';
+ scn.style.opacity=ph==='room'?(1-sm(0,.2,s)).toFixed(3):0;
+ if(ph==='globe'||ph==='room'||(ph==='cloud'&&s>.5)){introGlobeCam(ph==='cloud'?0:ph==='globe'?s*.82:.82+s*.18);
+  if(ph!=='room'){IN.G.cam.aspect=innerWidth/Math.max(1,innerHeight);IN.G.cam.updateProjectionMatrix();introGR(null);sc2.textContent='la Terre';return true}
   // retour dans la pièce : le globe passe sur l'écran du bureau
   if(!IN.mon){IN.mon=RM.children.find(q=>q.material&&q.material.map===MT2)}
   if(IN.mon&&IN.mon.material.map!==IN.G.rt.texture){IN.mon.material.map=IN.G.rt.texture;IN.mon.material.needsUpdate=true}
   IN.G.cam.aspect=1024/560;IN.G.cam.updateProjectionMatrix();introGR(IN.G.rt);
-  const e=1-Math.pow(1-s,2.2),a=_iv.set(0,1.22,3.375-.52),b=_iw.set(1.85,1.62,-2.5);cam.position.lerpVectors(a,b,e);cam.position.x+=Math.sin(Math.PI*e)*.9;cam.position.y+=Math.sin(Math.PI*e)*.15;
-  const lk=V(0,1.22,3.375).lerp(V(0,1.0,1.4),sm(.1,.9,e));cam.lookAt(lk);cam.fov=lerp(50,52,e);RNEAR=.05;cam.updateProjectionMatrix();cam.updateMatrixWorld();
-  o.querySelector('.tt').classList.toggle('on',s>.32);sc2.textContent=s<.3?'ton salon':'';return false}
+  const e=1-Math.pow(1-s,2.2),a=_iv.set(0,1.22,3.375-.5),b=_iw.set(1.85,1.62,-2.5);cam.position.lerpVectors(a,b,e);cam.position.x+=Math.sin(Math.PI*e)*.9;cam.position.y+=Math.sin(Math.PI*e)*.15;
+  const lk=V(0,1.22,3.375).lerp(V(0,1.0,1.4),sm(.1,.9,e));cam.lookAt(lk);cam.rotateZ(Math.sin(Math.PI*e)*.06);cam.fov=lerp(50,52,e);RNEAR=.05;cam.updateProjectionMatrix();cam.updateMatrixWorld();
+  o.querySelector('.tt').classList.toggle('on',s>.3);sc2.textContent=s<.3?'ton salon':'';return false}
  // ---- dans le monde du parcours ----
- const P=_PS2;const u=IN.u0+IN.d*IN.v*(t-IN.ap),E=NET.E[IN.e];posAt(IN.e,clamp(u,0,E.len),IN.d,P);
+ const P=_PS2,E=NET.E[IN.e],vr=IN.v*introRate(ph,s);const u=clamp(IN.u0+IN.d*IN.v*(IN.rt-IN.ap),0,E.len);posAt(IN.e,u,IN.d,P);
  const tx=P.tx,tz=P.tz,lat=1.3,x=P.x-tz*lat,z=P.z+tx*lat,y=P.y+roadLift(IN.e,P.i,lat);
  let kk=0;for(let j=-10;j<=10;j+=5){const Q=posAt(IN.e,clamp(u+IN.d*j,0,E.len),IN.d,_PS3);kk+=Q.da}kk/=5;
- const lt=-clamp(Math.atan(IN.v*IN.v*kk/9.81),-.6,.6);IN.lean+=(lt-IN.lean)*Math.min(1,dt*5);const ln=IN.lean;
+ const lt=-clamp(Math.atan(IN.v*IN.v*kk/9.81),-.6,.6);IN.lean+=(lt-IN.lean)*Math.min(1,dtc*introRate(ph,s)*5);const ln=IN.lean;
  WORLD.visible=true;RM.visible=TR.visible=false;sc.background=null;sc.fog.density=SPACE.on?0:1/42000;sky.visible=!SPACE.on;clouds.visible=!SPACE.on&&!!QP.clouds&&SHW('clouds');stars.visible=!SPACE.on&&DAYF<.6;
  RIDER.bike.wr.visible=true;if(envRT)sc.environment=envRT.texture;R.position.set(x,y,z);R.rotation.set(-Math.atan(P.g),Math.atan2(tx,tz),ln*.92);
- riderAnim(dt,{cad:0,P:0,v:IN.v,g:P.g,coast:true,stand:false,tuck:false,steer:clamp(ln*1.8,-1,1),cside:Math.abs(ln)>.12?Math.sign(ln):0,blean:ln*.26,hyaw:clamp(-ln*.55,-.3,.3)});
+ riderAnim(dtc*introRate(ph,s),{cad:0,P:0,v:vr,g:P.g,coast:true,stand:false,tuck:false,steer:clamp(ln*1.8,-1,1),cside:Math.abs(ln)>.12?Math.sign(ln):0,blean:ln*.26,hyaw:clamp(-ln*.55,-.3,.3)});
  if(now-IN.skT>1500){IN.skT=now;skyUpdate(LA,LO0);IN.ld=LD.clone();IN.si=SUNL.intensity;IN.sc=SUNL.color.clone();IN.hl=HL.intensity}
  if(IN.ld){LD.copy(IN.ld);SUNL.intensity=IN.si;SUNL.color.copy(IN.sc);HL.intensity=IN.hl}if(loop.hlc){HL.color.copy(loop.hlc[0]);HL.groundColor.copy(loop.hlc[1])}
  shadowFollow(R.position);
  R.updateMatrixWorld(true);const fw=V(tx,0,tz),lf=V(tz,0,-tx),F=(a,b,c)=>R.position.clone().addScaledVector(lf,a).add(V(0,b,0)).addScaledVector(fw,c);
  let cp,lk,fov=40;RNEAR=.25;
- if(ph==='macro'||ph==='back'){const q=ph==='macro'?s*.12:.12+.88*s,e=q*q*(3-2*q);
-  // depuis ~12 cm du haut de la jante avant (logo qui défile) jusqu'au trois-quarts avant du vélo : recul exponentiel
-  const l0=F(0,.36,.94),l1=F(0,.95,.25),c0=F(-.13,.39,1.03),c1=F(-2.5,1.35,3.5);lk=l0.clone().lerp(l1,e);
+ // côté extérieur du virage (+1 = gauche du cycliste)
+ if(IN.out===undefined){const cl2=w=>clamp(IN.u0+IN.d*w,0,E.len),A=posAt(IN.e,cl2(-14),IN.d,{}),B=posAt(IN.e,cl2(14),IN.d,{});const cr=A.tx*B.tz-A.tz*B.tx;IN.out=cr>0?1:-1}
+ if(ph==='macro'||ph==='back'){const q=ph==='macro'?s*.14:.14+.86*s,e=q*q*(3-2*q);
+  // depuis ~12 cm de la jante avant (logo qui défile) jusqu'au trois-quarts avant du vélo, du côté extérieur du virage : recul exponentiel
+  const sd=IN.out,l0=F(0,.36,.94),l1=F(0,.95,.25),c0=F(.13*sd,.39,1.03),c1=F(2.6*sd,1.25,3.6);lk=l0.clone().lerp(l1,e);
   const d0=c0.distanceTo(l0),d1=c1.distanceTo(l1),dv=c0.clone().sub(l0).normalize().lerp(c1.clone().sub(l1).normalize(),e).normalize();
   cp=lk.clone().addScaledVector(dv,d0*Math.pow(d1/d0,e));fov=lerp(24,38,e);RNEAR=lerp(.012,.2,e)}
- else if(ph==='crn'){// caméra plantée au bord, à l'extérieur du virage : le cycliste passe en trombe
-  if(!IN.cw){const cl=w=>clamp(IN.u0+IN.d*w,0,E.len),A=posAt(IN.e,cl(-12),IN.d,{}),B=posAt(IN.e,cl(12),IN.d,{}),Pa=posAt(IN.e,cl(7),IN.d,{});let ix=B.tx-A.tx,iz=B.tz-A.tz,l=Math.hypot(ix,iz);if(l<.05){ix=Pa.tz;iz=-Pa.tx}else{ix/=l;iz/=l}
-   const ox=Pa.x-ix*3.4,oz=Pa.z-iz*3.4;IN.cw=V(ox,Math.max(hT(ox,oz),Pa.y)+.9,oz);IN.cs=(IN.lc||cam.position).clone()}
-  const w=sm(0,.3,s);cp=IN.cs.clone().lerp(IN.cw,w);lk=F(0,.9,lerp(1.5,0,s));fov=lerp(38,46,s)}
- else{const q=ph==='rise'?s:ph==='val'?1+s:2+s,hgt=[2.2,260,2600,14000],j=Math.min(2,Math.floor(q)),f=q-j,ef=f*f*(3-2*f),H2=hgt[j]*Math.pow(hgt[j+1]/hgt[j],ef);
-  const bk=H2*lerp(.25,1.1,sm(0,2.5,q)),sd=H2*.35*sm(.5,3,q);cp=F(sd,H2,-bk);if(IN.cw&&ph==='rise'&&s<.25)cp.lerp(IN.cw,1-s/.25);
+ else if(ph==='crn'){// ralenti : la caméra tourne autour du cycliste penché, de l'avant-extérieur jusqu'à l'arrière
+  if(!IN.cs)IN.cs=(IN.lc||cam.position).clone();const sd=IN.out,a=lerp(.5,2.75,sm(.08,.9,s)),rr=lerp(4.4,3.4,Math.sin(Math.PI*s)),hh=lerp(1.25,.75,Math.sin(Math.PI*Math.min(1,s*1.2)))+sm(.8,1,s)*1.2;
+  const orb=F(Math.sin(a)*rr*sd,hh,Math.cos(a)*rr);cp=s<.12?IN.cs.clone().lerp(orb,sm(0,.12,s)):orb;
+  const gy=hT(cp.x,cp.z)+.35;if(cp.y<gy)cp.y=gy;lk=F(0,.85,.2);fov=lerp(38,33,Math.sin(Math.PI*s))}
+ else{const q=ph==='rise'?s:ph==='val'?1+s:ph==='reg'?2+s:3,hgt=[3.2,260,2600,14000],j=Math.min(2,Math.floor(q)),f=Math.min(1,q-j),ef=f*f*(3-2*f),H2=hgt[j]*Math.pow(hgt[j+1]/hgt[j],ef);
+  const bk=H2*lerp(.95,1.1,sm(0,2.5,q)),sd2=H2*.35*sm(.5,3,q)*IN.out;cp=F(sd2,H2,-bk);if(ph==='rise'&&s<.3&&IN.lc0)cp=IN.lc0.clone().lerp(cp,sm(0,.3,s));
   lk=R.position.clone().addScaledVector(fw,H2*.05);fov=lerp(46,55,sm(0,1,q))}
- cam.position.copy(cp);IN.lc=(IN.lc||V(0,0,0)).copy(cp);cam.up.set(0,1,0);cam.lookAt(lk);cam.fov=fov;cam.updateProjectionMatrix();cam.updateMatrixWorld();skyFollow();TU.uCam.value.copy(cam.position);
- sc2.textContent=introFmt(cam.position.distanceTo(R.position));return false}
+ if(ph==='crn')IN.lc0=cp.clone();
+ cam.position.copy(cp);IN.lc=(IN.lc||V(0,0,0)).copy(cp);cam.up.set(0,1,0);cam.lookAt(lk);
+ if(ph==='crn')cam.rotateZ(-ln*.25*Math.sin(Math.PI*s));// léger roulis de caméra qui accompagne l'inclinaison
+ cam.fov=fov;cam.updateProjectionMatrix();cam.updateMatrixWorld();skyFollow();TU.uCam.value.copy(cam.position);
+ sc2.textContent=(introRate(ph,s)<.5?'× '+introRate(ph,s).toFixed(1).replace('.',',')+' · ':'')+introFmt(cam.position.distanceTo(R.position));return false}
 const _PS2={},_PS3={};
 // ---- démarrage ----
 {landVeil();ftpLog(FTP);$('ftp').value=FTP;R.add(TR);progTick(true);applyKit();hudApply();todApply();wxApply();nav('home');rs();initNPCs();if(!NET.ready)initNetwork();if(!NOVEG&&!TREEG.b)initTreeGeos();
