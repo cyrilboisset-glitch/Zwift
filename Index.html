@@ -12646,7 +12646,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  // pédalage
  const rc=cadReal(dt,riding,P),pedal=riding?(rc?cad>5:P>5&&v>.3):hm?true:v>.3&&g>-.03;
  const cadT=hm?78:rc?cad:clamp(86+(P/FTP-.7)*14-Math.max(0,gP-.04)*220+(stand?-14:0),58,118);cadS+=(cadT-cadS)*Math.min(1,dt*(rc?7:2));
- Object.assign(RS2,{cad:pedal?cadS:0,P,v:hm?0:v,g:gP,coast:!pedal,stand:stand&&!hm,tuck:tuck&&!hm,steer:hm?0:clamp(lean*1.8,-1,1),cside:hm?0:CRN.cs,blean:hm?0:lean*.26,hyaw:hm?0:clamp(-lean*.55,-.3,.3)});riderAnim(dt,RS2);faceTick(dt,riding?P:0,stand&&!hm);
+ Object.assign(RS2,{cad:pedal?cadS:0,P,v:hm?0:v,g:gP,coast:!pedal,stand:stand&&!hm,tuck:tuck&&!hm,steer:hm?0:clamp(lean*1.8,-1,1),cside:hm?0:CRN.cs,blean:hm?0:lean*.26,hyaw:hm?0:clamp(-lean*.55,-.3,.3)});if(!(IN.on&&IN.wp))riderAnim(dt,RS2);faceTick(dt,riding?P:0,stand&&!hm);// film d'ouverture : c'est lui qui anime le cycliste dans le paysage
  if(hm){FAN.rotation.z+=dt*22;if(now-(loop.mt||0)>100){loop.mt=now;mon(now)}}
  // caméra
  if(!dr&&riding)yaw*=Math.pow(.2,dt);
@@ -12765,7 +12765,7 @@ const INTRO_P=[// [clé, durée en s]
 function introRate(ph,s){return ph==='crn'?1-.8*sm(.16,.36,s)*(1-sm(.64,.84,s)):1}
 function introWanted(){try{if(sessionStorage.v3skip){delete sessionStorage.v3skip;return 0}}catch(e){}try{return localStorage.v3intro==='0'?1:2}catch(e){return 2}}
 function introGo(){const w=introWanted();if(!w)return;if(w===1){accOpen();return}introStart()}
-function introStart(){if(IN.on)return;Object.assign(IN,{on:true,t:0,wait:0,ph:null,sk:0,cw:null,lc:null,cs:null,lc0:null,out:undefined,rt:0,mon:IN.mon,fov:cam.fov,tod:SET.tod,ready:false,t0:performance.now(),lean:0});
+function introStart(){if(IN.on)return;Object.assign(IN,{on:true,t:0,wait:0,ph:null,sk:0,cw:null,lc:null,cs:null,lc0:null,out:undefined,rt:0,relT:0,mon:IN.mon,fov:cam.fov,tod:SET.tod,ready:false,t0:performance.now(),lean:0});
  let o=$('intro');if(!o){o=document.createElement('div');o.id='intro';const L=(t,c)=>[...t].map((ch,i)=>'<i class="ch'+(c||'')+'" style="--i:'+i+'">'+(ch===' '?'&nbsp;':ch)+'</i>').join('');
   o.innerHTML='<canvas class="cl" width="1024" height="576"></canvas><div class="scn"></div><div class="fl"></div><div class="lb t"></div><div class="lb b"></div><div class="sc"></div><div class="tt"><b>'+L('TOUT LE MONDE.')+'</b> <b class="g">'+L('DEPUIS TON SALON.')+'</b><small>VIRTUAL CYCLING TRAINING</small></div><div class="sk">Toucher pour passer ›</div>';document.body.appendChild(o);
   // couche de nuages traversée par la caméra (dessinée une fois)
@@ -12789,7 +12789,7 @@ function introStart(){if(IN.on)return;Object.assign(IN,{on:true,t:0,wait:0,ph:nu
   {let tt=0,rt=0;for(const[k2,du]of IN.seq){if(k2==='crn'){for(let q=0;q<.5;q+=.005)rt+=introRate('crn',q)*du*.005;break}tt+=du;rt+=du}IN.ap=rt}}
  IN.rt=0;
  SET.tod='afternoon';todApply();IN.skT=0}
-function introEnd(){if(!IN.on)return;IN.on=false;const o=$('intro');o.onpointerdown=null;removeEventListener('keydown',IN.keyH);
+function introEnd(){if(!IN.on)return;IN.on=false;IN.wp=false;const o=$('intro');o.onpointerdown=null;removeEventListener('keydown',IN.keyH);
  if(IN.rid)Object.assign(RID,IN.rid);RNEAR=.25;cam.fov=IN.fov;cam.updateProjectionMatrix();CAM.snap=true;SET.tod=IN.tod;todApply();
  if(IN.mon)IN.mon.material.map=MT2,IN.mon.material.needsUpdate=true;
  ren.domElement.style.filter='';o.querySelector('.cl').style.opacity=0;o.querySelectorAll('.lb').forEach(b=>b.style.height='0');
@@ -12848,7 +12848,7 @@ function introFrame(dt,now){const o=$('intro'),fl=o.querySelector('.fl'),sc2=o.q
  // traversée des nuages : la couche grossit et s'épaissit, la Terre apparaît derrière
  const cop=ph==='cloud'?Math.sin(Math.PI*Math.min(1,s*1.05)):ph==='reg'&&s>.75?(s-.75)*1.2:0;cl.style.opacity=cop.toFixed(3);cl.style.transform='scale('+(ph==='cloud'?1+s*1.8:ph==='reg'?1:1).toFixed(3)+')';
  scn.style.opacity=ph==='room'?(1-sm(0,.2,s)).toFixed(3):0;
- if(ph==='globe'||ph==='room'||(ph==='cloud'&&s>.5)){introGlobeCam(ph==='cloud'?0:ph==='globe'?s*.82:.82+s*.18);
+ if(ph==='globe'||ph==='room'||(ph==='cloud'&&s>.5)){IN.wp=false;introGlobeCam(ph==='cloud'?0:ph==='globe'?s*.82:.82+s*.18);
   if(ph!=='room'){IN.G.cam.aspect=innerWidth/Math.max(1,innerHeight);IN.G.cam.updateProjectionMatrix();introGR(null);sc2.textContent='la Terre';return true}
   // retour dans la pièce : le globe passe sur l'écran du bureau
   if(!IN.mon){IN.mon=RM.children.find(q=>q.material&&q.material.map===MT2)}
@@ -12858,13 +12858,18 @@ function introFrame(dt,now){const o=$('intro'),fl=o.querySelector('.fl'),sc2=o.q
   const lk=V(0,1.22,3.375).lerp(V(0,1.0,1.4),sm(.1,.9,e));cam.lookAt(lk);cam.rotateZ(Math.sin(Math.PI*e)*.06);cam.fov=lerp(50,52,e);RNEAR=.05;cam.updateProjectionMatrix();cam.updateMatrixWorld();
   o.querySelector('.tt').classList.toggle('on',s>.3);sc2.textContent=s<.3?'ton salon':'';return false}
  // ---- dans le monde du parcours ----
+ IN.wp=true;
  const P=_PS2,E=NET.E[IN.e],vr=IN.v*introRate(ph,s);const u=clamp(IN.u0+IN.d*IN.v*(IN.rt-IN.ap),0,E.len);posAt(IN.e,u,IN.d,P);
  const tx=P.tx,tz=P.tz,lat=1.3,x=P.x-tz*lat,z=P.z+tx*lat,y=P.y+roadLift(IN.e,P.i,lat);
  let kk=0;for(let j=-10;j<=10;j+=5){const Q=posAt(IN.e,clamp(u+IN.d*j,0,E.len),IN.d,_PS3);kk+=Q.da}kk/=5;
  const lt=-clamp(Math.atan(IN.v*IN.v*kk/9.81),-.6,.6);IN.lean+=(lt-IN.lean)*Math.min(1,dtc*introRate(ph,s)*5);const ln=IN.lean;
  WORLD.visible=true;RM.visible=TR.visible=false;sc.background=null;sc.fog.density=SPACE.on?0:1/42000;sky.visible=!SPACE.on;clouds.visible=!SPACE.on&&!!QP.clouds&&SHW('clouds');stars.visible=!SPACE.on&&DAYF<.6;
  RIDER.bike.wr.visible=true;if(envRT)sc.environment=envRT.texture;R.position.set(x,y,z);R.rotation.set(-Math.atan(P.g),Math.atan2(tx,tz),ln*.92);
- riderAnim(dtc*introRate(ph,s),{cad:0,P:0,v:IN.v,g:P.g,coast:true,stand:false,tuck:false,steer:clamp(ln*1.8,-1,1),cside:Math.abs(ln)>.12?Math.sign(ln):0,blean:ln*.26,hyaw:clamp(-ln*.55,-.3,.3)});
+ // virage : roue libre, jambe intérieure à 12 h ; sortie du virage : relance en danseuse (20 nov. 2026, demande de Cyril)
+ {const ex=(ph==='crn'&&s>.8)||ph==='rise'||ph==='val';if(ex&&!IN.relT)IN.relT=t;const rl=ex?1:0;
+  riderAnim(dtc*introRate(ph,s),{cad:rl?98:0,P:rl?720:0,v:IN.v,g:P.g,coast:!rl,stand:!!rl,tuck:false,steer:clamp(ln*1.8,-1,1),cside:rl?0:(Math.abs(ln)>.1?Math.sign(ln):0),blean:ln*.26,hyaw:clamp(-ln*.55,-.3,.3)})
+  // manivelle intérieure à 12 h atteinte en temps réel, même pendant le ralenti
+  if(!rl&&Math.abs(ln)>.1){const bb=ln>0?0:Math.PI,tg=bb+Math.round((RIDER.th-bb)/6.2832)*6.2832;RIDER.th+=(tg-RIDER.th)*Math.min(1,dtc*6)}}
  if(now-IN.skT>1500){IN.skT=now;skyUpdate(LA,LO0);IN.ld=LD.clone();IN.si=SUNL.intensity;IN.sc=SUNL.color.clone();IN.hl=HL.intensity}
  if(IN.ld){LD.copy(IN.ld);SUNL.intensity=IN.si;SUNL.color.copy(IN.sc);HL.intensity=IN.hl}if(loop.hlc){HL.color.copy(loop.hlc[0]);HL.groundColor.copy(loop.hlc[1])}
  shadowFollow(R.position);
