@@ -2713,6 +2713,9 @@ const TFRAG=`{
   float slD=uSnow+dn(vW.xz*.004)*260.-130.+dn(vW.xz*.0009)*300.-150.;// même limite irrégulière que la neige dessinée plus bas
   float sw=uDesnow*smoothstep(.56,.8,L2)*(1.-smoothstep(.06,.15,sat))*(1.-smoothstep(slD-220.,slD-60.,vW.y));
   if(sw>0.){float nn=dn(vW.xz*.03)*.6+dn(vW.xz*.17)*.4;vec3 gc=mix(vec3(.24,.30,.15),vec3(.42,.46,.25),nn)*(.86+.28*dn(vW.xz*1.1));base=mix(base,gc,sw);}}
+ // talus raides (déblais / remblais des routes de montagne, entre deux branches d'un lacet) : roche et terre striées au lieu d'une photo étirée (19 nov. 2026)
+ {float upT=clamp(vNw.y,0.,1.),rk=smoothstep(.88,.62,upT);if(rk>0.){float st=dn(vec2((vW.x+vW.z)*.08,vW.y*1.6))*.55+dn(vW.xz*.45+vW.y*.3)*.45;
+  vec3 rc=mix(vec3(.33,.30,.26),vec3(.55,.52,.46),st)*(.82+.3*dn(vW.xz*2.3));rc=mix(rc,vec3(.30,.36,.20),.35*smoothstep(.62,.8,upT)*dn(vW.xz*.2));base=mix(base,rc,rk*.8);}}
  // neige au-dessus de la limite de la saison (TU.uSnow), seulement sur les pentes douces ; rocher gris dans les pentes raides au-dessus (13 novembre 2026)
  if(vW.y>uSnow-500.){float sl=uSnow+dn(vW.xz*.004)*260.-130.+dn(vW.xz*.0009)*300.-150.;float up=clamp(vNw.y,0.,1.);
   float sn=smoothstep(sl-90.,sl+120.,vW.y)*smoothstep(.45,.8,up),rock=smoothstep(.75,.45,up)*smoothstep(sl-400.,sl+300.,vW.y);
@@ -12805,7 +12808,7 @@ function introGlobe(){if(IN.G)return;const G=IN.G={sc:new T.Scene(),cam:new T.Pe
 function introGR(rt){const c=ren.getClearColor(new T.Color()),a=ren.getClearAlpha();ren.setRenderTarget(rt);ren.setClearColor(0x02030a,1);ren.clear();ren.render(IN.G.sc,IN.G.cam);ren.setRenderTarget(null);ren.setClearColor(c,a)}
 function llVec(la,lo,r){const a=la*Math.PI/180,b=lo*Math.PI/180;return new T.Vector3(r*Math.cos(a)*Math.cos(b),r*Math.sin(a),-r*Math.cos(a)*Math.sin(b))}
 function introGlobeCam(s){// s : 0 → 1 pendant le recul ; la France reste au centre puis la Terre entière apparaît
- const G=IN.G,[la,lo]=G.home,d=lerp(1.09,3.7,Math.pow(s,1.5)),c=G.cam,h=llVec(la+lerp(0,-14,s),lo+lerp(0,28,s),1);
+ const G=IN.G,[la,lo]=G.home,d=lerp(1.5,3.7,Math.pow(s,1.3)),c=G.cam,h=llVec(la+lerp(0,-14,s),lo+lerp(0,28,s),1);
  c.position.copy(h).multiplyScalar(d);const tg=llVec(la,lo,1).multiplyScalar(1-sm(0,.7,s));c.up.set(0,1,0);c.lookAt(tg);c.fov=32;c.updateProjectionMatrix();
  const ph=performance.now()/1000;for(const m of G.mk)if(m.userData.cur)m.scale.setScalar((.045+.02*Math.sin(ph*5))*lerp(.5,1.6,s))}
 const _iv=new T.Vector3(),_iw=new T.Vector3();
