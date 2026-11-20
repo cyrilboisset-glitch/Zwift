@@ -1406,7 +1406,7 @@ function spSkyBuild(full){const S=new T.Group(),A=spAmb();
 // cailloux low-poly déformés
 function spRockGeo(seed,det){let sd=seed;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;const g=new T.IcosahedronGeometry(1,det),p=g.attributes.position,v=new T.Vector3(),a=rnd()*9,b=rnd()*9;
  for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const k=1+.28*Math.sin(v.x*3+a)*Math.cos(v.y*2.6+b)+.12*Math.sin(v.z*7+a*2);v.multiplyScalar(k);v.y*=.75;p.setXYZ(i,v.x,v.y,v.z)}
- const g2=g.toNonIndexed();g2.computeVertexNormals();return g2}
+ const g2=g.index?g.toNonIndexed():g;g2.computeVertexNormals();return g2}
 // décor le long du parcours : astéroïdes, cristaux, débris (Space) ou immeubles en fils lumineux (Néon) ; anneaux dans les montées et les descentes ; plots au bord
 function spDecorBuild(){const G=new T.Group(),A=spAmb();let sd=12345;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
  const rocks=[[],[],[]],crys=[],deb=[],plots=[],pcol=[],rings=[],blds=[],low=QK==='tab'||QK==='low',D=A.dens||0,cL=new T.Color(A.L),cR=new T.Color(A.R);
@@ -6815,9 +6815,9 @@ function velCam(dt){const vw=CAM.view%VCAMN.length,f=VEL.rf,k=CAM.snap?1:1-Math.
  if(vw===0){_cw.copy(R.position).addScaledVector(f,-5.6).add(_cu.set(0,1.7,0)).addScaledVector(up,.5);_cl2.copy(R.position).addScaledVector(f,5).add(_cu.set(0,.8,0))}
  else if(vw===1){_cw.copy(VEL.C).lerp(R.position,.62);_cw.y=2.6;_cl2.copy(R.position).add(_cu.set(0,.9,0));upK=0}// caméra « télé » depuis le centre
  else if(vw===2){_cw.copy(R.position).sub(VEL.C).setY(0).normalize().multiplyScalar(-26).add(VEL.C);_cw.y=21;_cl2.copy(R.position);upK=0}// vue haute depuis les tribunes d'en face
- else if(vw===3){_cw.copy(R.position).addScaledVector(up,1.5).addScaledVector(f,.25);_cl2.copy(_cw).addScaledVector(f,10).addScaledVector(up,-.6);upK=1}// vue du cycliste
+ else if(vw===3){RIDER.bones[BI.head].getWorldPosition(_cw);_cw.addScaledVector(f,.2).addScaledVector(up,.13);_cl2.copy(_cw).addScaledVector(f,12).addScaledVector(up,-1.6);upK=1}// vue du cycliste : yeux du coureur, comme sur la route (avant : caméra dans le dos du maillot)
  else{RIDER.head.localToWorld(_cw.set(.2,.13,.62));RIDER.head.localToWorld(_cl2.set(0,.1,.04));upK=.5}// gros plan sur le visage
- if(CAM.snap||vw===4){cam.position.copy(_cw);CAM.snap=false}else cam.position.lerp(_cw,k);
+ if(CAM.snap||vw>=3){cam.position.copy(_cw);CAM.snap=false}else cam.position.lerp(_cw,k);
  cam.up.set(0,1,0).lerp(up,upK).normalize();cam.lookAt(_cl2)}
 // ---------- jeux de lumière ----------
 const _hc=new T.Color(),_hc2=new T.Color();
