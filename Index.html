@@ -2294,7 +2294,9 @@ function mrOpen(){const o=mrEl();o.style.display='block';MR.on=true;
   let c=[46.6,2.45],z=6;try{const k=JSON.parse(localStorage.v3mrv||'null');if(k){c=k.c;z=k.z}else if(typeof LA!=='undefined'&&typeof LO0!=='undefined'&&typeof CRS!=='undefined'&&CRS.cur){c=[LA,LO0];z=12}}catch(e){}
   m.setView(c,z);m.on('moveend',()=>{try{const q=m.getCenter();localStorage.v3mrv=JSON.stringify({c:[q.lat,q.lng],z:m.getZoom()})}catch(e){}})}
  setTimeout(()=>MR.map.invalidateSize(),50);mrChange(true)}
-function mrClose(){MR.on=false;const o=$('mr');if(o)o.style.display='none'}
+// à la fermeture, la carte et ses images sont libérées (20 nov. 2026 : sur la tablette, carte + 3D saturaient la mémoire graphique, écran noir après « Rouler ») ;
+// les points et l'itinéraire sont gardés, la carte est refaite à la prochaine ouverture
+function mrClose(){MR.on=false;const o=$('mr');if(o)o.style.display='none';if(MR.map){try{MR.map.remove()}catch(e){}MR.map=null;MR.tl=null;MR.grp=null}}
 async function mrSearch(){const q=$('mrQ').value.trim();if(!q)return;MR.msg='Recherche…';mrDraw();
  try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q)),j=await r.json();
   if(j&&j[0]){MR.map.setView([+j[0].lat,+j[0].lon],13);MR.msg=''}else MR.msg='Lieu introuvable.'}catch(e){MR.msg='Recherche impossible (pas de réseau ?).'}mrDraw()}
@@ -5201,9 +5203,9 @@ $('gf').onchange=async e=>{const f=e.target.files[0];if(!f)return;const d=new DO
  if(p.length>1){const nm=(d.querySelector('trk>name,rte>name,metadata>name')||{}).textContent||f.name.replace(/\.gpx$/i,'');
   // le tracé devient ton parcours en 3D : il est gardé dans « Mes parcours », puis l'appli se recharge autour de lui
   let q=p.filter((x,i)=>i===0||Math.hypot((x[0]-p[i-1][0])*111000,(x[1]-p[i-1][1])*78000)>.5),info='';
-  if(SET.snap!==0){const ab={stop:false,ms:40000};let stopR;const stopP=new Promise(r=>stopR=r);
-   mod('<b>Recalage du tracé sur les routes…</b><br><small id="snp">Téléchargement des routes : 0 %</small><div class="prog"><i id="snb" style="width:0%"></i></div><small style="opacity:.75">40 s au plus. « Passer » garde ton tracé tel quel.</small>',[['Passer',()=>{ab.stop=true;stopR(null)}]]);
-   try{const r=await Promise.race([snapRoads(q,(f,src)=>{const a=$('snp'),b=$('snb');if(a)a.textContent='Téléchargement des routes ('+src+') : '+Math.round(f*100)+' %';if(b)b.style.width=(f*100).toFixed(0)+'%'},ab),stopP,new Promise(r=>setTimeout(()=>{ab.stop=true;r(null)},45000))]);
+  if(SET.snap!==0){const ab={stop:false,ms:25000};let stopR;const stopP=new Promise(r=>stopR=r);
+   mod('<b>Recalage du tracé sur les routes…</b><br><small id="snp">Téléchargement des routes : 0 %</small><div class="prog"><i id="snb" style="width:0%"></i></div><small style="opacity:.75">30 s au plus. « Passer » garde ton tracé tel quel.</small>',[['Passer',()=>{ab.stop=true;stopR(null)}]]);
+   try{const r=await Promise.race([snapRoads(q,(f,src)=>{const a=$('snp'),b=$('snb');if(a)a.textContent='Téléchargement des routes ('+src+') : '+Math.round(f*100)+' %';if(b)b.style.width=(f*100).toFixed(0)+'%'},ab),stopP,new Promise(r=>setTimeout(()=>{ab.stop=true;r(null)},30000))]);
     if(r&&r.st&&r.st.ok>.3){q=r.ll;info=' · recalé sur les routes '+r.st.src+' ('+Math.round(r.st.ok*100)+' % des points, écart moyen '+nf(r.st.dm,1)+' m)'}else info=' · pas de recalage'+(r&&r.st&&r.st.src?' ('+r.st.src+')':' (passé)')}catch(err){info=' · pas de recalage'}
    $('res').style.display='none'}
   const c=crsImport(nm,q);if(c){say('Parcours « '+nm+' » importé ('+nf(c.km,1)+' km'+info+') : préparation…');setTimeout(()=>crsSwitch(c.id),50)}else say('Stockage plein : supprime un ancien parcours (Rouler → Mes parcours).')}else say('GPX illisible.');e.target.value=''};
