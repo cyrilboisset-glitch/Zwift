@@ -1695,21 +1695,32 @@ function advGroundH0(zk,o,x,z,a){const n=advF(x/90,z/90),n2=advF(x/22,z/22);
   case 4:return-1.6-n2*3*sm(6,30,a)-sm(10,60,a)*4+sm(80,300,a)*50*n;
   default:return o>0?-sm(8,45,o)*3.2:(n*55)*sm(30,190,a)+n2*1.2*sm(5,14,a)}}
 const ADV_OFF=[-900,-620,-420,-300,-200,-130,-85,-55,-36,-24,-15,-9.5,-6.2,-4.7,4.7,6.2,9.5,15,24,36,55,85,130,200,300,420,620,900];
+// ---- sol partagé entre les portions de route (20 nov. 2026 : sur un vrai parcours de montagne à lacets, le sol d'une portion plus haute,
+// étalé jusqu'à 900 m, recouvrait une portion plus basse : écran tout vert, route et cycliste dessous). Chaque point du sol appartient à la portion
+// de route la plus proche ; là où une autre portion est plus proche, le sol de celle-ci passe sous l'autre route.
+const ADVQ={r:null,len:0,g:new Map(),C:150};
+function advQBuild(){const R=ROUTE;if(ADVQ.r===R&&ADVQ.len===R.len)return;ADVQ.r=R;ADVQ.len=R.len;ADVQ.g.clear();
+ for(let s=0;s<=R.len;s+=20){const p=advAt(s),k=Math.floor(p.x/ADVQ.C)+','+Math.floor(p.z/ADVQ.C);let l=ADVQ.g.get(k);if(!l)ADVQ.g.set(k,l=[]);l.push(p.x,p.z,p.y,s)}}
+// point le plus proche d'une AUTRE portion du parcours (à plus de 80 m le long de la route), s'il est plus près que la sienne (ao) ; sinon null
+function advForeign(x,z,s0,ao){if(ao<20)return null;const C=ADVQ.C,ix=Math.floor(x/C),iz=Math.floor(z/C),r=Math.ceil(ao/C);let bd=(ao-6)*(ao-6),by=null;
+ for(let u=-r;u<=r;u++)for(let w=-r;w<=r;w++){const l=ADVQ.g.get((ix+u)+','+(iz+w));if(!l)continue;
+  for(let i=0;i<l.length;i+=4){if(Math.abs(l[i+3]-s0)<80)continue;const dx=l[i]-x,dz=l[i+1]-z,d2=dx*dx+dz*dz;if(d2<bd){bd=d2;by=l[i+2]}}}
+ return by}
 // ---- construction d'un tronçon de 250 m ----
 function advCell(k){const s0=k*ADV_CL,s1=Math.min(ROUTE.len,s0+ADV_CL);if(s0>=ROUTE.len)return null;advSeed=1000+k*7919;
- const G=new T.Group(),M=advMat(),Gm=advGeo(),S=[];for(let s=s0;s<=s1+.1;s+=10)S.push(advAt(Math.min(s,s1)));
+ const G=new T.Group(),M=advMat(),Gm=advGeo(),S=[];for(let s=s0;s<=s1+.1;s+=10)S.push(advAt(Math.min(s,s1)));advQBuild();
  const lowQ=QK==='tab'||QK==='low',den=QK==='tab'?.45:QK==='low'?.6:QK==='med'?.8:1,anim=[];
  const zw=S.map(p=>advZoneW(p.s)),zc=advZoneAt((s0+s1)/2),Z=ADVZ;
  // sol
  {const C=ADV_OFF.length,P=[],Cc=[],I=[];S.forEach((p,r)=>{const w=zw[r];for(let c=0;c<C;c++){const o=ADV_OFF[c],x=p.x-p.tz*o,z=p.z+p.tx*o;
-   const h=advGroundH(w[0],o,x,z)*(1-w[2])+advGroundH(w[1],o,x,z)*w[2];P.push(x,p.y-.08+h,z);
+   const h=advGroundH(w[0],o,x,z)*(1-w[2])+advGroundH(w[1],o,x,z)*w[2],fy=advForeign(x,z,p.s,Math.abs(o));let y=p.y-.08+h;if(fy!==null)y=Math.min(y,fy-8);P.push(x,y,z);
    const n=advF(x/14,z/14),A=Z[w[0]],B=Z[w[1]],m=(a,b,i)=>(a[i]+(b[i]-a[i])*n)*(1-w[2])+(B===A?0:((B.g0[i]+(B.g1[i]-B.g0[i])*n)-(a[i]+(b[i]-a[i])*n))*w[2]);
    let cr=m(A.g0,A.g1,0),cg=m(A.g0,A.g1,1),cb=m(A.g0,A.g1,2);if(Math.abs(o)<7){cr*=.8;cg*=.8;cb*=.8}Cc.push(cr,cg,cb)}
   if(r)for(let c=0;c<C-1;c++){if(c===C/2-1)continue;const a=(r-1)*C+c,b=a+C;I.push(a,a+1,b,a+1,b+1,b)}});
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('color',new T.Float32BufferAttribute(Cc,3));g.setIndex(I);g.computeVertexNormals();
   const m=new T.Mesh(g,M.ground);m.receiveShadow=true;G.add(m)}
  // positions au hasard autour de la route dans une zone donnée
- const spot=(zk,dmin,dmax,side)=>{for(let t=0;t<6;t++){const r=Math.floor(advR()*S.length),p=S[r];if(advZoneAt(p.s)!==zk)continue;const sd=side||(advR()<.5?-1:1),o=sd*advRR(dmin,dmax),x=p.x-p.tz*o,z=p.z+p.tx*o,w=zw[r];
+ const spot=(zk,dmin,dmax,side)=>{for(let t=0;t<6;t++){const r=Math.floor(advR()*S.length),p=S[r];if(advZoneAt(p.s)!==zk)continue;const sd=side||(advR()<.5?-1:1),o=sd*advRR(dmin,dmax),x=p.x-p.tz*o,z=p.z+p.tx*o,w=zw[r];if(advForeign(x,z,p.s,Math.abs(o)+15)!==null)continue;
    return{x,z,y:p.y-.08+advGroundH(w[0],o,x,z)*(1-w[2])+advGroundH(w[1],o,x,z)*w[2],p,o}}return null};
  const inst=(geo,mat,L,sh)=>{if(!L.length)return;const m=new T.InstancedMesh(geo,mat,L.length),o=new T.Object3D();L.forEach((q,i)=>{o.position.set(q.x,q.y,q.z);o.rotation.set(q.rx||0,q.ry||0,q.rz||0);const s=q.s||1;o.scale.set(q.sx||s,q.sy||s,q.sz||s);o.updateMatrix();m.setMatrixAt(i,o.matrix);if(q.c!=null)m.setColorAt(i,new T.Color(q.c))});
   m.castShadow=!!sh&&!lowQ;m.receiveShadow=!!sh;m.frustumCulled=false;G.add(m);return m};
