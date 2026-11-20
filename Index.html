@@ -12764,7 +12764,8 @@ const IN={on:false,t:0,wait:0,ph:null,seq:[],sk:0};
 const INTRO_P=[// [clé, durée en s]
  ['macro',1.3],['back',2.3],['crn',3.6],['rise',2.0],['val',2.0],['reg',1.7],['cloud',1.0],['globe',2.4],['room',4.8]];
 // vitesse du temps pour le cycliste : ralenti « bullet-time » au sommet du virage (la caméra tourne autour de lui)
-function introRate(ph,s){return ph==='crn'?1-.8*sm(.16,.36,s)*(1-sm(.64,.84,s)):1}
+// ralenti du virage : × 0,5 et plus court (20 nov. 2026, Cyril : « ralentit beaucoup trop » ; avant × 0,2)
+function introRate(ph,s){return ph==='crn'?1-.5*sm(.2,.34,s)*(1-sm(.58,.72,s)):1}
 function introWanted(){try{if(sessionStorage.v3skip){delete sessionStorage.v3skip;return 0}}catch(e){}try{return localStorage.v3intro==='0'?1:2}catch(e){return 2}}
 function introGo(){const w=introWanted();if(!w)return;if(w===1){accOpen();return}introStart()}
 function introStart(){if(IN.on)return;Object.assign(IN,{on:true,t:0,wait:0,ph:null,sk:0,cw:null,lc:null,cs:null,lc0:null,out:undefined,rt:0,relT:0,mon:IN.mon,fov:cam.fov,tod:SET.tod,ready:false,t0:performance.now(),lean:0});
@@ -12895,7 +12896,7 @@ function introFrame(dt,now){const o=$('intro'),fl=o.querySelector('.fl'),sc2=o.q
  cam.position.copy(cp);IN.lc=(IN.lc||V(0,0,0)).copy(cp);cam.up.set(0,1,0);cam.lookAt(lk);
  if(ph==='crn')cam.rotateZ(-ln*.25*Math.sin(Math.PI*s));// léger roulis de caméra qui accompagne l'inclinaison
  cam.fov=fov;cam.updateProjectionMatrix();cam.updateMatrixWorld();skyFollow();TU.uCam.value.copy(cam.position);
- sc2.textContent=(introRate(ph,s)<.5?'× '+introRate(ph,s).toFixed(1).replace('.',',')+' · ':'')+introFmt(cam.position.distanceTo(R.position));return false}
+ sc2.textContent=(introRate(ph,s)<.75?'× '+introRate(ph,s).toFixed(1).replace('.',',')+' · ':'')+introFmt(cam.position.distanceTo(R.position));return false}
 const _PS2={},_PS3={};
 // ---- démarrage ----
 {landVeil();ftpLog(FTP);$('ftp').value=FTP;R.add(TR);progTick(true);applyKit();hudApply();todApply();wxApply();nav('home');rs();initNPCs();if(!NET.ready)initNetwork();if(!NOVEG&&!TREEG.b)initTreeGeos();
