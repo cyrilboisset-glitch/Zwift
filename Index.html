@@ -1412,7 +1412,7 @@ function spDecorBuild(){const G=new T.Group(),A=spAmb();let sd=12345;const rnd=(
  const rocks=[[],[],[]],crys=[],deb=[],plots=[],pcol=[],rings=[],blds=[],low=QK==='tab'||QK==='low',D=A.dens||0,cL=new T.Color(A.L),cR=new T.Color(A.R);
  // rien sur la route ni juste à côté : contrôle sur des points de la route tous les 15 m (une boucle peut repasser près d'un rocher)
  const RS=[];for(const E of NET.E)if(inWorld(E.id))for(let i=E.i0;i<=E.i1;i+=3)RS.push(i);
- const clear=(x,y,z,s)=>{const m=s*1.5+22;for(const i of RS){const dx=X[i]-x,dz=Z[i]-z;if(dx*dx+dz*dz<m*m&&Math.abs(H[i]-y)<m)return false}return true};
+ const clear=(x,y,z,s,flat)=>{const m=s*1.5+22;for(const i of RS){const dx=X[i]-x,dz=Z[i]-z;if(dx*dx+dz*dz<m*m&&(flat||Math.abs(H[i]-y)<m))return false}return true};// flat : posé au sol (immeubles), écart compté à plat, même avec une route plus bas (lacets)
  for(const E of NET.E){if(!inWorld(E.id))continue;let run=0,last=-99;
   for(let i=E.i0;i<=E.i1;i+=2){const sd2=rnd()<.5?-1:1;
    if(i%8===0){const big=rnd()<.09*Math.min(1.5,D);
@@ -1421,7 +1421,7 @@ function spDecorBuild(){const G=new T.Group(),A=spAmb();let sd=12345;const rnd=(
     if(D&&rnd()<.06){const L=34+rnd()*70,x=X[i]-TZ[i]*L*sd2,z=Z[i]+TX[i]*L*sd2,y=H[i]+6+rnd()*30,s=1+rnd()*2.5;if(clear(x,y,z,s*2.4))crys.push([x,y,z,s,rnd(),rnd()])}
     if(D&&rnd()<.25*D){const cx=X[i]-TZ[i]*(40+rnd()*120)*sd2,cz=Z[i]+TX[i]*(40+rnd()*120)*sd2,cy=H[i]+rnd()*60-10;for(let n=0;n<10;n++)deb.push(cx+(rnd()-.5)*40,cy+(rnd()-.5)*25,cz+(rnd()-.5)*40)}
     if(TRON)for(let n=0;n<(low?1:2);n++)if(rnd()<.8){const L=26+rnd()*rnd()*330,sd3=rnd()<.5?-1:1,x=X[i]-TZ[i]*L*sd3,z=Z[i]+TX[i]*L*sd3,w=8+rnd()*30,d=8+rnd()*30,h=12+rnd()*rnd()*150;
-     if(clear(x,H[i],z,Math.max(w,d)*.5))blds.push([x,hT(x,z)-3,z,w,h+3,d,rnd()*1.57,rnd()<.7])}}
+     if(clear(x,H[i],z,Math.max(w,d)*.5,true))blds.push([x,hT(x,z)-3,z,w,h+3,d,rnd()*1.57,rnd()<.7])}}
    if((i-E.i0)%10===0)for(const s2 of[-1,1]){plots.push(X[i]-TZ[i]*SP_RW*s2,H[i]+.14,Z[i]+TX[i]*SP_RW*s2);const c=s2<0?cL:cR;pcol.push(c.r,c.g,c.b)}
    // anneaux : pente moyenne sur ±30 m d'au moins 4 % pendant 150 m, un anneau tous les 50 m
    const a=Math.max(E.i0,i-6),b=Math.min(E.i1,i+6),gr=(H[b]-H[a])/Math.max(1,SD[b]-SD[a]);
