@@ -5612,15 +5612,17 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 wakeLock(true);addEventListener('pointerdown',()=>{if(!WLK)wakeLock(true);else if(!NSV.on&&!navigator.wakeLock)nsvStart()},{capture:true});
 // contrôle toutes les 20 s : si le verrou a sauté (plein écran, rotation…), on le redemande ; sinon la vidéo de secours reprend
 setInterval(()=>{if(document.visibilityState!=='visible')return;if(!WLK)wakeLock(true);if(!WLK&&NSV.v&&NSV.v.paused)nsvStart()},20000);
-function fsEnter(){if(!document.fullscreenElement)fullScreen()}
+function fsEnter(){if(!APPMODE&&!document.fullscreenElement)fullScreen()}
 function fullScreen(){try{if(document.fullscreenElement){LANDOFF=true;document.exitFullscreen()}else{LANDOFF=false;document.documentElement.requestFullscreen({navigationUI:'hide'}).then(lockLand).catch(()=>{})}}catch(e){}}
 // paysage dès le lancement (tablette, téléphone) : Chrome ne verrouille l'écran en paysage qu'en plein écran, et n'accepte le plein écran
 // qu'après un toucher. Le tout premier toucher (n'importe où) bascule donc en plein écran paysage ; en attendant, en portrait, un voile invite à toucher.
 // Sur ordinateur (souris), rien ne change. Si on quitte le plein écran avec ⛶, on n'y revient pas tout seul.
 const TOUCHDEV=(matchMedia&&matchMedia('(pointer:coarse)').matches)||navigator.maxTouchPoints>1;let LANDOFF=false,LANDT=false;
 function lockLand(){try{screen.orientation.lock('landscape').catch(()=>{})}catch(e){}landVeil()}
-function landNow(){if(!TOUCHDEV||LANDOFF)return;LANDT=true;try{if(!document.fullscreenElement)document.documentElement.requestFullscreen({navigationUI:'hide'}).then(lockLand).catch(()=>landVeil());else lockLand()}catch(e){landVeil()}landVeil()}
-function landVeil(){const v=$('lv');if(v)v.style.display=TOUCHDEV&&!LANDT&&!LANDOFF&&innerHeight>innerWidth&&!document.fullscreenElement?'flex':'none'}
+// appli Android (APK qui s'appuie sur Chrome) : déjà plein écran et en paysage, pas de demande de plein écran (évite le message de Chrome)
+const APPMODE=(()=>{try{if((document.referrer||'').startsWith('android-app://'))sessionStorage.v3app='1';return sessionStorage.v3app==='1'||matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches}catch(e){return false}})();
+function landNow(){if(!TOUCHDEV||LANDOFF||APPMODE)return;LANDT=true;try{if(!document.fullscreenElement)document.documentElement.requestFullscreen({navigationUI:'hide'}).then(lockLand).catch(()=>landVeil());else lockLand()}catch(e){landVeil()}landVeil()}
+function landVeil(){const v=$('lv');if(v)v.style.display=!APPMODE&&TOUCHDEV&&!LANDT&&!LANDOFF&&innerHeight>innerWidth&&!document.fullscreenElement?'flex':'none'}
 addEventListener('pointerup',landNow,true);addEventListener('touchend',landNow,true);
 addEventListener('resize',landVeil);document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)LANDT=false;landVeil()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!document.fullscreenElement){LANDT=false;landVeil()}});
