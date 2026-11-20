@@ -12668,8 +12668,9 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  {const cp=hm?_hw.set(x,y+2,z):cam.position,rp=hm?cp:R.position;terrUpdate(cp);roadUpdate(cp);if(!hm)oroadUpdate(cp,now);vegUpdate(cp);bldUpdate(cp);waterUpdate(cp);if(!hm)grassUpdate(cp,1.5);
   if(now-clipT2>600){clipT2=now;clipRecenter(rp.x,rp.z)}}
  dataTick(now);dataLoaderTick(now);villagesTick(now);mosaicsTick(now);clipTick(now);waterTick(dt)}
- runJobs((hm?14:(fA>26?3.5:fA>20?5:7))+JOB_BOOST);
- dprTick(now);
+ // film d'ouverture : chargement à fond pendant l'écran noir, presque rien pendant le film (saccades sur la tablette, 20 nov. 2026)
+ runJobs((IN.on?(IN.ready?1.2:24):hm?14:(fA>26?3.5:fA>20?5:7))+JOB_BOOST);
+ if(!IN.on)dprTick(now);
  if(!hm&&now-hudT>100){hudT=now;$('vs').textContent=(v*3.6).toFixed(0);$('vp').textContent=mode==='explore'?'–':Math.round(P);$('vc').textContent=mode==='explore'?'–':Math.round(CADR?cad:pedal?cadS:0);$('vh').textContent=hr||'–';
   $('vg').textContent=(g*100).toFixed(1);$('vd').textContent=(s/1000).toFixed(1);$('va').textContent=Math.round(y);
   if(ROUTE){$('vrl').textContent=ROUTE.off>40?'hors itinéraire ·':'reste';$('vr').textContent=Math.max(0,(ROUTE.len-ROUTE.cum[ROUTE.k])/1000).toFixed(1);$('vru').textContent='km'}
@@ -12785,14 +12786,20 @@ function introStart(){if(IN.on)return;Object.assign(IN,{on:true,yy:undefined,gg:
   // 19 nov. 2026 : le virage le plus marqué EN DESCENTE (pente moyenne < −3 % sur ±60 m), sur tout le parcours et dans les deux sens ; à défaut le plus marqué, pris dans le sens qui descend
   for(const E of NET.E){if(!E||E.len<300)continue;for(let u=140;u<E.len-160;u+=15){let k=0;for(let j=-30;j<=30;j+=5){posAt(E.id,u+j,1,P);k+=P.da}
     posAt(E.id,u-60,1,P);posAt(E.id,u+60,1,Q);const g=(Q.y-P.y)/120,d=g>0?-1:1,gd=g*d,sc=Math.abs(k);
-    if(gd<-.03&&sc*(1+Math.min(3,-gd*20))>best){best=sc*(1+Math.min(3,-gd*20));pick={e:E.id,u,d}}if(sc>b2){b2=sc;pick2={e:E.id,u,d}}}}
+    // 20 nov. 2026 (Cyril : « virage beaucoup trop pentu ») : descente modérée, 3 à 7,5 % (idéal 5 %) ; au-delà, seulement à défaut
+    const ok=gd<-.03&&gd>-.075,sw=sc*(ok?1.5-Math.abs(-gd-.05)*12:gd<-.02?.6/(1+Math.max(0,-gd-.075)*40):0);
+    if(sw>best){best=sw;pick={e:E.id,u,d}}if(sc>b2){b2=sc;pick2={e:E.id,u,d}}}}
   const pk=pick||pick2||{e:RID.e,u:RID.u,d:RID.dir};
   IN.u0=pk.u;IN.e=pk.e;IN.d=pk.d;IN.v=13;RID.e=pk.e;RID.u=pk.u;RID.dir=pk.d;// le monde se charge autour du virage
   // instant (en « temps du cycliste ») du passage au sommet du virage, au milieu du ralenti
   {let tt=0,rt=0;for(const[k2,du]of IN.seq){if(k2==='crn'){for(let q=0;q<.5;q+=.005)rt+=introRate('crn',q)*du*.005;break}tt+=du;rt+=du}IN.ap=rt}}
  IN.rt=0;
  SET.tod='afternoon';todApply();IN.skT=0}
-function introEnd(){if(!IN.on)return;IN.on=false;IN.wp=false;const o=$('intro');o.onpointerdown=null;removeEventListener('keydown',IN.keyH);
+// juste avant le film : shaders du paysage, de la pièce et de la Terre compilés d'avance (sinon blocage au premier affichage),
+// résolution × 0,8 en qualité Tablette / Basse pendant le film (vues aériennes plus lourdes que la sortie)
+function introPrep(){try{const vis=[WORLD.visible,RM.visible,TR.visible];WORLD.visible=RM.visible=TR.visible=true;ren.compile(sc,cam);WORLD.visible=vis[0];RM.visible=vis[1];TR.visible=vis[2];if(IN.G)ren.compile(IN.G.sc,IN.G.cam)}catch(e){}
+ IN.pr0=null;if(QK==='tab'||QK==='low'){IN.pr0=PR;ren.setPixelRatio(PR*.8);rs()}}
+function introEnd(){if(!IN.on)return;IN.on=false;IN.wp=false;if(IN.pr0){ren.setPixelRatio(IN.pr0);rs();IN.pr0=null}const o=$('intro');o.onpointerdown=null;removeEventListener('keydown',IN.keyH);
  if(IN.rid)Object.assign(RID,IN.rid);RNEAR=.25;cam.fov=IN.fov;cam.updateProjectionMatrix();CAM.snap=true;SET.tod=IN.tod;todApply();
  if(IN.mon)IN.mon.material.map=MT2,IN.mon.material.needsUpdate=true;
  ren.domElement.style.filter='';o.querySelector('.cl').style.opacity=0;o.querySelectorAll('.lb').forEach(b=>b.style.height='0');
@@ -12841,12 +12848,12 @@ function introFmt(m){return m<1?Math.round(m*100)+' cm':m<1000?Math.round(m)+' m
 function introFrame(dt,now){const o=$('intro'),fl=o.querySelector('.fl'),sc2=o.querySelector('.sc');
  if(!IN.ready){// attendre relief + données près du virage (10 s au plus), écran noir
   IN.wait+=dt;const lv=$('lv');if(lv&&lv.style.display==='flex'){IN.wait=0;return false}
-  const ok=!IN.world||SPACE.on?IN.wait>1.2:(DEMOK&&tileReady(R.position.x,R.position.z)&&JOBS.length<60&&IN.wait>1.5);if(ok||IN.wait>10){IN.ready=true;IN.t=0}else{sc2.textContent=IN.wait>2?'chargement du paysage…':'';return false}}
+  const ok=!IN.world||SPACE.on?IN.wait>1.2:(DEMOK&&tileReady(R.position.x,R.position.z)&&JOBS.length<14&&IN.wait>2);if(ok||IN.wait>14){IN.ready=true;IN.t=0;introPrep()}else{sc2.textContent=IN.wait>2?'chargement du paysage…':'';return false}}
  const dtc=Math.min(dt,.05);IN.t+=dtc;let t=IN.t,k=0,t0=0;while(k<IN.seq.length&&t>t0+IN.seq[k][1]){t0+=IN.seq[k][1];k++}
  if(k>=IN.seq.length){introEnd();return false}
  const ph=IN.seq[k][0],s=(t-t0)/IN.seq[k][1],cv=ren.domElement,cl=o.querySelector('.cl'),scn=o.querySelector('.scn');IN.rt+=dtc*introRate(ph,s);
  // mise au point de cinéma au début (flou → net), sinon net
- const bl=ph==='macro'?(1-sm(.05,.9,s))*9:0,fs=bl>.05?'blur('+bl.toFixed(1)+'px)':'';if(cv.style.filter!==fs)cv.style.filter=fs;
+ const bl=ph==='macro'&&QK!=='tab'&&QK!=='low'?(1-sm(.05,.9,s))*9:0,fs=bl>.05?'blur('+bl.toFixed(1)+'px)':'';if(cv.style.filter!==fs)cv.style.filter=fs;
  fl.style.background='#000';fl.style.opacity=t<.5?1-t/.5:ph==='room'&&s>.94?(s-.94)/.06*.6:0;
  // traversée des nuages : la couche grossit et s'épaissit, la Terre apparaît derrière
  const cop=ph==='cloud'?Math.sin(Math.PI*Math.min(1,s*1.05)):ph==='reg'&&s>.75?(s-.75)*1.2:0;cl.style.opacity=cop.toFixed(3);cl.style.transform='scale('+(ph==='cloud'?1+s*1.8:ph==='reg'?1:1).toFixed(3)+')';
