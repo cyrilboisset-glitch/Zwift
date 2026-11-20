@@ -1022,8 +1022,14 @@ svg.leaflet-image-layer.leaflet-interactive path {
 #intro .tt.on b.g{animation:ttglow 2.2s 1.4s ease-in-out infinite}@keyframes ttglow{50%{text-shadow:0 0 22px rgba(240,207,115,.75),0 3px 24px rgba(0,0,0,.8)}}
 #intro .tt b{font-weight:700}#intro .cl{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;transform-origin:50% 50%}
 #intro .scn{position:absolute;inset:0;opacity:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.32) 0 2px,rgba(80,170,255,.06) 2px 4px);box-shadow:inset 0 0 120px rgba(80,170,255,.35)}
+#intro .ld{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0f0e0d;transition:opacity .6s}
+#intro .ld.off{opacity:0;pointer-events:none}
+#intro .ld .lg{width:84px;height:84px;border-radius:22px;border:2px solid #f0cf73;display:flex;align-items:center;justify-content:center;font:700 30px 'Space Grotesk',system-ui;color:#f4efe6;animation:inPulse 1.6s ease-in-out infinite}
+#intro .ld .lg b{color:#f0cf73}#intro .ld .tx{color:#e9a178;font:600 14px 'Space Grotesk',system-ui;letter-spacing:.12em;text-transform:uppercase}
+#intro .ld .bar{width:min(320px,60vw);height:5px;border-radius:3px;background:#27241f;overflow:hidden}#intro .ld .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#c99a34,#f0cf73);transition:width .4s}
+@keyframes inPulse{0%,100%{box-shadow:0 0 0 0 rgba(240,207,115,.35)}50%{box-shadow:0 0 0 14px rgba(240,207,115,0)}}
 #intro .sc{position:absolute;left:4vw;top:calc(9vh + 14px);color:#f0cf73;font:700 clamp(11px,1.8vmin,15px) 'Barlow Condensed',system-ui;letter-spacing:.2em;text-shadow:0 1px 6px #000;opacity:.85}
-#intro .sk{position:absolute;right:4vw;bottom:calc(9vh + 12px);color:#cfc8ba;font:600 clamp(11px,1.7vmin,14px) system-ui;opacity:.7;letter-spacing:.06em;text-shadow:0 1px 6px #000}
+#intro .sk{position:absolute;z-index:4;right:4vw;bottom:calc(9vh + 12px);color:#cfc8ba;font:600 clamp(11px,1.7vmin,14px) system-ui;opacity:.7;letter-spacing:.06em;text-shadow:0 1px 6px #000}
 body.intro #home,body.intro #hud,body.intro #top,body.intro #tb,body.intro #fsb,body.intro #map,body.intro #prof,body.intro #ld,body.intro #toast{visibility:hidden!important}
 </style></head><body><div id="lv"><i>📱</i><b>Touche l'écran</b><small>pour passer en plein écran, en paysage</small></div>
 <canvas id="c"></canvas>
@@ -1223,8 +1229,8 @@ function limiter(n){let act=0;const q=[];const nx=()=>{while(act<n&&q.length){co
 const LIM_TILE=limiter(6),LIM_OVP=limiter(2),LIM_WFS=limiter(3);
 const OVP=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
 let ovpOK=0;
-async function overpass(q,ms){return LIM_OVP(async()=>{const txt=await cachedText('ovp:'+q,async()=>{let err;
-  for(let k=0;k<OVP.length;k++){const u=OVP[(ovpOK+k)%OVP.length];
+async function overpass(q,ms,tries){return LIM_OVP(async()=>{const txt=await cachedText('ovp:'+q,async()=>{let err;
+  for(let k=0;k<Math.min(OVP.length,tries||OVP.length);k++){const u=OVP[(ovpOK+k)%OVP.length];
    try{const r=await fetchT(u,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}},ms||60000);
     const t=await r.text();if(t[0]!=='{')throw new Error('rép. invalide');ovpOK=(ovpOK+k)%OVP.length;return t}catch(e){err=e}}
   throw err||new Error('overpass')});return JSON.parse(txt)})}
@@ -2327,20 +2333,25 @@ function mrGpx(){const c=MR.route&&MR.route.coords;if(!c||c.length<2)return;cons
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([x],{type:'application/gpx+xml'}));a.download=(nm.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'trace')+'.gpx';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 // ---- recalage du GPX sur les vraies routes (IGN en France, sinon OpenStreetMap) ----
 // chaque point est rapproché de la route la plus proche (≤ 18 m, même direction à 35° près) ; les décalages sont lissés sur ±30 m (pas de zigzag)
-async function snapRoads(ll,prog){if(ll.length<3)return{ll,st:null};const la0=ll[0][0],lo0=ll[0][1],kx=111320*Math.cos(la0*Math.PI/180),ky=110574;
+// 20 nov. 2026 (Cyril : import bloqué à 8 %) : avant, les cases étaient demandées une par une, chacune pouvait attendre 45 s à l'IGN puis 4 × 45 s
+// aux serveurs OpenStreetMap ; maintenant 4 cases à la fois, 12 s par demande, 2 serveurs OSM au plus, et arrêt possible (bouton « Passer », délai global)
+async function snapRoads(ll,prog,ab){if(ll.length<3)return{ll,st:null};ab=ab||{};const la0=ll[0][0],lo0=ll[0][1],kx=111320*Math.cos(la0*Math.PI/180),ky=110574;
  const XY=ll.map(p=>[(p[1]-lo0)*kx,(p[0]-la0)*ky]),CS=.018,cells=new Map();
  for(const p of ll)for(const[da,db]of[[0,0],[.0003,0],[-.0003,0],[0,.0004],[0,-.0004]]){const a=Math.floor((p[0]+da)/CS),b=Math.floor((p[1]+db)/(CS*1.4));cells.set(a+','+b,[a,b])}
  const segs=[],H=new Map(),HC=30,addLine=L=>{for(let i=1;i<L.length;i++){const A=[(L[i-1][0]-lo0)*kx,(L[i-1][1]-la0)*ky],B=[(L[i][0]-lo0)*kx,(L[i][1]-la0)*ky],k=segs.length;segs.push([A,B]);
    const x0=Math.floor(Math.min(A[0],B[0])/HC),x1=Math.floor(Math.max(A[0],B[0])/HC),y0=Math.floor(Math.min(A[1],B[1])/HC),y1=Math.floor(Math.max(A[1],B[1])/HC);
    if((x1-x0+1)*(y1-y0+1)>400)continue;for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){const kk=x*100003+y;let l=H.get(kk);if(!l)H.set(kk,l=[]);l.push(k)}}};
- let src='IGN',done=0,ignEmpty=0;const C=[...cells.values()];
- for(const[a,b]of C){const s=a*CS,n=s+CS,w=b*CS*1.4,e=w+CS*1.4;let got=false;
-  if(src==='IGN'){try{const F=await wfs('BDTOPO_V3:troncon_de_route',s,w,n,e,3);for(const f of F){const g=f.geometry,pr=f.properties||{};if(!g||/escalier/i.test(pr.nature||''))continue;
+ let src='IGN',done=0,ok=0,ignEmpty=0,ignErr=0,osmErr=0,dead=false;const C=[...cells.values()],tEnd=performance.now()+(ab.ms||40000);
+ const one=async([a,b])=>{const s=a*CS,n=s+CS,w=b*CS*1.4,e=w+CS*1.4;let got=false,tried=false;
+  if(src==='IGN'){tried=true;try{const F=await wfs('BDTOPO_V3:troncon_de_route',s,w,n,e,3,12000);ignErr=0;for(const f of F){const g=f.geometry,pr=f.properties||{};if(!g||/escalier/i.test(pr.nature||''))continue;
      const Ls=g.type==='LineString'?[g.coordinates]:g.type==='MultiLineString'?g.coordinates:[];for(const L of Ls)addLine(L.map(c=>Math.abs(c[0]-lo0)<Math.abs(c[1]-lo0)?[c[0],c[1]]:[c[1],c[0]]))}
-    got=F.length>0;if(!got&&++ignEmpty>=3&&done<6)src='OSM'}catch(err){src='OSM'}}
-  if(!got&&src==='OSM'){try{const j=await overpass('[out:json][timeout:60];way["highway"]('+s.toFixed(5)+','+w.toFixed(5)+','+n.toFixed(5)+','+e.toFixed(5)+');out geom;',45000);
-     for(const el of j.elements||[])if(el.geometry&&!/steps|elevator/.test((el.tags||{}).highway||''))addLine(el.geometry.map(q=>[q.lon,q.lat]))}catch(err){}}
-  done++;if(prog)prog(done/C.length,src)}
+    got=F.length>0;if(!got&&++ignEmpty>=3&&ok<3)src='OSM'}catch(err){if(++ignErr>=2)src='OSM'}}
+  if(!got&&src==='OSM'&&!dead){tried=true;try{const j=await overpass('[out:json][timeout:25];way["highway"]('+s.toFixed(5)+','+w.toFixed(5)+','+n.toFixed(5)+','+e.toFixed(5)+');out geom;',12000,2);osmErr=0;
+     for(const el of j.elements||[])if(el.geometry&&!/steps|elevator/.test((el.tags||{}).highway||''))addLine(el.geometry.map(q=>[q.lon,q.lat]));got=true}catch(err){if(++osmErr>=3)dead=true}}
+  if(got)ok++;done++;if(prog)prog(done/C.length,src)};
+ let ix=0;const worker=async()=>{while(ix<C.length&&!ab.stop&&!dead&&performance.now()<tEnd){await one(C[ix++])}};
+ await Promise.all([worker(),worker(),worker(),worker()]);
+ if(ab.stop||done<C.length*.7)return{ll,st:{ok:0,src:ab.stop?'interrompu':dead?'réseau injoignable':'trop lent'}};
  if(!segs.length)return{ll,st:{ok:0,src:'aucune route'}};
  const n=XY.length,cd=new Float64Array(n);for(let i=1;i<n;i++)cd[i]=cd[i-1]+Math.hypot(XY[i][0]-XY[i-1][0],XY[i][1]-XY[i-1][1]);
  const OX=new Float32Array(n),OY=new Float32Array(n),M=new Uint8Array(n);let j0=0,j1=0,nm=0;
@@ -3007,9 +3018,9 @@ function addVeg(id,rings,type){if(!type||DATA.veg.has(id)||!rings.length||rings[
 function addWater(id,rings,kind){if(DATA.wat.has(id)||!rings.length||rings[0].length<3)return;const o={id,rings,kind,bb:bboxOf(rings)};DATA.wat.set(id,o);idxAdd(WIDX,o);DATA.n.w++}
 // ---- WFS IGN ----
 const WFSU='https://data.geopf.fr/wfs/ows';
-async function wfs(type,s,w,n,e,maxPages){let all=[],start=0;
+async function wfs(type,s,w,n,e,maxPages,ms){let all=[],start=0;
  for(let pg=0;pg<(maxPages||3);pg++){const url=`${WFSU}?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${type}&SRSNAME=EPSG:4326&OUTPUTFORMAT=application/json&COUNT=4000&STARTINDEX=${start}&BBOX=${s.toFixed(5)},${w.toFixed(5)},${n.toFixed(5)},${e.toFixed(5)},urn:ogc:def:crs:EPSG::4326`;
-  const txt=await LIM_WFS(()=>cachedText(url,async()=>{const r=await fetchT(url,{},45000);const t=await r.text();if(t[0]!=='{')throw new Error('WFS');return t}));
+  const txt=await LIM_WFS(()=>cachedText(url,async()=>{const r=await fetchT(url,{},ms||45000);const t=await r.text();if(t[0]!=='{')throw new Error('WFS');return t}));
   const j=JSON.parse(txt);if(!j.features)throw new Error('WFS vide');all=all.concat(j.features);
   if(j.features.length<4000)break;start+=4000}
  return all}
@@ -5190,9 +5201,10 @@ $('gf').onchange=async e=>{const f=e.target.files[0];if(!f)return;const d=new DO
  if(p.length>1){const nm=(d.querySelector('trk>name,rte>name,metadata>name')||{}).textContent||f.name.replace(/\.gpx$/i,'');
   // le tracé devient ton parcours en 3D : il est gardé dans « Mes parcours », puis l'appli se recharge autour de lui
   let q=p.filter((x,i)=>i===0||Math.hypot((x[0]-p[i-1][0])*111000,(x[1]-p[i-1][1])*78000)>.5),info='';
-  if(SET.snap!==0){mod('<b>Recalage du tracé sur les routes…</b><br><small id="snp">Téléchargement des routes : 0 %</small><div class="prog"><i id="snb" style="width:0%"></i></div>',[]);
-   try{const r=await snapRoads(q,(f,src)=>{const a=$('snp'),b=$('snb');if(a)a.textContent='Téléchargement des routes ('+src+') : '+Math.round(f*100)+' %';if(b)b.style.width=(f*100).toFixed(0)+'%'});
-    if(r.st&&r.st.ok>.3){q=r.ll;info=' · recalé sur les routes '+r.st.src+' ('+Math.round(r.st.ok*100)+' % des points, écart moyen '+nf(r.st.dm,1)+' m)'}else info=' · pas de recalage (routes non trouvées)'}catch(err){info=' · pas de recalage'}
+  if(SET.snap!==0){const ab={stop:false,ms:40000};let stopR;const stopP=new Promise(r=>stopR=r);
+   mod('<b>Recalage du tracé sur les routes…</b><br><small id="snp">Téléchargement des routes : 0 %</small><div class="prog"><i id="snb" style="width:0%"></i></div><small style="opacity:.75">40 s au plus. « Passer » garde ton tracé tel quel.</small>',[['Passer',()=>{ab.stop=true;stopR(null)}]]);
+   try{const r=await Promise.race([snapRoads(q,(f,src)=>{const a=$('snp'),b=$('snb');if(a)a.textContent='Téléchargement des routes ('+src+') : '+Math.round(f*100)+' %';if(b)b.style.width=(f*100).toFixed(0)+'%'},ab),stopP,new Promise(r=>setTimeout(()=>{ab.stop=true;r(null)},45000))]);
+    if(r&&r.st&&r.st.ok>.3){q=r.ll;info=' · recalé sur les routes '+r.st.src+' ('+Math.round(r.st.ok*100)+' % des points, écart moyen '+nf(r.st.dm,1)+' m)'}else info=' · pas de recalage'+(r&&r.st&&r.st.src?' ('+r.st.src+')':' (passé)')}catch(err){info=' · pas de recalage'}
    $('res').style.display='none'}
   const c=crsImport(nm,q);if(c){say('Parcours « '+nm+' » importé ('+nf(c.km,1)+' km'+info+') : préparation…');setTimeout(()=>crsSwitch(c.id),50)}else say('Stockage plein : supprime un ancien parcours (Rouler → Mes parcours).')}else say('GPX illisible.');e.target.value=''};
 $('ftp').onchange=()=>{FTP=Math.max(80,Math.min(500,+$('ftp').value||200));$('ftp').value=FTP;save();ftpLog(FTP);$('zn').innerHTML=zonesHTML()};$('kg').onchange=save;
@@ -5858,6 +5870,10 @@ function homeHeader(){let c=$('pchip');if(!c){const hh=$('hh'),h1=hh.querySelect
  {const a=PROF.me(),ab=$('accb');ab.innerHTML='<i style="background:'+(ACOL[a.col|0]||ACOL[0])+'">'+esc((a.name||'?').slice(0,1).toUpperCase())+'</i><span>'+esc(a.name)+'</span>';ab.title='Changer de compte'}
  const L=LVL,a=lvlXP(L),b=lvlXP(L+1),p=Math.max(0,Math.min(100,(GS.xp-a)/(b-a)*100));
  c.innerHTML='<div class="lv" style="--p:'+p.toFixed(0)+'">'+L+'</div><div><b>Niveau '+L+'</b><small>'+nf(Math.max(0,b-GS.xp))+' XP avant le niveau '+(L+1)+' · '+(FTP/riderKg()).toFixed(1).replace('.',',')+' W/kg</small></div>'}
+// profil de l'accueil redessiné quand le parcours, le réseau ou le relief arrivent après coup (sinon il restait noir), ou après une perte d'affichage
+function heroTick(now){if(now-(heroTick.t||0)<1500)return;heroTick.t=now;const cv=$('hpf');if(!cv||!cv.offsetParent)return;
+ const k=(COURSE?COURSE.name:'-')+'/'+(NET.ready?1:0)+'/'+(DEMOK?1:0)+'/'+cv.clientWidth+'x'+cv.clientHeight;if(cv._k===k&&cv._ok)return;cv._k=k;
+ try{const dp=heroDraw(cv);cv._ok=dp!==undefined;if(cv._ok&&dp&&CRS.cur&&!CRS.cur.dp){const e=$('hdp');if(e)e.textContent='⛰️ '+nf(dp)+' m D+'}}catch(e){cv._ok=false}}
 function heroDraw(cv){const g=cv.getContext('2d'),f=devicePixelRatio||1,W=cv.width=cv.clientWidth*f,H=cv.height=cv.clientHeight*f;if(!W||!H||!COURSE||!NET.ready)return;
  CPF.t=-1e9;cpfBuild(performance.now());if(CPF.n<3)return;let lo=1e9,hi=-1e9;for(let q=0;q<CPF.n;q++){lo=Math.min(lo,CPF.y[q]);hi=Math.max(hi,CPF.y[q])}if(hi-lo<30){const m=(hi+lo)/2;lo=m-15;hi=m+15}
  const cols=Math.floor(W/(2*f)),cw=W/cols;for(let c=0;c<cols;c++){const q=Math.min(CPF.n-1,Math.round(c/cols*(CPF.n-1))),y=H-3*f-(CPF.y[q]-lo)/(hi-lo)*(H-8*f);g.fillStyle=GCOL(CPF.g[q]);g.fillRect(c*cw,y,cw+.5,H-y)}
@@ -12581,7 +12597,17 @@ function cornerCalc(pos,v){const e=RID.e,E=NET.E[e],dir=RID.dir;if(!E||!NET.read
  let ol=om;if(L){const[si,t]=sampleAt(e,RID.u+dir*v*.25),q=si-E.i0;ol=clamp((L.o[q]+(L.o[q+1]-L.o[q])*t)*dir,-o1,o1)}// un peu en avant : compense le temps de réaction
  CRN.o=om+(ol-om)*w}
 const RS2={cad:0,P:0,v:0,g:0,coast:false,stand:false,tuck:false,steer:0,cside:0,blean:0,hyaw:0},_PS={};
-function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;if(!N)return;fA+=((now-(loop.p||now))-fA)*.05;loop.p=now;
+// ---- affichage 3D perdu (20 nov. 2026, Cyril : écran noir après « Rouler » depuis la carte) ----
+// la carte (Leaflet + photos) et la 3D se partagent la mémoire de la tablette : Android peut retirer l'affichage 3D (« contexte WebGL perdu ») ;
+// three.js le reconstruit quand Chrome le rend ; s'il ne revient pas en 5 s, la page se recharge sur le même parcours (sans film ni choix du compte)
+const GLL={lost:false,n:0};
+function glReload(){try{recSave&&recSave()}catch(e){}try{sessionStorage.v3skip='1'}catch(e){}location.reload()}
+ren.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();GLL.lost=true;GLL.n++;console.warn('WebGL perdu');
+ try{say('Affichage 3D interrompu par la tablette : reprise…')}catch(e){}const n=GLL.n;setTimeout(()=>{if(GLL.lost&&GLL.n===n)glReload()},5000)},false);
+ren.domElement.addEventListener('webglcontextrestored',()=>{GLL.lost=false;console.warn('WebGL rendu');try{if(typeof homeRender==='function'&&mode==='home')homeRender()}catch(e){}},false);
+function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;if(!N)return;
+ // carte de traçage ouverte ou affichage perdu : la 3D ne se dessine pas (mémoire et batterie pour la carte)
+ if(GLL.lost||(MR.on&&!IN.on)){loop.p=now;return}fA+=((now-(loop.p||now))-fA)*.05;loop.p=now;
  const hm=mode==='home',riding=mode==='ride'||mode==='wk';RM.visible=TR.visible=hm;WORLD.visible=!hm;sky.visible=!hm;clouds.visible=!hm&&!!QP.clouds&&SHW('clouds');stars.visible=!hm&&DAYF<.6;moon.visible=!hm&&MD.y>-.04;sc.background=hm?BGC:null;sc.fog.density=hm?0:1/42000;
  if(SPACE.on&&!hm){sky.visible=clouds.visible=stars.visible=moon.visible=false;sc.fog.density=0}
  {const ev=hm?roomEnv():null,ew=envRT&&envRT.texture,e2=ev||ew;if(e2&&sc.environment!==e2)sc.environment=e2}
@@ -12662,7 +12688,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  if(now-skT>1500){skT=now;skyUpdate(LA,LO0);if(SPACE.on&&!hm)spaceLight();GU.uNight.value=sm(.25,.85,NIGHT);HEAD.intensity=NIGHT>.3?3.4*NIGHT:0;HEAD.distance=NIGHT>.3?120:70;HEAD.angle=NIGHT>.3?.5:.42}// phare renforcé la nuit
  if(hm){LD.set(-.5,.75,.42).normalize();SUNL.intensity=.55;SUNL.color.setHex(0xfff2dd);HL.intensity=.75;if(!loop.hlc)loop.hlc=[HL.color.clone(),HL.groundColor.clone()];HL.color.setHex(0xfff3e4);HL.groundColor.setHex(0xa08a70);shadowFollow(V(0,0,0))}// pièce : lumière d'ambiance chaude (le « sol » vert du ciel teintait le plafond)
  else{if(loop.hlc){HL.color.copy(loop.hlc[0]);HL.groundColor.copy(loop.hlc[1]);loop.hlc=null}shadowFollow(R.position)}
- skyFollow();CLU.uT.value=now/1000;
+ skyFollow();CLU.uT.value=now/1000;if(hm&&!IN.on)heroTick(now);
  // niveaux de détail et chargements
  if(SPACE.on){spaceTick(now,hm);villagesTick(now)}else{
  {const cp=hm?_hw.set(x,y+2,z):cam.position,rp=hm?cp:R.position;terrUpdate(cp);roadUpdate(cp);if(!hm)oroadUpdate(cp,now);vegUpdate(cp);bldUpdate(cp);waterUpdate(cp);if(!hm)grassUpdate(cp,1.5);
@@ -12769,13 +12795,13 @@ const INTRO_P=[// [clé, durée en s]
 function introRate(ph,s){return ph==='crn'?1-.5*sm(.2,.34,s)*(1-sm(.58,.72,s)):1}
 function introWanted(){try{if(sessionStorage.v3skip){delete sessionStorage.v3skip;return 0}}catch(e){}try{return localStorage.v3intro==='0'?1:2}catch(e){return 2}}
 function introGo(){const w=introWanted();if(!w)return;if(w===1){accOpen();return}introStart()}
-function introStart(){if(IN.on)return;Object.assign(IN,{on:true,yy:undefined,gg:0,t:0,wait:0,ph:null,sk:0,cw:null,lc:null,cs:null,lc0:null,out:undefined,rt:0,relT:0,mon:IN.mon,fov:cam.fov,tod:SET.tod,ready:false,t0:performance.now(),lean:0});
+function introStart(){if(IN.on)return;Object.assign(IN,{on:true,jm:1,yy:undefined,gg:0,t:0,wait:0,ph:null,sk:0,cw:null,lc:null,cs:null,lc0:null,out:undefined,rt:0,relT:0,mon:IN.mon,fov:cam.fov,tod:SET.tod,ready:false,t0:performance.now(),lean:0});
  let o=$('intro');if(!o){o=document.createElement('div');o.id='intro';const L=(t,c)=>[...t].map((ch,i)=>'<i class="ch'+(c||'')+'" style="--i:'+i+'">'+(ch===' '?'&nbsp;':ch)+'</i>').join('');
-  o.innerHTML='<canvas class="cl" width="1024" height="576"></canvas><div class="scn"></div><div class="fl"></div><div class="lb t"></div><div class="lb b"></div><div class="sc"></div><div class="tt"><b>'+L('TOUT LE MONDE.')+'</b> <b class="g">'+L('DEPUIS TON SALON.')+'</b><small>VIRTUAL CYCLING TRAINING</small></div><div class="sk">Toucher pour passer ›</div>';document.body.appendChild(o);
+  o.innerHTML='<div class="ld"><div class="lg">VC<b>T</b></div><div class="bar"><i></i></div><div class="tx">Préparation du film</div></div><canvas class="cl" width="1024" height="576"></canvas><div class="scn"></div><div class="fl"></div><div class="lb t"></div><div class="lb b"></div><div class="sc"></div><div class="tt"><b>'+L('TOUT LE MONDE.')+'</b> <b class="g">'+L('DEPUIS TON SALON.')+'</b><small>VIRTUAL CYCLING TRAINING</small></div><div class="sk">Toucher pour passer ›</div>';document.body.appendChild(o);
   // couche de nuages traversée par la caméra (dessinée une fois)
   {const g=o.querySelector('.cl').getContext('2d');for(let i=0;i<150;i++){const x=Math.random()*1024,y=Math.random()*576,r=50+Math.random()*230,a=.18+Math.random()*.42,gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,'rgba(255,255,255,'+a+')');gr.addColorStop(.6,'rgba(236,242,250,'+a*.5+')');gr.addColorStop(1,'rgba(230,238,248,0)');g.fillStyle=gr;g.fillRect(x-r,y-r,r*2,r*2)}}}
  o.querySelectorAll('.lb').forEach(b=>b.style.height='');o.querySelector('.cl').style.opacity=0;o.querySelector('.scn').style.opacity=0;
- o.style.display='block';o.querySelector('.tt').classList.remove('on');o.querySelector('.fl').style.cssText='opacity:1;background:#000';
+ o.style.display='block';{const ld=o.querySelector('.ld');if(ld){ld.classList.remove('off');ld.querySelector('i').style.width='0'}}o.querySelector('.tt').classList.remove('on');o.querySelector('.fl').style.cssText='opacity:1;background:#000';
  o.onpointerdown=e=>{e.preventDefault();introEnd()};document.body.classList.add('intro');
  IN.keyH=e=>{if(e.key==='Escape'||e.key===' '||e.key==='Enter')introEnd()};addEventListener('keydown',IN.keyH);
  // la Terre : chargement des tuiles pendant le film
@@ -12848,7 +12874,10 @@ function introFmt(m){return m<1?Math.round(m*100)+' cm':m<1000?Math.round(m)+' m
 function introFrame(dt,now){const o=$('intro'),fl=o.querySelector('.fl'),sc2=o.querySelector('.sc');
  if(!IN.ready){// attendre relief + données près du virage (10 s au plus), écran noir
   IN.wait+=dt;const lv=$('lv');if(lv&&lv.style.display==='flex'){IN.wait=0;return false}
-  const ok=!IN.world||SPACE.on?IN.wait>1.2:(DEMOK&&tileReady(R.position.x,R.position.z)&&JOBS.length<14&&IN.wait>2);if(ok||IN.wait>14){IN.ready=true;IN.t=0;introPrep()}else{sc2.textContent=IN.wait>2?'chargement du paysage…':'';return false}}
+  const ok=!IN.world||SPACE.on?IN.wait>1.2:(DEMOK&&tileReady(R.position.x,R.position.z)&&JOBS.length<14&&IN.wait>2);const ld=o.querySelector('.ld');
+  if(ok||IN.wait>10){IN.ready=true;IN.t=0;introPrep();if(ld){ld.querySelector('i').style.width='100%';setTimeout(()=>ld.classList.add('off'),250)}}
+  else{IN.jm=Math.max(IN.jm||1,JOBS.length);const f=Math.max(IN.wait/10,!IN.world||SPACE.on?IN.wait/1.2:(DEMOK?.35:0)+(DEMOK&&tileReady(R.position.x,R.position.z)?.25:0)+.4*(1-JOBS.length/IN.jm));
+   if(ld)ld.querySelector('i').style.width=Math.min(97,f*100).toFixed(0)+'%';sc2.textContent='';return false}}
  const dtc=Math.min(dt,.05);IN.t+=dtc;let t=IN.t,k=0,t0=0;while(k<IN.seq.length&&t>t0+IN.seq[k][1]){t0+=IN.seq[k][1];k++}
  if(k>=IN.seq.length){introEnd();return false}
  const ph=IN.seq[k][0],s=(t-t0)/IN.seq[k][1],cv=ren.domElement,cl=o.querySelector('.cl'),scn=o.querySelector('.scn');IN.rt+=dtc*introRate(ph,s);
