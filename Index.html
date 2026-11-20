@@ -12768,7 +12768,7 @@ const INTRO_P=[// [clé, durée en s]
 function introRate(ph,s){return ph==='crn'?1-.5*sm(.2,.34,s)*(1-sm(.58,.72,s)):1}
 function introWanted(){try{if(sessionStorage.v3skip){delete sessionStorage.v3skip;return 0}}catch(e){}try{return localStorage.v3intro==='0'?1:2}catch(e){return 2}}
 function introGo(){const w=introWanted();if(!w)return;if(w===1){accOpen();return}introStart()}
-function introStart(){if(IN.on)return;Object.assign(IN,{on:true,t:0,wait:0,ph:null,sk:0,cw:null,lc:null,cs:null,lc0:null,out:undefined,rt:0,relT:0,mon:IN.mon,fov:cam.fov,tod:SET.tod,ready:false,t0:performance.now(),lean:0});
+function introStart(){if(IN.on)return;Object.assign(IN,{on:true,yo:0,t:0,wait:0,ph:null,sk:0,cw:null,lc:null,cs:null,lc0:null,out:undefined,rt:0,relT:0,mon:IN.mon,fov:cam.fov,tod:SET.tod,ready:false,t0:performance.now(),lean:0});
  let o=$('intro');if(!o){o=document.createElement('div');o.id='intro';const L=(t,c)=>[...t].map((ch,i)=>'<i class="ch'+(c||'')+'" style="--i:'+i+'">'+(ch===' '?'&nbsp;':ch)+'</i>').join('');
   o.innerHTML='<canvas class="cl" width="1024" height="576"></canvas><div class="scn"></div><div class="fl"></div><div class="lb t"></div><div class="lb b"></div><div class="sc"></div><div class="tt"><b>'+L('TOUT LE MONDE.')+'</b> <b class="g">'+L('DEPUIS TON SALON.')+'</b><small>VIRTUAL CYCLING TRAINING</small></div><div class="sk">Toucher pour passer ›</div>';document.body.appendChild(o);
   // couche de nuages traversée par la caméra (dessinée une fois)
@@ -12867,7 +12867,15 @@ function introFrame(dt,now){const o=$('intro'),fl=o.querySelector('.fl'),sc2=o.q
  let kk=0;for(let j=-10;j<=10;j+=5){const Q=posAt(IN.e,clamp(u+IN.d*j,0,E.len),IN.d,_PS3);kk+=Q.da}kk/=5;
  const lt=-clamp(Math.atan(IN.v*IN.v*kk/9.81),-.6,.6);IN.lean+=(lt-IN.lean)*Math.min(1,dtc*introRate(ph,s)*5);const ln=IN.lean;
  WORLD.visible=true;RM.visible=TR.visible=false;sc.background=null;sc.fog.density=SPACE.on?0:1/42000;sky.visible=!SPACE.on;clouds.visible=!SPACE.on&&!!QP.clouds&&SHW('clouds');stars.visible=!SPACE.on&&DAYF<.6;
- RIDER.bike.wr.visible=true;if(envRT)sc.environment=envRT.texture;R.position.set(x,y,z);R.rotation.set(-Math.atan(P.g),Math.atan2(tx,tz),ln*.92);
+ RIDER.bike.wr.visible=true;if(envRT)sc.environment=envRT.texture;
+ // roues posées sur la chaussée réellement dessinée (20 nov. 2026, Cyril : « les roues se noient dans le bitume ») : là où le parcours
+ // repasse sur la même route, l'autre chaussée peut être quelques cm plus haute ; on remonte le vélo sur la plus haute des deux sous chaque roue
+ {const c0=IN.c0||(IN.c0=new T.Vector3()),dn=IN.dn||(IN.dn=new T.Vector3(0,-1,0)),rms=[];c0.set(x,y,z);
+  for(const r of ROAD.ch){const m=r&&r.mesh;if(!m||!m.visible||!m.geometry)continue;const bs=m.geometry.boundingSphere;if(bs&&bs.center.distanceToSquared(c0)<(bs.radius+4)**2)rms.push(m)}
+  let up=0;if(rms.length){const rc=IN.rc||(IN.rc=new T.Raycaster());rc.far=4;
+   for(const f of[.5,0,-.5]){const yw=y+f*P.g;c0.set(x+tx*f,yw+2,z+tz*f);rc.set(c0,dn);const h=rc.intersectObjects(rms,false)[0];if(h)up=Math.max(up,h.point.y-yw+.004)}}
+  up=clamp(up,0,.6);IN.yo=(IN.yo||0)+(up-(IN.yo||0))*Math.min(1,dtc*12)}
+ R.position.set(x,y+(IN.yo||0),z);R.rotation.set(-Math.atan(P.g),Math.atan2(tx,tz),ln*.92);
  // virage : roue libre, jambe intérieure à 12 h ; sortie du virage : relance en danseuse (20 nov. 2026, demande de Cyril)
  {const ex=(ph==='crn'&&s>.8)||ph==='rise'||ph==='val';if(ex&&!IN.relT)IN.relT=t;const rl=ex?1:0;
   riderAnim(dtc*introRate(ph,s),{cad:rl?98:0,P:rl?720:0,v:IN.v,g:P.g,coast:!rl,stand:!!rl,tuck:false,steer:clamp(ln*1.8,-1,1),cside:rl?0:(Math.abs(ln)>.1?Math.sign(ln):0),blean:ln*.26,hyaw:clamp(-ln*.55,-.3,.3)})
