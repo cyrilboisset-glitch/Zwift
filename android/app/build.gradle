@@ -1,0 +1,17 @@
+plugins { id 'com.android.application' }
+def ks = new Properties(); ks.load(rootProject.file('keystore.properties').newDataInputStream())
+android {
+  namespace 'fr.vct.app'
+  compileSdk 34
+  defaultConfig {
+    applicationId 'fr.vct.app'
+    minSdk 23
+    targetSdk 34
+    versionCode((System.getenv('GITHUB_RUN_NUMBER') ?: '1') as int)
+    versionName "1.0." + (System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+  }
+  signingConfigs { rel { storeFile rootProject.file('vct.jks'); storePassword ks.storePassword; keyAlias ks.keyAlias; keyPassword ks.keyPassword } }
+  buildTypes { release { minifyEnabled false; signingConfig signingConfigs.rel } }
+  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies { implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0' }
