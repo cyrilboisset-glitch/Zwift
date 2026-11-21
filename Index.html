@@ -3,7 +3,7 @@
 <title>Virtual Cycling Training</title>
 <style>
 :root{--ac:#ffd23f;--mut:#b9c4d0;--num:"Bahnschrift","DIN Alternate","Roboto Condensed","Arial Narrow",system-ui,sans-serif;--sa:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px)}
-*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#cfe3f0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif;color:#eef3f8}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#0f0e0d;font:14px system-ui,-apple-system,"Segoe UI",sans-serif;color:#eef3f8}
 #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
 .p{position:fixed;background:rgba(14,19,26,.55);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.14);border-radius:12px}
 button{font:inherit;color:#eef3f8;background:#222c38;border:1px solid #3a485a;border-radius:8px;padding:8px 12px;cursor:pointer}
@@ -1032,7 +1032,13 @@ svg.leaflet-image-layer.leaflet-interactive path {
 #intro .sc{position:absolute;left:4vw;top:calc(9vh + 14px);color:#f0cf73;font:700 clamp(11px,1.8vmin,15px) 'Barlow Condensed',system-ui;letter-spacing:.2em;text-shadow:0 1px 6px #000;opacity:.85}
 #intro .sk{position:absolute;z-index:4;right:4vw;bottom:calc(9vh + 12px);color:#cfc8ba;font:600 clamp(11px,1.7vmin,14px) system-ui;opacity:.7;letter-spacing:.06em;text-shadow:0 1px 6px #000}
 body.intro #home,body.intro #hud,body.intro #top,body.intro #tb,body.intro #fsb,body.intro #map,body.intro #prof,body.intro #ld,body.intro #toast{visibility:hidden!important}
-</style></head><body><div id="lv"><i>📱</i><b>Touche l'écran</b><small>pour passer en plein écran, en paysage</small></div>
+</style></head><body>
+<!-- écran de démarrage (21 nov. 2026, Cyril : au lancement on voyait le tableau de bord de la sortie, vide, sur fond bleu, le temps que le fichier se charge) -->
+<div id="boot" style="position:fixed;inset:0;z-index:9999;background:#0f0e0d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .5s">
+<div style="width:84px;height:84px;box-sizing:border-box;border-radius:22px;border:2px solid #f0cf73;display:flex;align-items:center;justify-content:center;font:700 30px 'Space Grotesk',system-ui;color:#f4efe6">VC<b style="color:#f0cf73">T</b></div>
+<div style="width:min(320px,60vw);height:5px;border-radius:3px;background:#27241f"></div>
+<div style="color:#e9a178;font:600 14px 'Space Grotesk',system-ui;letter-spacing:.12em;text-transform:uppercase">Chargement</div></div>
+<script>setTimeout(function(){var b=document.getElementById('boot');if(b)b.remove()},30000)</script><div id="lv"><i>📱</i><b>Touche l'écran</b><small>pour passer en plein écran, en paysage</small></div>
 <canvas id="c"></canvas>
 <div id="hud" class="p"><div class="m"><span data-f="spd"><b id="vs">0</b><i>km/h</i></span><span data-f="pw"><b id="vp">0</b><i>W</i></span><span data-f="p3"><b id="vp3">0</b><i>W 3 s</i></span><span data-f="wkg"><b id="vwk">0</b><i>W/kg</i></span><span data-f="cad"><b id="vc">0</b><i>tr/min</i></span><span data-f="grd"><b id="vg">0.0</b><i>%</i></span><span data-f="hr"><b id="vh">–</b><i>bpm</i></span><span data-f="np"><b id="vnp">0</b><i>NP</i></span></div><div class="n"><span data-f="dist"><span id="vd">0.0</span> km · </span><span data-f="avg">moy. <span id="vav">0,0</span> km/h · </span><span data-f="rest"><span id="vrl">reste</span> <span id="vr">0.0</span> <span id="vru">km</span> · </span><span data-f="alt"><span id="va">0</span> m · </span><span data-f="dp">D+ <span id="vdp">0</span> m · </span><span data-f="time"><span id="vt">0:00</span> · </span><span data-f="kcal"><span id="vk">0</span> kcal</span><span data-f="wind" id="vwd"></span><span id="vdrf" style="color:var(--ac);font-weight:700"></span></div><div id="zg" data-f="zone"><div class="zbar" id="zbar"><em id="zmk"></em></div><div class="zlab"><b id="zzn">Z1</b><span id="zzt">Récup</span><span id="zzp">0 % FTP</span><span id="zzm"></span></div></div></div>
 <div id="toast" class="p"></div>
@@ -1125,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='21/11/2026 · b';const ERRL=[];
+const VCT_VER='21/11/2026 · c';const ERRL=[];
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
  let b=document.getElementById('errb');if(!b&&document.body){b=document.createElement('button');b.id='errb';b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:400;padding:6px 10px;border-radius:10px;border:1px solid #b33;background:#2a0e0e;color:#ffb3b3;font:600 12px system-ui;opacity:.9';
   b.onclick=()=>{const t='VCT '+VCT_VER+'\n'+navigator.userAgent+'\n'+ERRL.map(e=>e.t+' '+e.m).join('\n');try{mod('⚠️ Erreurs relevées<br><small>Fais une capture de cet écran pour Claude.</small><pre style="white-space:pre-wrap;font-size:11px;text-align:left;max-height:50vh;overflow:auto">'+t.replace(/[<&]/g,c=>c==='<'?'&lt;':'&amp;')+'</pre>',[['Copier',()=>{try{navigator.clipboard.writeText(t)}catch(e){}}],['Effacer',()=>{ERRL.length=0;b.remove()}],['Fermer',()=>{}]])}catch(e){alert(t)}};document.body.appendChild(b)}
@@ -12980,7 +12986,7 @@ const _PS2={},_PS3={};
  // dernier parcours choisi (ou ancien GPX) ; sinon le monde attend qu'un parcours soit choisi
  let okC=false;try{for(const k of['v3gpxe','v3gpxn','v3gpx'])delete localStorage[k];if(CRS.cur)okC=setCourse(NET.E.map(E=>[E.id,1]),CRS.cur.name)}catch(e){console.warn('parcours',e)}
  if(!okC)ldSet('crs','Aucun parcours : Rouler → Importer un GPX',0);
- afterAcc(recOfferSaved);netCheck();try{if(localStorage.v3diag==='1')diagStart()}catch(e){}requestAnimationFrame(loop);try{introGo()}catch(e){console.warn('film',e)}if(PROF.switched)setTimeout(()=>say('Compte : '+PROF.me().name),1500);if(PROF.err)setTimeout(()=>say(PROF.err),1500)}
+ afterAcc(recOfferSaved);netCheck();{const b=$('boot');if(b){if(IN.on)b.remove();else{b.style.opacity=0;b.style.pointerEvents='none';setTimeout(()=>b.remove(),600)}}}try{if(localStorage.v3diag==='1')diagStart()}catch(e){}requestAnimationFrame(loop);try{introGo()}catch(e){console.warn('film',e)}if(PROF.switched)setTimeout(()=>say('Compte : '+PROF.me().name),1500);if(PROF.err)setTimeout(()=>say(PROF.err),1500)}
 // accès Internet et Bluetooth : un aperçu de fichier (appli Claude, gestionnaire de fichiers…) bloque souvent les deux
 async function netCheck(){let net=false;try{await fetchT('https://s3.amazonaws.com/elevation-tiles-prod/terrarium/0/0/0.png',{},12000);net=true}catch(e){}
  const bt=!!navigator.bluetooth;if(net&&bt)return;
