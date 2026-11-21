@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='21/11/2026 · d';const ERRL=[];
+const VCT_VER='22/11/2026 · a';const ERRL=[];
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
  let b=document.getElementById('errb');if(!b&&document.body){b=document.createElement('button');b.id='errb';b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:400;padding:6px 10px;border-radius:10px;border:1px solid #b33;background:#2a0e0e;color:#ffb3b3;font:600 12px system-ui;opacity:.9';
   b.onclick=()=>{const t='VCT '+VCT_VER+'\n'+navigator.userAgent+'\n'+ERRL.map(e=>e.t+' '+e.m).join('\n');try{mod('⚠️ Erreurs relevées<br><small>Fais une capture de cet écran pour Claude.</small><pre style="white-space:pre-wrap;font-size:11px;text-align:left;max-height:50vh;overflow:auto">'+t.replace(/[<&]/g,c=>c==='<'?'&lt;':'&amp;')+'</pre>',[['Copier',()=>{try{navigator.clipboard.writeText(t)}catch(e){}}],['Effacer',()=>{ERRL.length=0;b.remove()}],['Fermer',()=>{}]])}catch(e){alert(t)}};document.body.appendChild(b)}
@@ -2952,7 +2952,7 @@ function* buildMidTile(a,b,lod){const step=lod?128:64,n=MT/step,S=n+3,x0=a*MT,z0
  for(let j=0;j<S;j++){for(let i=0;i<S;i++){const x=x0+(i-1)*step,z=z0+(j-1)*step;let h=groundFar(x,z);const r=roadQ(x,z,_RQM);
    if(r&&r.d<step*1.2&&!(BRG&&BRG[r.i])){const k=1-sm(step*.55,step*1.2,r.d);h=Math.min(h,h+(r.y-1.8-h)*k)}H2[j*S+i]=h}if(performance.now()-t0>4){yield;t0=performance.now()}}
  return gridMesh(x0,z0,step,n,H2,(i,j)=>nearCov(x0+(i+.5)*step,z0+(j+.5)*step),14)}
-function* buildFar(){let t0=performance.now();const F=REG.far,M=REG.mid,S=QK==='ultra'||QK==='high'?400:520,nx=Math.ceil((F.x1-F.x0)/S)+1,nz=Math.ceil((F.z1-F.z0)/S)+1;
+function* buildFar(){let t0=performance.now();const F=REG.far,M=REG.mid,S=QK==='ultra'||QK==='high'||QK==='tab'?400:520,nx=Math.ceil((F.x1-F.x0)/S)+1,nz=Math.ceil((F.z1-F.z0)/S)+1;
  const P=new Float32Array(nx*nz*3),Nn=new Float32Array(nx*nz*3),idx=[],h=new Float32Array(nx*nz),ins=new Uint8Array(nx*nz);
  for(let j=0;j<nz;j++){for(let i=0;i<nx;i++){const x=F.x0+i*S,z=F.z0+j*S,q=j*nx+i;h[q]=groundFar(x,z);ins[q]=x>M.x0+S&&x<M.x1-S&&z>M.z0+S&&z<M.z1-S?1:0}if(performance.now()-t0>4){yield;t0=performance.now()}}
  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){const q=j*nx+i,o=q*3,x=F.x0+i*S,z=F.z0+j*S,inM=x>M.x0-1&&x<M.x1+1&&z>M.z0-1&&z<M.z1+1;
@@ -2973,9 +2973,9 @@ function* buildRing(){let t0=performance.now();const F=REG.far,[cx,cz]=REG.c,r0=
  return mkGeo(P,Nn,idx)}
 function terrMesh(g,shadow){const m=new T.Mesh(g,TMAT);m.receiveShadow=!!shadow;m.matrixAutoUpdate=false;WORLD.add(m);return m}
 function setGeo(rec,g,shadow){if(rec.mesh){rec.mesh.geometry.dispose();rec.mesh.geometry=g;rec.mesh.receiveShadow=!!shadow}else rec.mesh=terrMesh(g,shadow)}
-const nearLod=d=>d<QP.near?0:d<(QK==='tab'?2600:4200)?1:2;
+const nearLod=d=>d<QP.near?0:d<4200?1:2;
 // 21 nov. 2026 (diagnostic Redmi Pad : carte graphique saturée) : terrain moyen fin (64 m) moins loin en Tablette / Basse
-const midLD=()=>QK==='tab'||QK==='low'?2600:4500;
+const midLD=()=>QK==='tab'?6500:QK==='low'?2600:4500;// Tablette : relief moyen fin jusqu'à 6,5 km (bâtiments allégés en échange, 22 nov. 2026)
 // niveaux de détail (le travail passe par la file de tâches pour ne jamais saccader)
 function terrUpdate(cp,force){
  if(!force&&cp.distanceToSquared(TER.lp)<900)return;TER.lp.copy(cp);const ver=TER.ver;
@@ -3928,9 +3928,10 @@ function bldPick(t,lod){const cap=BCAP[lod?1:0],A=t.L.some(b=>b.skip)?t.L.filter
  if(A.length<=cap)return{L:A,dense:false};return{L:A.slice().sort((a,c)=>a.td-c.td).slice(0,cap),dense:true}}
 function* buildTile(t,lod){const det=lod===0,G=new T.Group();G.matrixAutoUpdate=false;let wg=new GB(true),rg=new GB(true),n=0,t0=performance.now();
  const PK=bldPick(t,lod);
- const flush=()=>{if(wg.count){const m=new T.Mesh(wg.geo(),WALLM);m.castShadow=m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}
-  if(rg.count){const m=new T.Mesh(rg.geo(),ROOFM);m.castShadow=m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}wg=new GB(true);rg=new GB(true)};
- for(const b of PK.L){try{buildOne(b,det&&(!PK.dense||b.td<BDET),wg,rg)}catch(e){console.warn('bât',b.id,e)}
+ const sh=QK!=='tab';// 22 nov. 2026 (demande de Cyril) : en Tablette, bâtiments simplifiés et sans ombre portée, pour donner plus de détail au paysage lointain
+ const flush=()=>{if(wg.count){const m=new T.Mesh(wg.geo(),WALLM);m.castShadow=sh;m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}
+  if(rg.count){const m=new T.Mesh(rg.geo(),ROOFM);m.castShadow=sh;m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}wg=new GB(true);rg=new GB(true)};
+ for(const b of PK.L){try{buildOne(b,det&&QK!=='tab'&&(!PK.dense||b.td<BDET),wg,rg)}catch(e){console.warn('bât',b.id,e)}
   if(++n%(det?120:400)===0)flush();if(performance.now()-t0>4){yield;t0=performance.now()}}
  flush();return G}
 const BLD={lp:V(1e9,0,1e9),ver:1};
