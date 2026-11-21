@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='22/11/2026 · a';const ERRL=[];
+const VCT_VER='22/11/2026 · b';const ERRL=[];
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
  let b=document.getElementById('errb');if(!b&&document.body){b=document.createElement('button');b.id='errb';b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:400;padding:6px 10px;border-radius:10px;border:1px solid #b33;background:#2a0e0e;color:#ffb3b3;font:600 12px system-ui;opacity:.9';
   b.onclick=()=>{const t='VCT '+VCT_VER+'\n'+navigator.userAgent+'\n'+ERRL.map(e=>e.t+' '+e.m).join('\n');try{mod('⚠️ Erreurs relevées<br><small>Fais une capture de cet écran pour Claude.</small><pre style="white-space:pre-wrap;font-size:11px;text-align:left;max-height:50vh;overflow:auto">'+t.replace(/[<&]/g,c=>c==='<'?'&lt;':'&amp;')+'</pre>',[['Copier',()=>{try{navigator.clipboard.writeText(t)}catch(e){}}],['Effacer',()=>{ERRL.length=0;b.remove()}],['Fermer',()=>{}]])}catch(e){alert(t)}};document.body.appendChild(b)}
@@ -2037,7 +2037,7 @@ function fxPost(hm){const lv=fxLevel();if(!lv)return;
  catch(err){VFX.fail=true;console.warn('effets visuels désactivés',err);ren.setRenderTarget(null)}}
 function fxSet(v){SET.fx=v;ssave();say('Effets visuels : '+['aucun','doux','max'][fxLevel()])}
 const _FARH=[];
-function renderScene(){fogSun();GU.uSunV.value.copy(SUN).transformDirection(cam.matrixWorldInverse);GU.uSunC.value.setRGB(1,.9,.62).multiplyScalar(SPACE.on?0:clamp(DAYF,0,1)*sm(-2,10,ELEV));TU.uDetQ.value=QK==='ultra'?1:QK==='high'?.8:0;const n0=cam.near,f0=cam.far;ren.autoClear=false;ren.clear();
+function renderScene(){try{riderLodCam()}catch(e){}fogSun();GU.uSunV.value.copy(SUN).transformDirection(cam.matrixWorldInverse);GU.uSunC.value.setRGB(1,.9,.62).multiplyScalar(SPACE.on?0:clamp(DAYF,0,1)*sm(-2,10,ELEV));TU.uDetQ.value=QK==='ultra'?1:QK==='high'?.8:0;const n0=cam.near,f0=cam.far;ren.autoClear=false;ren.clear();
  cam.near=SPLIT*.985;cam.far=160000;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=false;
  {const hid=_FARH;hid.length=0;const hide=g=>{if(g&&g.visible&&g.position.distanceToSquared(cam.position)<40000){g.visible=false;hid.push(g)}};hide(R);for(const n of NPCS)hide(n.R);
   ren.render(sc,cam);for(const g of hid)g.visible=true}
@@ -2647,17 +2647,19 @@ function rcorKey(bx,bz){return (bx+50000)*100003+(bz+50000)}
 function rcorCell(i,j){const k=rcorKey(i>>3,j>>3);let b;if(k===RCOR.lk)b=RCOR.lb;else{b=RCOR.B.get(k);RCOR.lk=k;RCOR.lb=b}return b?b[(j&7)*8+(i&7)]:0}
 function rcorAt(x,z){if(!RCOR.ok)return 0;const C=RCOR.C,fx=x/C-.5,fz=z/C-.5,ix=Math.floor(fx),iz=Math.floor(fz),tx=fx-ix,tz=fz-iz;
  const a=rcorCell(ix,iz),b=rcorCell(ix+1,iz),c=rcorCell(ix,iz+1),d=rcorCell(ix+1,iz+1);return (a+(b-a)*tx)+((c+(d-c)*tx)-(a+(b-a)*tx))*tz}
-function rcorBuild(){RCOR.ok=false;RCOR.B.clear();RCOR.lk=NaN;if(!NET.ready||!DEMOK||SPACE.on)return;
- const C=RCOR.C,R=RCOR.R,cr=Math.ceil(R/C),acc=new Map();let mx=0;
+// 21 nov. 2026 (diagnostic tablette : 200 ms d'un bloc à l'arrivée de l'eau) : version découpée ; l'ancien champ reste utilisé jusqu'au remplacement
+function rcorBuild(){const it=rcorGen(false);let r;do r=it.next();while(!r.done);return r.value}
+function* rcorGen(slice){if(!slice){RCOR.ok=false;RCOR.B.clear();RCOR.lk=NaN}if(!NET.ready||!DEMOK||SPACE.on){RCOR.ok=false;RCOR.B.clear();return}
+ const C=RCOR.C,R=RCOR.R,cr=Math.ceil(R/C),acc=new Map();let mx=0,t0=performance.now();
  for(const E of NET.E){if(!E||E.i1-E.i0<2)continue;const n=E.i1-E.i0+1;let d=new Float32Array(n);
   for(let k=0;k<n;k++){const i=E.i0+k;d[k]=BRG&&BRG[i]?0:clamp(H[i]-.18-groundDem(X[i],Z[i]),-45,45)}
   for(let pass=0;pass<2;pass++){const e=new Float32Array(n);for(let k=0;k<n;k++){let s=0,c=0;for(let q=Math.max(0,k-8);q<=Math.min(n-1,k+8);q++){s+=d[q];c++}e[k]=s/c}d=e}
-  for(let k=0;k<n;k+=3){const i=E.i0+k,x=X[i],z=Z[i],dv=d[k];mx=Math.max(mx,Math.abs(dv));const ci=Math.floor(x/C),cj=Math.floor(z/C);
+  for(let k=0;k<n;k+=3){if(slice&&performance.now()-t0>4){yield;t0=performance.now()}const i=E.i0+k,x=X[i],z=Z[i],dv=d[k];mx=Math.max(mx,Math.abs(dv));const ci=Math.floor(x/C),cj=Math.floor(z/C);
    for(let v=-cr;v<=cr;v++)for(let u=-cr;u<=cr;u++){const gx=(ci+u+.5)*C-x,gz=(cj+v+.5)*C-z,dd=Math.sqrt(gx*gx+gz*gz);if(dd>=R)continue;
     const f=1-sm(10,R,dd),w=f/(dd*dd+150),key=rcorKey((ci+u)>>3,(cj+v)>>3);let b=acc.get(key);if(!b){b=new Float32Array(192);acc.set(key,b)}
     const q=(((cj+v)&7)*8+((ci+u)&7))*3;b[q]+=w*dv;b[q+1]+=w;if(f>b[q+2])b[q+2]=f}}}
- for(const[k,b]of acc){const o=new Float32Array(64);for(let q=0;q<64;q++)o[q]=b[q*3+1]>0?b[q*3+2]*b[q*3]/b[q*3+1]:0;RCOR.B.set(k,o)}
- RCOR.ok=true;RCOR.max=mx;return mx}
+ const NB=new Map();for(const[k,b]of acc){const o=new Float32Array(64);for(let q=0;q<64;q++)o[q]=b[q*3+1]>0?b[q*3+2]*b[q*3]/b[q*3+1]:0;NB.set(k,o)}
+ RCOR.B=NB;RCOR.lk=NaN;RCOR.ok=true;RCOR.max=mx;return mx}
 let BRG=null; // tronçons en pont (pas de remblai sous la route)
 // 2e route la plus proche, sur une autre branche (lacet) que l'échantillon i1
 const _RQ2b={d:0,i:0,y:0};
@@ -3296,7 +3298,7 @@ function computeBridges(){const B=new Uint8Array(N);let any=0;
  const wAt=(x,z)=>{const a=Math.floor(x/VC),b=Math.floor(z/VC),M=waterCell(a,b);return M?M[clamp(Math.floor((z-b*VC)/MS4),0,MRES-1)*MRES+clamp(Math.floor((x-a*VC)/MS4),0,MRES-1)]:0};
  for(let i=0;i<N;i++){if(!inWorld(EOF[i])||!WIDX.has(vck(Math.floor(X[i]/VC),Math.floor(Z[i]/VC))))continue;let w=0;for(const o of[-3,0,3])w=Math.max(w,wAt(X[i]-TZ[i]*o,Z[i]+TX[i]*o));if(w){B[i]=1;any=1}}
  if(!any){BRG=null;return false}
- const D=B.slice();for(let i=0;i<N;i++)if(B[i])for(let k=-5;k<=5;k++){const j=i+k;if(j>=0&&j<N&&EOF[j]===EOF[i])D[j]=1}BRG=D;if(RCOR.ok){try{rcorBuild();terrInvalidate(true,true)}catch(e){}}return true}
+ const D=B.slice();for(let i=0;i<N;i++)if(B[i])for(let k=-5;k<=5;k++){const j=i+k;if(j>=0&&j<N&&EOF[j]===EOF[i])D[j]=1}BRG=D;if(RCOR.ok){job((function*(){try{yield* rcorGen(true);terrInvalidate(true,true)}catch(e){}})(),-500,'rcor')}return true}
 function buildBridgeGeo(i0,i1,gb){// tablier, parapets, piles
  const deckCol=CA(0xb9b5ac),parCol=CA(0xc9c5bb),rail=CA(0x8a9096),pile=CA(0xa8a399);
  for(let i=i0;i<i1;i++){if(!BRG[i]||!BRG[i+1])continue;const P=(j,o,dy)=>[X[j]-TZ[j]*o,H[j]+dy,Z[j]+TX[j]*o];
@@ -12758,8 +12760,14 @@ function shadowTrim(){const lo=QK==='tab'||QK==='low';const f=g=>{if(g)g.travers
   if(lo){if(m.castShadow&&!m.userData.shK){const gg=m.geometry,t=(gg.index?gg.index.count:(gg.attributes.position?gg.attributes.position.count:0))/3;if(t<SHTRIM){m.castShadow=false;m.userData.shK=1}}}
   else if(m.userData.shK){m.castShadow=true;m.userData.shK=0}})};f(R);for(const n of NPCS)f(n.R)}
 const SHTRIM=900,SHT={t:0};
+// 21 nov. 2026 (2e diagnostic Redmi Pad) : les toutes petites pièces du cycliste (rayon < 4 cm : vis, câbles, galets, doigts, yeux…) passent sur le calque 1,
+// que la caméra ne dessine pas en Tablette / Basse quand elle est à plus de 3 m (≈ 2 pixels à la résolution de la tablette) : ≈ 80 dessins de moins par image
+const _rlV=V();
+function riderLodTag(g){if(g)g.traverse(m=>{if(!m.isMesh||m.isSkinnedMesh||!m.geometry||m.userData.rl)return;m.userData.rl=1;const gg=m.geometry;if(!gg.boundingSphere)gg.computeBoundingSphere();
+  m.getWorldScale(_rlV);if(gg.boundingSphere.radius*Math.max(_rlV.x,_rlV.y,_rlV.z)<.04)m.layers.set(1)})}
+function riderLodCam(){const far=(QK==='tab'||QK==='low')&&mode!=='home'&&!IN.on&&cam.position.distanceToSquared(R.position)>9;if(far)cam.layers.disable(1);else cam.layers.enable(1)}
 function dprTick(now){
- if(now-(SHT.t||0)>2500){SHT.t=now;try{shadowTrim()}catch(e){}}
+ if(now-(SHT.t||0)>2500){SHT.t=now;try{shadowTrim();riderLodTag(R)}catch(e){}}
  if(now-dprT>2500){dprT=now;const fps=1000/fA,mn=Math.min(QP.minPR||.75,PRMAX())*(SET.autoQ!==0&&QK==='tab'&&AQ.low?.75:1);
   // chaque changement réalloue l'image (petit blocage) : on baisse après 5 s de lenteur, on remonte après 15 s de fluidité, jamais deux fois en moins de 10 s
   DPRS.lo=fps<(QP.fpsLo||40)?DPRS.lo+1:0;DPRS.hi=fps>(QP.fpsHi||57)?DPRS.hi+1:0;
