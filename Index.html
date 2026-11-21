@@ -1022,6 +1022,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 #intro .tt.on b.g{animation:ttglow 2.2s 1.4s ease-in-out infinite}@keyframes ttglow{50%{text-shadow:0 0 22px rgba(240,207,115,.75),0 3px 24px rgba(0,0,0,.8)}}
 #intro .tt b{font-weight:700}#intro .cl{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;transform-origin:50% 50%}
 #intro .scn{position:absolute;inset:0;opacity:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.32) 0 2px,rgba(80,170,255,.06) 2px 4px);box-shadow:inset 0 0 120px rgba(80,170,255,.35)}
+#home .vver{display:block;font:500 10px system-ui;color:#8a8073;letter-spacing:.04em;margin-top:1px}
 #intro .ld{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0f0e0d;transition:opacity .6s}
 #intro .ld.off{opacity:0;pointer-events:none}
 #intro .ld .lg{width:84px;height:84px;border-radius:22px;border:2px solid #f0cf73;display:flex;align-items:center;justify-content:center;font:700 30px 'Space Grotesk',system-ui;color:#f4efe6;animation:inPulse 1.6s ease-in-out infinite}
@@ -1123,6 +1124,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <script>
 
 'use strict';
+// ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
+const VCT_VER='21/11/2026 · b';const ERRL=[];
+function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
+ let b=document.getElementById('errb');if(!b&&document.body){b=document.createElement('button');b.id='errb';b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:400;padding:6px 10px;border-radius:10px;border:1px solid #b33;background:#2a0e0e;color:#ffb3b3;font:600 12px system-ui;opacity:.9';
+  b.onclick=()=>{const t='VCT '+VCT_VER+'\n'+navigator.userAgent+'\n'+ERRL.map(e=>e.t+' '+e.m).join('\n');try{mod('⚠️ Erreurs relevées<br><small>Fais une capture de cet écran pour Claude.</small><pre style="white-space:pre-wrap;font-size:11px;text-align:left;max-height:50vh;overflow:auto">'+t.replace(/[<&]/g,c=>c==='<'?'&lt;':'&amp;')+'</pre>',[['Copier',()=>{try{navigator.clipboard.writeText(t)}catch(e){}}],['Effacer',()=>{ERRL.length=0;b.remove()}],['Fermer',()=>{}]])}catch(e){alert(t)}};document.body.appendChild(b)}
+ if(b)b.textContent='⚠️ '+ERRL.length+' erreur'+(ERRL.length>1?'s':'')}catch(e){}}
+addEventListener('error',e=>errNote((e.message||'erreur')+(e.filename?' @'+(e.lineno||'?'):'')));
+addEventListener('unhandledrejection',e=>{const r=e.reason;errNote('promesse : '+(r&&(r.message||r)||'?'))});
+{const cw=console.warn.bind(console);console.warn=function(...a){try{const m=a.map(x=>x&&x.message?x.message:String(x)).join(' ');if(/crsSwitch|parcours|WebGL|^job|film|setCourse|monde/i.test(m))errNote(m)}catch(e){}return cw(...a)}}
 // ====================== comptes utilisateurs (18 nov. 2026, demande de Cyril) ======================
 // Chaque compte a ses propres données : parcours, réglages, vestiaire, FTP, poids, points, records, historique, plans, Strava, sortie en cours.
 // Les données du compte actif sont dans les clés habituelles de localStorage (aucun changement pour le reste de l'appli) ; celles des autres comptes
@@ -2307,7 +2317,7 @@ function mrOpen(){const o=mrEl();o.style.display='block';MR.on=true;
  setTimeout(()=>MR.map.invalidateSize(),50);mrChange(true)}
 // à la fermeture, la carte et ses images sont libérées (20 nov. 2026 : sur la tablette, carte + 3D saturaient la mémoire graphique, écran noir après « Rouler ») ;
 // les points et l'itinéraire sont gardés, la carte est refaite à la prochaine ouverture
-function mrClose(){MR.on=false;const o=$('mr');if(o)o.style.display='none';if(MR.map){try{MR.map.remove()}catch(e){}MR.map=null;MR.tl=null;MR.grp=null}}
+function mrClose(){MR.on=false;const o=$('mr');if(o)o.style.display='none';if(MR.map){try{MR.map.remove()}catch(e){}MR.map=null;MR.tl=null;MR.grp=null}if(typeof GLL!=='undefined'&&GLL.lost)setTimeout(glReload,300)}
 async function mrSearch(){const q=$('mrQ').value.trim();if(!q)return;MR.msg='Recherche…';mrDraw();
  try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q)),j=await r.json();
   if(j&&j[0]){MR.map.setView([+j[0].lat,+j[0].lon],13);MR.msg=''}else MR.msg='Lieu introuvable.'}catch(e){MR.msg='Recherche impossible (pas de réseau ?).'}mrDraw()}
@@ -2339,7 +2349,11 @@ function mrName(){const n=($('mrName').value||'').trim().slice(0,40);return n||(
 function mrSave(ride){const c=MR.route&&MR.route.coords;if(!c||c.length<2)return;const nm=mrName(),prev=(()=>{try{return localStorage.v3cur}catch(e){return null}})();
  const q=c.map(p=>[p[0],p[1],typeof p[2]==='number'?p[2]:0]),cs=crsImport(nm,q);
  if(!cs){MR.msg='Stockage plein : supprime un ancien parcours (Rouler → Mes parcours).';return mrDraw()}
- if(ride){say('Parcours « '+nm+' » créé ('+nf(cs.km,1)+' km) : préparation…');mrClose();setTimeout(()=>crsSwitch(cs.id),50)}
+ if(ride){say('Parcours « '+nm+' » créé ('+nf(cs.km,1)+' km) : préparation…');mrClose();
+  // 21 nov. 2026 (Cyril : après « Rouler » depuis la carte, écran et profil noirs ; il devait exporter le GPX puis le réimporter) :
+  // la page repart proprement sur le nouveau parcours (sans film ni choix du compte), comme au lancement de l'appli.
+  // Home trainer déjà connecté : pas de rechargement (il couperait le Bluetooth), changement de parcours sur place.
+  if(conn)setTimeout(()=>crsSwitch(cs.id),50);else{try{sessionStorage.v3skip='1'}catch(e){}setTimeout(()=>location.reload(),350)}}
  else{try{if(prev)localStorage.v3cur=prev;else delete localStorage.v3cur}catch(e){}MR.msg='✅ Gardé dans « Mes parcours » : '+nm+' ('+nf(cs.km,1)+' km).';mrDraw()}}
 function mrGpx(){const c=MR.route&&MR.route.coords;if(!c||c.length<2)return;const nm=mrName(),e=s=>s.replace(/[<>&"]/g,'');
  const x='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="VCT" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>'+e(nm)+'</name><trkseg>\n'+c.map(p=>'<trkpt lat="'+p[0].toFixed(6)+'" lon="'+p[1].toFixed(6)+'">'+(typeof p[2]==='number'?'<ele>'+p[2].toFixed(1)+'</ele>':'')+'</trkpt>').join('\n')+'\n</trkseg></trk></gpx>';
@@ -5879,7 +5893,7 @@ function accEdit(id,after){const a=id?PROF.list.find(x=>x.id===id):{name:'',col:
 function accDelete(id){if(id===PROF.cur)return;const pre='p:'+id+':';for(const k of Object.keys(localStorage))if(k.startsWith(pre))localStorage.removeItem(k);
  try{indexedDB.deleteDatabase(id==='p1'?'velo3d-rides':'velo3d-rides-'+id)}catch(e){}PROF.list=PROF.list.filter(x=>x.id!==id);PROF.save()}
 function homeHeader(){let c=$('pchip');if(!c){const hh=$('hh'),h1=hh.querySelector('h1'),sub=hh.querySelector('.sub'),br=document.createElement('div');br.className='brand';
-  br.innerHTML='<div class="logo">VC<b>T</b></div><div style="min-width:0"></div>';br.lastChild.append(h1,sub);hh.prepend(br);c=document.createElement('div');c.id='pchip';hh.insertBefore(c,hh.querySelector('.ftp'));const ab=document.createElement('button');ab.id='accb';ab.onclick=()=>accOpen();hh.insertBefore(ab,c)}
+  br.innerHTML='<div class="logo">VC<b>T</b></div><div style="min-width:0"></div>';const vv=document.createElement('small');vv.className='vver';vv.textContent='version du '+VCT_VER;br.lastChild.append(h1,sub,vv);hh.prepend(br);c=document.createElement('div');c.id='pchip';hh.insertBefore(c,hh.querySelector('.ftp'));const ab=document.createElement('button');ab.id='accb';ab.onclick=()=>accOpen();hh.insertBefore(ab,c)}
  {const a=PROF.me(),ab=$('accb');ab.innerHTML='<i style="background:'+(ACOL[a.col|0]||ACOL[0])+'">'+esc((a.name||'?').slice(0,1).toUpperCase())+'</i><span>'+esc(a.name)+'</span>';ab.title='Changer de compte'}
  const L=LVL,a=lvlXP(L),b=lvlXP(L+1),p=Math.max(0,Math.min(100,(GS.xp-a)/(b-a)*100));
  c.innerHTML='<div class="lv" style="--p:'+p.toFixed(0)+'">'+L+'</div><div><b>Niveau '+L+'</b><small>'+nf(Math.max(0,b-GS.xp))+' XP avant le niveau '+(L+1)+' · '+(FTP/riderKg()).toFixed(1).replace('.',',')+' W/kg</small></div>'}
@@ -12616,7 +12630,7 @@ const RS2={cad:0,P:0,v:0,g:0,coast:false,stand:false,tuck:false,steer:0,cside:0,
 const GLL={lost:false,n:0};
 function glReload(){try{recSave&&recSave()}catch(e){}try{sessionStorage.v3skip='1'}catch(e){}location.reload()}
 ren.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();GLL.lost=true;GLL.n++;console.warn('WebGL perdu');
- try{say('Affichage 3D interrompu par la tablette : reprise…')}catch(e){}const n=GLL.n;setTimeout(()=>{if(GLL.lost&&GLL.n===n)glReload()},5000)},false);
+ try{say('Affichage 3D interrompu par la tablette : reprise…')}catch(e){}const n=GLL.n;setTimeout(()=>{if(GLL.lost&&GLL.n===n&&!MR.on)glReload()},5000)},false);
 ren.domElement.addEventListener('webglcontextrestored',()=>{GLL.lost=false;console.warn('WebGL rendu');try{if(typeof homeRender==='function'&&mode==='home')homeRender()}catch(e){}},false);
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;if(!N)return;
  // carte de traçage ouverte ou affichage perdu : la 3D ne se dessine pas (mémoire et batterie pour la carte)
