@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='21/11/2026 · c';const ERRL=[];
+const VCT_VER='21/11/2026 · d';const ERRL=[];
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
  let b=document.getElementById('errb');if(!b&&document.body){b=document.createElement('button');b.id='errb';b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:400;padding:6px 10px;border-radius:10px;border:1px solid #b33;background:#2a0e0e;color:#ffb3b3;font:600 12px system-ui;opacity:.9';
   b.onclick=()=>{const t='VCT '+VCT_VER+'\n'+navigator.userAgent+'\n'+ERRL.map(e=>e.t+' '+e.m).join('\n');try{mod('⚠️ Erreurs relevées<br><small>Fais une capture de cet écran pour Claude.</small><pre style="white-space:pre-wrap;font-size:11px;text-align:left;max-height:50vh;overflow:auto">'+t.replace(/[<&]/g,c=>c==='<'?'&lt;':'&amp;')+'</pre>',[['Copier',()=>{try{navigator.clipboard.writeText(t)}catch(e){}}],['Effacer',()=>{ERRL.length=0;b.remove()}],['Fermer',()=>{}]])}catch(e){alert(t)}};document.body.appendChild(b)}
@@ -2036,10 +2036,13 @@ function fxPost(hm){const lv=fxLevel();if(!lv)return;
   VFX.q.material=VFX.m.comp;ren.setRenderTarget(null);ren.render(VFX.sc,VFX.cam)}
  catch(err){VFX.fail=true;console.warn('effets visuels désactivés',err);ren.setRenderTarget(null)}}
 function fxSet(v){SET.fx=v;ssave();say('Effets visuels : '+['aucun','doux','max'][fxLevel()])}
+const _FARH=[];
 function renderScene(){fogSun();GU.uSunV.value.copy(SUN).transformDirection(cam.matrixWorldInverse);GU.uSunC.value.setRGB(1,.9,.62).multiplyScalar(SPACE.on?0:clamp(DAYF,0,1)*sm(-2,10,ELEV));TU.uDetQ.value=QK==='ultra'?1:QK==='high'?.8:0;const n0=cam.near,f0=cam.far;ren.autoClear=false;ren.clear();
- cam.near=SPLIT*.985;cam.far=160000;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=true;ren.render(sc,cam);
+ cam.near=SPLIT*.985;cam.far=160000;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=false;
+ {const hid=_FARH;hid.length=0;const hide=g=>{if(g&&g.visible&&g.position.distanceToSquared(cam.position)<40000){g.visible=false;hid.push(g)}};hide(R);for(const n of NPCS)hide(n.R);
+  ren.render(sc,cam);for(const g of hid)g.visible=true}
  ren.clearDepth();const sv=sky.visible,cv=clouds.visible,mv=moon.visible,tv=stars.visible;sky.visible=clouds.visible=moon.visible=stars.visible=false;
- cam.near=RNEAR;cam.far=SPLIT;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=false;ren.render(sc,cam);
+ cam.near=RNEAR;cam.far=SPLIT;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=true;ren.render(sc,cam);
  sky.visible=sv;clouds.visible=cv;moon.visible=mv;stars.visible=tv;cam.near=n0;cam.far=f0;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=true;
  fxPost(mode==='home')}
 
@@ -2902,9 +2905,9 @@ const _RQ2={d:0,i:0,t:0,y:0,lat:0,end:false};
 // tuile proche : lod 0 = 16 m (trouée sous le couloir), 1 = 32 m, 2 = 64 m
 // trou jusqu'à 52 m de la route (le couloir va jusqu'à 60 m) ; 36 m seulement dans les virages serrés (couloir rogné côté intérieur) et aux 20 derniers mètres avant un carrefour
 const CUT_D=52;
-function buildNearTile(a,b,lod){const step=[16,32,64][lod],n=NT/step,S=n+3,x0=a*NT,z0=b*NT,H2=new Float32Array(S*S),DD=new Float32Array(S*S),RY=new Float32Array(S*S),EE=new Int32Array(S*S),RI=new Int32Array(S*S),LM=new Float32Array(S*S),CU=new Uint8Array(S*S);
- for(let j=0;j<S;j++)for(let i=0;i<S;i++){const x=x0+(i-1)*step,z=z0+(j-1)*step,q=j*S+i,g=ground(x,z),r=roadQ(x,z,_RQ2);
-  H2[q]=r&&r.d<=32&&!(BRG&&BRG[r.i])?hT(x,z):g;if(r&&!(BRG&&BRG[r.i])&&r.d<3.5*roadScale(r.i,NET.E[r.e])+1.2)H2[q]=Math.min(H2[q],r.y-.22);DD[q]=r?r.d:999;RI[q]=r?r.i:-1e6;LM[q]=r&&r.lat*DA[r.i]>0&&Math.abs(DA[r.i])>1e-5?Math.max(0,.92/Math.abs(DA[r.i])-3):CUT_D;RY[q]=r?r.y:1e9;EE[q]=r?r.e:-1;CU[q]=r&&(Math.abs(DA[r.i])*CUT_D>.9||r.i-NET.E[r.e].i0<4||NET.E[r.e].i1-r.i<4)?1:0}
+function* buildNearTile(a,b,lod){let t0=performance.now();const step=[16,32,64][lod],n=NT/step,S=n+3,x0=a*NT,z0=b*NT,H2=new Float32Array(S*S),DD=new Float32Array(S*S),RY=new Float32Array(S*S),EE=new Int32Array(S*S),RI=new Int32Array(S*S),LM=new Float32Array(S*S),CU=new Uint8Array(S*S);
+ for(let j=0;j<S;j++){if(performance.now()-t0>4){yield;t0=performance.now()}for(let i=0;i<S;i++){const x=x0+(i-1)*step,z=z0+(j-1)*step,q=j*S+i,g=ground(x,z),r=roadQ(x,z,_RQ2);
+  H2[q]=r&&r.d<=32&&!(BRG&&BRG[r.i])?hT(x,z):g;if(r&&!(BRG&&BRG[r.i])&&r.d<3.5*roadScale(r.i,NET.E[r.e])+1.2)H2[q]=Math.min(H2[q],r.y-.22);DD[q]=r?r.d:999;RI[q]=r?r.i:-1e6;LM[q]=r&&r.lat*DA[r.i]>0&&Math.abs(DA[r.i])>1e-5?Math.max(0,.92/Math.abs(DA[r.i])-3):CUT_D;RY[q]=r?r.y:1e9;EE[q]=r?r.e:-1;CU[q]=r&&(Math.abs(DA[r.i])*CUT_D>.9||r.i-NET.E[r.e].i0<4||NET.E[r.e].i1-r.i<4)?1:0}}
  const H3=H2.slice();
  for(let j=1;j<S-1;j++)for(let i=1;i<S-1;i++){const q=j*S+i,dd=DD[q];if(dd>=66)continue;let m=Math.min(H2[q],RY[q]-.6);
   for(let v=-1;v<=1;v++)for(let u=-1;u<=1;u++){const q2=q+v*S+u;if(EE[q2]===EE[q]&&Math.abs(RI[q2]-RI[q])*SEG<60)m=Math.min(m,H2[q2])}const k=1-sm(56,66,dd);H3[q]=H2[q]+(m-1.05-H2[q])*k}// voisins de la même branche seulement (19 nov. 2026 : entre deux routes superposées, l'abaissement sur la route la plus basse creusait des trous de 8 à 10 m)
@@ -2917,10 +2920,10 @@ const CO=[-60,-44,-32,-23,-16,-11,-7.6,-5.6,-4.4,4.4,5.6,7.6,11,16,23,32,44,60];
 const _nv=V(),_RQ3={d:0,i:0,t:0,y:0,lat:0,end:false,e:-1};
 // une autre route… ou une autre partie de la même (lacet, passage superposé : 19 nov. 2026)
 function foreignAt(x,z,own,od,ir){const r=roadQ(x,z,_RQ3);return r&&(r.e!==own||(ir!=null&&Math.abs(r.i-ir)>2))&&r.d<od-.5}// partage « au plus proche » entre branches
-function buildCorridor(c){const ch=CHUNKS[c],own=ch.e,i0=ch.i0,i1=ch.i1,rows=[];
+function* buildCorridor(c){const ch=CHUNKS[c],own=ch.e,i0=ch.i0,i1=ch.i1,rows=[];let t0=performance.now();// 21 nov. 2026 : découpé (diagnostic tablette : 330 à 380 ms d'un bloc)
  for(let i=i0;i<i1;i+=(Math.abs(DA[i])>.0125||Math.abs(DA[Math.min(i1,i+1)])>.0125)?1:2)rows.push(i);rows.push(i1);
  const R=rows.length,C=CO.length,cols=C+2,P=new Float32Array(R*cols*3),Nn=new Float32Array(R*cols*3),idx=[];
- for(let r=0;r<R;r++){const i=rows[r],lim=Math.abs(DA[i])>1e-5?.92/Math.abs(DA[i]):1e9;
+ for(let r=0;r<R;r++){if(performance.now()-t0>4){yield;t0=performance.now()}const i=rows[r],lim=Math.abs(DA[i])>1e-5?.92/Math.abs(DA[i]):1e9;
   // bord intérieur collé au bord réel de la chaussée (route plus étroite ou plus large selon les données)
   const ri=4.1*roadScale(i,NET.E[own])+.1,offs=CO.map(o=>{if(Math.abs(o)<5)o=Math.sign(o)*ri;return(o*DA[i]<0&&Math.abs(o)>lim)?Math.sign(o)*lim:o});
   // rognage côté gauche (indices décroissants depuis le centre) et côté droit
@@ -2935,10 +2938,10 @@ function buildCorridor(c){const ch=CHUNKS[c],own=ch.e,i0=ch.i0,i1=ch.i1,rows=[];
    if(k===0||k===C-1){const s2=(r*cols+(k===0?0:cols-1))*3;P[s2]=x;P[s2+1]=y-5;P[s2+2]=z;Nn[s2]=_nv.x;Nn[s2+1]=_nv.y;Nn[s2+2]=_nv.z}}}
  // 19 nov. 2026 : un morceau de bande qui enjambe la chaussée d'une autre branche (épingle, passage superposé) n'est pas dessiné
  const _cq={d:0,i:0,t:0,y:0,lat:0,end:false,e:-1};
- for(let r=0;r<R-1;r++)for(let k=0;k<cols-1;k++){if(k===C/2)continue;const A=r*cols+k,B=A+1,Cc=A+cols,D=Cc+1;
+ for(let r=0;r<R-1;r++){if(performance.now()-t0>4){yield;t0=performance.now()}for(let k=0;k<cols-1;k++){if(k===C/2)continue;const A=r*cols+k,B=A+1,Cc=A+cols,D=Cc+1;
   if(k>0&&k<cols-2){const cx=(P[A*3]+P[B*3]+P[Cc*3]+P[D*3])/4,cz=(P[A*3+2]+P[B*3+2]+P[Cc*3+2]+P[D*3+2])/4,cy=(P[A*3+1]+P[B*3+1]+P[Cc*3+1]+P[D*3+1])/4,rq=roadQ(cx,cz,_cq);
    if(rq&&(rq.e!==own||Math.abs(rq.i-rows[r])>3)&&!(BRG&&BRG[rq.i])&&rq.d<3.5*roadScale(rq.i,NET.E[rq.e])+.3&&cy>rq.y-.12)continue}
-  idx.push(A,B,Cc,B,D,Cc)}
+  idx.push(A,B,Cc,B,D,Cc)}}
  return mkGeo(P,Nn,idx)}
 // tuile moyenne (2048 m) : 64 m ou 128 m, trouée là où la grille proche existe
 // (générateurs : on rend la main à l'affichage toutes les 4 ms environ)
@@ -2970,22 +2973,24 @@ function* buildRing(){let t0=performance.now();const F=REG.far,[cx,cz]=REG.c,r0=
  return mkGeo(P,Nn,idx)}
 function terrMesh(g,shadow){const m=new T.Mesh(g,TMAT);m.receiveShadow=!!shadow;m.matrixAutoUpdate=false;WORLD.add(m);return m}
 function setGeo(rec,g,shadow){if(rec.mesh){rec.mesh.geometry.dispose();rec.mesh.geometry=g;rec.mesh.receiveShadow=!!shadow}else rec.mesh=terrMesh(g,shadow)}
-const nearLod=d=>d<QP.near?0:d<4200?1:2;
+const nearLod=d=>d<QP.near?0:d<(QK==='tab'?2600:4200)?1:2;
+// 21 nov. 2026 (diagnostic Redmi Pad : carte graphique saturée) : terrain moyen fin (64 m) moins loin en Tablette / Basse
+const midLD=()=>QK==='tab'||QK==='low'?2600:4500;
 // niveaux de détail (le travail passe par la file de tâches pour ne jamais saccader)
 function terrUpdate(cp,force){
  if(!force&&cp.distanceToSquared(TER.lp)<900)return;TER.lp.copy(cp);const ver=TER.ver;
  for(const k of TER.cov){let rec=TER.near.get(k);if(!rec){const[a,b]=k.split(',').map(Number);rec={a,b,lod:-1,ver:0,mesh:null};TER.near.set(k,rec)}
   const cx=(rec.a+.5)*NT,cz=(rec.b+.5)*NT,L=nearLod(Math.max(0,Math.hypot(cx-cp.x,cz-cp.z)-NT*.71));
-  if(rec.lod!==L||rec.ver!==ver)job(()=>{const L2=nearLod(Math.max(0,Math.hypot(cx-TER.lp.x,cz-TER.lp.z)-NT*.71));
-    if(rec.lod===L2&&rec.ver===TER.ver)return true;setGeo(rec,buildNearTile(rec.a,rec.b,L2),L2===0);rec.lod=L2;rec.ver=TER.ver;return true},
+  if(rec.lod!==L||rec.ver!==ver)job((function*(){const L2=nearLod(Math.max(0,Math.hypot(cx-TER.lp.x,cz-TER.lp.z)-NT*.71));
+    if(rec.lod===L2&&rec.ver===TER.ver)return;const v=TER.ver,g=yield* buildNearTile(rec.a,rec.b,L2);if(v!==TER.ver&&rec.mesh){g.dispose();return}setGeo(rec,g,L2===0);rec.lod=L2;rec.ver=v})(),
    ()=>Math.max(0,Math.hypot(cx-TER.lp.x,cz-TER.lp.z)-NT)+(rec.mesh?0:-6000),'n'+k)}
  const RC=QP.cor;for(let c=0;c<CHUNKS.length;c++){const ch=CHUNKS[c];if(!inWorld(ch.e))continue;const d=Math.hypot(ch.cx-cp.x,ch.cz-cp.z)-ch.r;let rec=TER.cor[c];
-  if(d<RC){if(!rec)rec=TER.cor[c]={mesh:null,ver:0};if(rec.ver!==ver)job(()=>{if(rec.ver===TER.ver)return true;setGeo(rec,buildCorridor(c),true);rec.ver=TER.ver;return true},()=>Math.max(0,Math.hypot(ch.cx-TER.lp.x,ch.cz-TER.lp.z)-ch.r-700)-3000,'c'+c)}
+  if(d<RC){if(!rec)rec=TER.cor[c]={mesh:null,ver:0};if(rec.ver!==ver)job((function*(){if(rec.ver===TER.ver)return;const v=TER.ver,g=yield* buildCorridor(c);if(v!==TER.ver&&rec.mesh){g.dispose();return}setGeo(rec,g,true);rec.ver=v})(),()=>Math.max(0,Math.hypot(ch.cx-TER.lp.x,ch.cz-TER.lp.z)-ch.r-700)-3000,'c'+c)}
   else if(rec&&rec.mesh&&d>RC*1.6){WORLD.remove(rec.mesh);rec.mesh.geometry.dispose();rec.mesh=null;rec.ver=0}
   if(rec&&rec.mesh)rec.mesh.visible=d<RC*1.1}
  if(REG.mid){const M=REG.mid;for(let b=M.z0/MT;b<M.z1/MT;b++)for(let a=M.x0/MT;a<M.x1/MT;a++){const k=ntKey(a,b);let rec=TER.mid.get(k);if(!rec){rec={a,b,lod:-1,ver:0,mesh:null};TER.mid.set(k,rec)}
-   const cx=(a+.5)*MT,cz=(b+.5)*MT,L=Math.hypot(cx-cp.x,cz-cp.z)-MT*.71<4500?0:1;
-   if(rec.lod!==L||rec.ver!==TER.fver)job((function*(){const L2=Math.hypot(cx-TER.lp.x,cz-TER.lp.z)-MT*.71<4500?0:1,fv=TER.fver;if(rec.lod===L2&&rec.ver===fv)return;const g=yield* buildMidTile(a,b,L2);if(fv!==TER.fver){g.dispose();return}setGeo(rec,g,false);rec.lod=L2;rec.ver=fv})(),
+   const cx=(a+.5)*MT,cz=(b+.5)*MT,L=Math.hypot(cx-cp.x,cz-cp.z)-MT*.71<midLD()?0:1;
+   if(rec.lod!==L||rec.ver!==TER.fver)job((function*(){const L2=Math.hypot(cx-TER.lp.x,cz-TER.lp.z)-MT*.71<midLD()?0:1,fv=TER.fver;if(rec.lod===L2&&rec.ver===fv)return;const g=yield* buildMidTile(a,b,L2);if(fv!==TER.fver){g.dispose();return}setGeo(rec,g,false);rec.lod=L2;rec.ver=fv})(),
     ()=>(rec.mesh?2000:-2000)+Math.hypot(cx-TER.lp.x,cz-TER.lp.z)*.3,'m'+k)}}
  if(REG.far){if(!TER.far)TER.far={mesh:null,ver:0};const f=TER.far;if(f.ver!==TER.fver)job((function*(){const fv=TER.fver;if(f.ver===fv)return;const g=yield* buildFar();if(fv!==TER.fver){g.dispose();return}setGeo(f,g,false);f.ver=fv})(),f.mesh?6000:900,'far');
   if(!TER.ring)TER.ring={mesh:null,ver:0};const r=TER.ring;if(r.ver!==TER.fver)job((function*(){const fv=TER.fver;if(r.ver===fv)return;const g=yield* buildRing();if(fv!==TER.fver){g.dispose();return}setGeo(r,g,false);r.ver=fv})(),r.mesh?7000:1000,'ring')}}
@@ -3141,8 +3146,8 @@ async function loadOSMRoads(a,b){const[s,w,n,e]=tileLL(a,b),bb=`(${s.toFixed(5)}
 function terrH(x,z){const q=roadQ(x,z,_RQ3);if(q&&q.d<62)return hT(x,z);const s=nearCov(x,z)?16:64,i=Math.floor(x/s),j=Math.floor(z/s),fx=x/s-i,fz=z/s-j,g=(a,b)=>ground(a*s,b*s);
  if(fx+fz<=1){const A=g(i,j);return A+(g(i+1,j)-A)*fx+(g(i,j+1)-A)*fz}const D=g(i+1,j+1);return D+(g(i,j+1)-D)*(1-fx)+(g(i+1,j)-D)*(1-fz)}
 const oroadMat=new T.MeshLambertMaterial({map:TXR.road,vertexColors:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
-function buildOCell(c){const gb=new GB(false);
- for(const o of c.list){const p=o.p,[u,col,lift]=ORK[o.kind],hw=o.w/2,ly=lift+(ih(o.id.length,p.length)-.5)*.02;let s=0,prev=null;
+function* buildOCell(c){const gb=new GB(false);let t0=performance.now();
+ for(const o of c.list){if(performance.now()-t0>4){yield;t0=performance.now()}const p=o.p,[u,col,lift]=ORK[o.kind],hw=o.w/2,ly=lift+(ih(o.id.length,p.length)-.5)*.02;let s=0,prev=null;
   for(let i=0;i<p.length;i++){const A=p[Math.max(0,i-1)],B=p[Math.min(p.length-1,i+1)],dx=B[0]-A[0],dz=B[1]-A[1],l=Math.hypot(dx,dz)||1,nx=-dz/l*hw,nz=dx/l*hw,x=p[i][0],z=p[i][1];
    if(i)s+=Math.hypot(x-p[i-1][0],z-p[i-1][1]);const L=[x+nx,0,z+nz],R=[x-nx,0,z-nz];L[1]=terrH(L[0],L[2])+ly;R[1]=terrH(R[0],R[2])+ly;
    if(prev){const a=prev[0],b=prev[1],cr=(b[2]-a[2])*(R[0]-a[0])-(b[0]-a[0])*(R[2]-a[2]);
@@ -3152,7 +3157,7 @@ function buildOCell(c){const gb=new GB(false);
 const ORD=QP.near*1.05;// distance d'affichage (les autres routes suivent la grille fine du terrain)
 let orT=0;function oroadUpdate(cp,now){if(now-orT<500)return;orT=now;
  for(const[k,c]of ORL){const d=Math.hypot(Math.max(c.a*ORC-cp.x,0,cp.x-(c.a+1)*ORC),Math.max(c.b*ORC-cp.z,0,cp.z-(c.b+1)*ORC));
-  if(d<ORD){if(c.ver!==c.n||c.tv!==TER.ver)job(()=>{if(c.ver===c.n&&c.tv===TER.ver)return true;const m=buildOCell(c);if(c.mesh){WORLD.remove(c.mesh);c.mesh.geometry.dispose()}c.mesh=m;if(m)WORLD.add(m);c.ver=c.n;c.tv=TER.ver;return true},
+  if(d<ORD){if(c.ver!==c.n||c.tv!==TER.ver)job((function*(){if(c.ver===c.n&&c.tv===TER.ver)return;const n=c.n,tv=TER.ver,m=yield* buildOCell(c);if(c.mesh){WORLD.remove(c.mesh);c.mesh.geometry.dispose()}c.mesh=m;if(m)WORLD.add(m);c.ver=n;c.tv=tv})(),
     ()=>Math.hypot((c.a+.5)*ORC-RPOS.x,(c.b+.5)*ORC-RPOS.z)+500,'or'+k)}
   else if(c.mesh&&d>ORD+500){WORLD.remove(c.mesh);c.mesh.geometry.dispose();c.mesh=null;c.ver=-1}
   if(c.mesh)c.mesh.visible=d<ORD+120}}
@@ -3227,8 +3232,9 @@ function waterCell(a,b){const k=vck(a,b);let w=WATC.get(k);if(w&&w.ver===DATA.wv
  if(L&&L.length){M=new Uint8Array(MRES*MRES);for(const o of L)rasterRings(M,o.rings,a,b,1,MRES,VC)}
  WATC.set(k,{m:M,ver:DATA.wver});return M}
 DATA.wver=0;
+const _WL={a:1e9,b:1e9,v:-1,M:null};
 function waterAt(x,z){if(!DATA.n.w)return 0;const u=x/MS4-.5,v=z/MS4-.5,i=Math.floor(u),j=Math.floor(v),p=u-i,q=v-j;
- const s=(ii,jj)=>{const a=Math.floor(ii/MRES),b=Math.floor(jj/MRES),M=waterCell(a,b);return M?M[(jj-b*MRES)*MRES+(ii-a*MRES)]:0};
+ const s=(ii,jj)=>{const a=Math.floor(ii/MRES),b=Math.floor(jj/MRES);let M;if(a===_WL.a&&b===_WL.b&&_WL.v===DATA.wver)M=_WL.M;else{M=waterCell(a,b);_WL.a=a;_WL.b=b;_WL.v=DATA.wver;_WL.M=M}return M?M[(jj-b*MRES)*MRES+(ii-a*MRES)]:0};
  return(s(i,j)*(1-p)+s(i+1,j)*p)*(1-q)+(s(i,j+1)*(1-p)+s(i+1,j+1)*p)*q}
 
 // ====================== route : chaussée, ponts, équipements (balises, bornes, glissières, trottoirs, lampadaires, panneaux) ======================
@@ -3320,12 +3326,12 @@ const POOLTEX=(()=>{const k=mkCanvas(128,128),g=k.getContext('2d'),gr=g.createRa
 const poolMat=new T.MeshBasicMaterial({map:POOLTEX,transparent:true,depthWrite:false,blending:T.AdditiveBlending,opacity:0,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4,fog:true});
 const furnMat=atlasMat(TXR.wall,'furn',{side:T.DoubleSide});
 function inVillage(i){return VILF&&VILF[i]?1:0}
-function buildFurniture(c){const ch=CHUNKS[c],Ed=NET.E[ch.e],e0=Ed.i0,e1=Ed.i1,i0=Math.max(ch.i0,e0+(nodeDeg(Ed.a)>1?5:1)),i1=Math.min(ch.i1,e1-(nodeDeg(Ed.b)>1?5:1)),gb=new GB(true),sg=new GB(false),pool=[];
+function* buildFurniture(c){let t0=performance.now();const ch=CHUNKS[c],Ed=NET.E[ch.e],e0=Ed.i0,e1=Ed.i1,i0=Math.max(ch.i0,e0+(nodeDeg(Ed.a)>1?5:1)),i1=Math.min(ch.i1,e1-(nodeDeg(Ed.b)>1?5:1)),gb=new GB(true),sg=new GB(false),pool=[];
  const nearOther=(x,z)=>{const r=roadQ(x,z,_RQ3);return r&&r.e!==ch.e&&r.d<7};
  const FW=CA(0x6e5236),FW2=CA(0x8a6a48),FWr=CA(0x9aa0a4),W=CA(0xf2f2ee),Bk=CA(0x1c1c1c),Or=CA(0xff8a1a),Ye=CA(0xf2c11d),Gv=CA(0xb7bcc0),Cu=CA(0xcfccc4),Sw=CA(0x9c9a95),Po=CA(0x55595e);
  const P=(i,o,dy)=>[X[i]-TZ[i]*o,(dy==null?hT(X[i]-TZ[i]*o,Z[i]+TX[i]*o):H[i]+dy),Z[i]+TX[i]*o];
  const ry=i=>Math.atan2(TX[i],TZ[i]);
- for(let i=i0;i<i1;i++){const sd=SD[i],vil=inVillage(i),br=BRG&&BRG[i];
+ for(let i=i0;i<i1;i++){if(performance.now()-t0>4){yield;t0=performance.now()}const sd=SD[i],vil=inVillage(i),br=BRG&&BRG[i];
   // trottoirs + bordures en agglomération
   if(vil&&!br){for(const s2 of[-1,1]){const o0=s2*4.3,o1=s2*4.5,o2=s2*6.1;const a0=P(i,o0,.0),b0=P(i+1,o0,.0),a1=P(i,o1,.15),b1=P(i+1,o1,.15),a2=P(i,o2,.17),b2=P(i+1,o2,.17);
     if(s2>0){gb.quad(a0,b0,b1,a1,Cu,[0,0,1,1],6);gb.quad(a1,b1,b2,a2,Sw,[sd/1,0,SD[i+1]/1,1.6],4)}else{gb.quad(b0,a0,a1,b1,Cu,[0,0,1,1],6);gb.quad(b1,a1,a2,b2,Sw,[sd/1,0,SD[i+1]/1,1.6],4)}
@@ -3380,8 +3386,8 @@ function roadUpdate(cp){
      if(r.mesh){r.mesh.geometry.dispose();r.mesh.geometry=g;r.mesh.material=mt}else{r.mesh=new T.Mesh(g,mt);r.mesh.receiveShadow=true;r.mesh.matrixAutoUpdate=false;WORLD.add(r.mesh)}r.ver=ROAD.ver;return true},()=>Math.max(0,d)-4000,'r'+c)}
   else if(r&&r.mesh&&d>RDV+1500){WORLD.remove(r.mesh);r.mesh.geometry.dispose();r.mesh=null;r.ver=0}
   if(r&&r.mesh)r.mesh.visible=d<RDV+200;
-  let f=ROAD.fur[c];if(d<QP.bldD+500){if(!f)f=ROAD.fur[c]={g:null,ver:0};if(f.ver!==ROAD.fver)job(()=>{if(f.ver===ROAD.fver)return true;const g=buildFurniture(c);
-     if(f.g){WORLD.remove(f.g);f.g.traverse(o=>{if(o.geometry)o.geometry.dispose()})}f.g=g;WORLD.add(g);f.ver=ROAD.fver;return true},()=>Math.max(0,d)+200,'f'+c)}
+  let f=ROAD.fur[c];if(d<QP.bldD+500){if(!f)f=ROAD.fur[c]={g:null,ver:0};if(f.ver!==ROAD.fver)job((function*(){if(f.ver===ROAD.fver)return;const fv=ROAD.fver,g=yield* buildFurniture(c);
+     if(f.g){WORLD.remove(f.g);f.g.traverse(o=>{if(o.geometry)o.geometry.dispose()})}f.g=g;WORLD.add(g);f.ver=fv})(),()=>Math.max(0,d)+200,'f'+c)}
   else if(f&&f.g&&d>QP.bldD+900){WORLD.remove(f.g);f.g.traverse(o=>{if(o.geometry)o.geometry.dispose()});f.g=null;f.ver=0}
   if(f&&f.g)f.g.visible=d<QP.bldD+600}
  // chaussées des carrefours
@@ -7758,7 +7764,7 @@ function resetWorld(){{const kp=JOBS.filter(j=>j.key&&/^(face|helmvents)/.test(j
  TER.near.clear();TER.cov=new Set();TER.cor=[];TER.mid.clear();TER.far=null;TER.ring=null;TER.lp.set(1e9,0,1e9);TER.ver++;
  ROAD.ch=[];ROAD.fur=[];ROAD.jn=new Map();ROAD.vil=null;VEG.cells.clear();VEG.lp.set(1e9,0,1e9);BT.clear();BLD.lp.set(1e9,0,1e9);WAT.cells.clear();
  DATA.bld.clear();DATA.veg.clear();DATA.wat.clear();DATA.tiles.clear();DATA.habit=[];DATA.places=[];DATA.signs=[];DATA.n={b:0,v:0,w:0};dataMode=0;DFAIL[0]=DFAIL[1]=DOK[0]=DOK[1]=0;
- VIDX.clear();WIDX.clear();BIDX.clear();ORL.clear();ORIDS.clear();ORIDX.clear();MASKC.clear();WATC.clear();DEMS.length=0;DEMOK=false;WATERM=null;BRG=null;VIL=[];VILF=null;VDONE.clear();VG.g=null;FAU.cells.clear();FAU.list=[];FAU.pets=[];FAU.sq=null;FAU.churches.clear();FAU.schools.length=0;FAU.schK.clear();FAU.vilS.clear();GRASS.mesh=null;
+ VIDX.clear();WIDX.clear();BIDX.clear();ORL.clear();ORIDS.clear();ORIDX.clear();MASKC.clear();WATC.clear();DATA.wver++;DEMS.length=0;DEMOK=false;WATERM=null;BRG=null;VIL=[];VILF=null;VDONE.clear();VG.g=null;FAU.cells.clear();FAU.list=[];FAU.pets=[];FAU.sq=null;FAU.churches.clear();FAU.schools.length=0;FAU.schK.clear();FAU.vilS.clear();GRASS.mesh=null;
  TU.uPhoto.value=0;TU.uNearOn.value=0;CLIP.on=false;for(const k in LDP)delete LDP[k]}
 function llOf(Rg){const[n,w]=xz2ll(Rg.x0,Rg.z0),[s2,e]=xz2ll(Rg.x1,Rg.z1);return[s2,w,n,e]}
 function onDataTile(a,b){dataDirty=1;const x0=a*DT-64,x1=(a+1)*DT+64,z0=b*DT-64,z1=(b+1)*DT+64;
@@ -12745,7 +12751,14 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
   nearWater=DATA.n.w?clamp(1-((()=>{let m=1e9;for(const o of[-30,0,30]){const w=waterAt(x-tz*o,z+tx*o);if(w>.3)m=Math.min(m,Math.abs(o))}return m})())/60,0,1):0}
  firstFrames++;let irr=false;if(IN.on){try{irr=introFrame(dt,now)}catch(e){console.warn('film d\'ouverture',e);introEnd()}}if(!irr)renderScene()}
 // résolution adaptative (partagée avec le vélodrome)
+// 21 nov. 2026 (diagnostic Redmi Pad) : en Tablette / Basse, les petites pièces du cycliste et des PNJ (vis, câbles, logos, doigts, yeux…)
+// ne projettent plus d'ombre : invisibles dans une carte d'ombre de 6 cm par pixel, elles doublaient pourtant ~130 dessins par image
+function shadowTrim(){const lo=QK==='tab'||QK==='low';const f=g=>{if(g)g.traverse(m=>{if(!m.isMesh||!m.geometry)return;
+  if(lo){if(m.castShadow&&!m.userData.shK){const gg=m.geometry,t=(gg.index?gg.index.count:(gg.attributes.position?gg.attributes.position.count:0))/3;if(t<SHTRIM){m.castShadow=false;m.userData.shK=1}}}
+  else if(m.userData.shK){m.castShadow=true;m.userData.shK=0}})};f(R);for(const n of NPCS)f(n.R)}
+const SHTRIM=900,SHT={t:0};
 function dprTick(now){
+ if(now-(SHT.t||0)>2500){SHT.t=now;try{shadowTrim()}catch(e){}}
  if(now-dprT>2500){dprT=now;const fps=1000/fA,mn=Math.min(QP.minPR||.75,PRMAX())*(SET.autoQ!==0&&QK==='tab'&&AQ.low?.75:1);
   // chaque changement réalloue l'image (petit blocage) : on baisse après 5 s de lenteur, on remonte après 15 s de fluidité, jamais deux fois en moins de 10 s
   DPRS.lo=fps<(QP.fpsLo||40)?DPRS.lo+1:0;DPRS.hi=fps>(QP.fpsHi||57)?DPRS.hi+1:0;
