@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='22/11/2026 · g';const ERRL=[];
+const VCT_VER='22/11/2026 · h';const ERRL=[];
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
  let b=document.getElementById('errb');if(!b&&document.body){b=document.createElement('button');b.id='errb';b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:400;padding:6px 10px;border-radius:10px;border:1px solid #b33;background:#2a0e0e;color:#ffb3b3;font:600 12px system-ui;opacity:.9';
   b.onclick=()=>{const t='VCT '+VCT_VER+'\n'+navigator.userAgent+'\n'+ERRL.map(e=>e.t+' '+e.m).join('\n');try{mod('⚠️ Erreurs relevées<br><small>Fais une capture de cet écran pour Claude.</small><pre style="white-space:pre-wrap;font-size:11px;text-align:left;max-height:50vh;overflow:auto">'+t.replace(/[<&]/g,c=>c==='<'?'&lt;':'&amp;')+'</pre>',[['Copier',()=>{try{navigator.clipboard.writeText(t)}catch(e){}}],['Effacer',()=>{ERRL.length=0;b.remove()}],['Fermer',()=>{}]])}catch(e){alert(t)}};document.body.appendChild(b)}
@@ -7453,11 +7453,11 @@ function cEl(id,css){let e=$(id);if(!e){e=document.createElement('div');e.id=id;
 '.cmp table{width:100%;border-collapse:collapse;font:13px Arial}.cmp td,.cmp th{padding:5px 4px;border-bottom:1px solid #27241f;text-align:left}.cmp th{color:#c9bfae;font-weight:600}.cmp tr.me td{background:#f0cf7322;color:#f0cf73;font-weight:700}.cmp .dot{display:inline-block;width:10px;height:10px;border-radius:5px;margin-right:6px;vertical-align:-1px;box-shadow:0 0 0 1px #8a8174}'+
 '.cmp .tabs{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}.cmp .tabs button{padding:6px 10px;border-radius:9px;border:1px solid #3a342c;background:#1c1a17;color:#f4efe6;font:600 12px Arial}.cmp .tabs button.on{background:#e9a178;color:#1c1a17}'+
 '#cmk{position:fixed;top:calc(232px + var(--sa,0px));right:calc(8px + var(--sr,0px));z-index:29;width:min(214px,34vw);background:rgba(15,14,13,.74);border:1px solid #3a342c;border-radius:12px;padding:5px 6px;color:#f4efe6;font:600 11.5px Arial;backdrop-filter:blur(3px);display:none}#cmk .th{display:flex;gap:4px;margin-bottom:3px}#cmk .th button{flex:1;padding:3px 0;border-radius:7px;border:1px solid #3a342c;background:#1c1a17;color:#f4efe6;font:700 11px Arial}#cmk .th button.on{background:#f0cf73;color:#1c1a17}'+
-'#cmk .r{display:grid;grid-template-columns:16px 9px 1fr auto;gap:3px;align-items:center;height:19px;white-space:nowrap;overflow:hidden}#cmk .r.me{background:#f0cf7330;border-radius:5px;color:#f0cf73}#cmk .r .nm{overflow:hidden;text-overflow:ellipsis}#cmk .r .g{color:#c9bfae;font-size:10.5px}#cmk .r i{width:8px;height:8px;border-radius:4px;display:inline-block}#cmk .sep{height:7px;text-align:center;color:#8a8174;line-height:5px}'+
+'#cmk .r{display:grid;grid-template-columns:16px 9px 1fr auto;gap:3px;align-items:center;height:19px;white-space:nowrap;overflow:hidden}#cmk .r.me{background:#f0cf7330;border-radius:5px;color:#f0cf73}#cmk .r .nm{overflow:hidden;text-overflow:ellipsis}#cmk .r .g{color:#c9bfae;font-size:10.5px}#cmk .r i{width:8px;height:8px;border-radius:4px;display:inline-block}#cmk .ob{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:5px}#cmk .ob button{padding:8px 4px;min-height:38px;border-radius:11px;border:1px solid #3a342c;background:#1c1a17;color:#f4efe6;font:700 14px Arial;line-height:1.15}#cmk .ob button.on{background:#f0cf73;color:#1c1a17;border-color:#f0cf73}#cmk .ob button.ds{grid-column:1/3;min-height:46px;font:800 17px Arial;background:#e9a178;color:#1c1a17;border-color:#e9a178}#cmk .sep{height:7px;text-align:center;color:#8a8174;line-height:5px}'+
 '.cmp .lst label{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #27241f}.cmp small{color:#c9bfae}';
 document.head.appendChild(st)})();
 function cRadio(txt,co){const e=cEl('cmr');e.className=co?'co':'';e.innerHTML=(co?'<b>🎧 Coach</b> · ':'<b>📻 Directeur sportif</b> · ')+txt;e.style.display='block';clearTimeout(cRadio.t);cRadio.t=setTimeout(()=>e.style.display='none',co?7000:9000);
- try{if(SET.voice&&self.speechSynthesis){const u=new SpeechSynthesisUtterance(txt.replace(/<[^>]+>/g,''));u.lang='fr-FR';u.rate=1.06;const fv=frVoice();if(fv)u.voice=fv;speechSynthesis.speak(u)}}catch(e2){}}
+ try{if(SET.voice&&self.speechSynthesis){const u=new SpeechSynthesisUtterance(txt.replace(/<[^>]+>/g,'').replace(/(\d+)\s*W\/kg/g,'$1 watts par kilo').replace(/(\d+)\s*W\b/g,'$1 watts').replace(/(\d+)\s*s\b/g,(m,n)=>n+(+n>1?' secondes':' seconde')).replace(/\bW'bal\b/g,'réserve').replace(/(\d+)\s*kJ\b/g,'$1 kilojoules'));u.lang='fr-FR';u.rate=1.06;const fv=frVoice();if(fv)u.voice=fv;speechSynthesis.speak(u)}}catch(e2){}}
 const cGapTxt=s=>{s=Math.max(0,Math.round(s));return s<60?s+' s':Math.floor(s/60)+' min '+String(s%60).padStart(2,'0')};
 const cKm=m=>nf(Math.max(0,m)/1000,1)+' km';
 
@@ -7715,7 +7715,8 @@ function cmpCoach(now,P){const C=CMP.coach,me=CMP.me,T=CMP.T;if(me.fin!=null)ret
 
 // ---- panneau de course ----
 // ---- classement de l'étape à droite : place, écart, place au général, danger, coupe, leader ----
-function cmpBoard(force){const e=cEl('cmk');if(CMP.kind!=='race'||!CMP.on||CMP.hold&&CMP.cd>5){e.style.display='none';return}const now=performance.now();if(!force&&now-(cmpBoard.t||0)<700)return;cmpBoard.t=now;
+function cmpBoard(force){const e=cEl('cmk');if(!CMP.on||CMP.hold&&CMP.cd>5){e.style.display='none';return}const now=performance.now();if(!force&&now-(cmpBoard.t||0)<700)return;cmpBoard.t=now;
+ if(CMP.kind!=='race'){const h0='<div class="ob"><button class="ds" data-ds="1">📻 DS</button></div>';if(e._h!==h0){e._h=h0;e.innerHTML=h0;cmpBtn(e)}e.style.display='block';return}
  const me=CMP.me,S=CMP.stageK?cmpLoad():null,gcOn=S&&Object.keys(S.gc||{}).length>0,all=[me,...CMP.R].sort((a,b)=>(a.fin!=null&&b.fin!=null?a.fin-b.fin:b.d-a.d)),lead=all[0],vr=Math.max(6,lead.v||8);
  const gapS=r=>r===lead?0:Math.max(0,(lead.d-r.d)/vr),gcT=r=>(S&&S.gc[r.id]!=null?S.gc[r.id]:null);
  const live=r=>gcT(r)==null?null:gcT(r)+gapS(r)-(CMP.bon[r.id]||0);
@@ -7724,7 +7725,7 @@ function cmpBoard(force){const e=cEl('cmk');if(CMP.kind!=='race'||!CMP.on||CMP.h
  const danger=r=>{if(r===me||r.team===0)return false;const g=gapS(r)-gapS(me);// écart de course avec moi (négatif = il est devant)
   if(gcOn&&myL!=null){const l=live(r);if(l!=null&&l<myL+25&&gcRank.get(r)<=Math.max(5,(myG||5)+2)&&Math.abs(g)<60)return true}
   return r.role==='lead'&&g>-40&&g<30};
- const tab=cmpBoard.tab||'st',rows=Math.max(5,Math.min(9,Math.floor((innerHeight-300)/20)));let h='<div class="th"><button data-b="st"'+(tab==='st'?' class="on"':'')+'>Étape</button><button data-b="eq"'+(tab==='eq'?' class="on"':'')+'>Équipes</button></div>';
+ const tab=cmpBoard.tab||'st',rows=Math.max(4,Math.min(9,Math.floor((innerHeight-520)/20)));let h='<div class="th"><button data-b="st"'+(tab==='st'?' class="on"':'')+'>Étape</button><button data-b="eq"'+(tab==='eq'?' class="on"':'')+'>Équipes</button></div>';
  if(tab==='eq'){const tt={};all.forEach(r=>{(tt[r.team]=tt[r.team]||[]).push(r)});const L=Object.entries(tt).map(([k,a])=>{const b=a.slice(0,3);return[+k,b.reduce((x,r)=>x+gapS(r),0),b.length]}).sort((a,b)=>a[1]-b[1]);
   L.forEach(([k,g],i)=>h+='<div class="r'+(k===0?' me':'')+'"><span>'+(i+1)+'</span><i style="background:'+cTeamCol(k)+'"></i><span class="nm">'+esc(cTeamName(k))+'</span><span class="g">'+(i?'+'+cGapTxt(g-L[0][1]):'3 meilleurs')+'</span></div>')}
  else{const myI=all.indexOf(me),show=new Set([0,1,2]);for(let j=myI-2;j<=myI+2;j++)if(j>=0&&j<all.length)show.add(j);
@@ -7733,7 +7734,9 @@ function cmpBoard(force){const e=cEl('cmk');if(CMP.kind!=='race'||!CMP.on||CMP.h
   let pv=-1;for(const j of idx){const r=all[j];if(pv>=0&&j-pv>1)h+='<div class="sep">⋮</div>';pv=j;
    const dg=danger(r),cup=gcRank&&gcRank.get(r)<=5,gl=gcRank?gcRank.get(r):null,nm=r===me?'Toi':r.name;
    h+='<div class="r'+(r===me?' me':'')+'"><span>'+(j+1)+'</span><i style="background:'+cTeamCol(r.team)+'"></i><span class="nm">'+(r.role==='lead'&&r!==me?'★ ':'')+esc(nm)+(dg?' ⚠️':'')+(cup?' 🏆':'')+'</span><span class="g">'+(gl?'G'+gl+' ':'')+(j===0?'tête':(r.fin!=null?'':'+'+cGapTxt(gapS(r))))+'</span></div>'}}
- if(h!==e._h){e._h=h;e.innerHTML=h;e.querySelectorAll('[data-b]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpBoard.tab=b.dataset.b;cmpBoard(true)})}e.style.display='block'}
+ h+='<div class="ob"><button class="ds" data-ds="1">📻 DS</button>'+[['prot','🛡 Protège-moi'],['roul','🚂 Roulez'],['chas','🎯 Chasse'],['lead','⚡ Sprint'],['free','🆓 Libres']].map(([k,t])=>'<button data-o="'+k+'"'+(CMP.ord===k?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
+ if(h!==e._h){e._h=h;e.innerHTML=h;e.querySelectorAll('[data-b]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpBoard.tab=b.dataset.b;cmpBoard(true)});cmpBtn(e)}e.style.display='block'}
+function cmpBtn(e){e.querySelectorAll('[data-o]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpOrder(b.dataset.o)});e.querySelectorAll('[data-ds]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpDsNow()})}
 // ---- bouton DS : point de situation à la demande ----
 function cmpDsNow(){const me=CMP.me;if(!me||CMP.kind==='clm'&&me.fin==null&&!CMP.on)return;const rem=CMP.L-me.d,all=[me,...CMP.R].filter(r=>r.fin==null||r===me).sort((a,b)=>b.d-a.d),rk=all.indexOf(me)+1,lead=all[0];
  if(CMP.kind==='clm'){const k=Math.floor(me.d/CMP.cps);return cRadio('Reste <b>'+cKm(rem)+'</b>. Réserve <b>'+cmpWb()+' %</b>. Cible coach : <b>'+(CMP.coach.tg||'…')+' W</b>.')}
@@ -7771,9 +7774,9 @@ function cmpHud(force){const e=$('cmh');if(!e||!CMP.me)return;const now=performa
   l1='🚴 '+(CMP.stageK?'Étape '+(CMP.stageK.i+1)+' · ':'')+rk+'<sup>e</sup> / 30 · reste '+cKm(rem);
   const gp=lead!==me?(lead.d-me.d)/Math.max(me.v,5):0;l2=lead===me?'Tu es en tête !':'Tête de course : '+lead.name+' à '+cGapTxt(gp);}
  const wb=Math.round(100*clamp(me.wbal/me.wp,0,1));
- const ob='<div class="ob">'+(CMP.kind==='race'?[['prot','🛡 Protège-moi'],['roul','🚂 Roulez'],['chas','🎯 Chasse'],['lead','⚡ Sprint'],['free','🆓 Libres']].map(([k,t])=>'<button data-o="'+k+'"'+(CMP.ord===k?' class="on"':'')+'>'+t+'</button>').join(''):'')+'<button data-ds="1">📻 DS</button></div>';
+ const ob='';
  const h='<div class="l1">'+l1+'</div><div class="l2">'+l2+'</div><div class="wb"><i style="width:'+wb+'%"></i></div><small>Réserve '+wb+' %'+(CMP.coach.tg&&CMP.coach.ci!==-1?' · cible coach '+CMP.coach.tg+' W':'')+'</small>'+ob;
- if(h!==e._h){e._h=h;e.innerHTML=h;e.querySelectorAll('[data-o]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpOrder(b.dataset.o)});e.querySelectorAll('[data-ds]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpDsNow()})}cmpBoard(force)}
+ if(h!==e._h){e._h=h;e.innerHTML=h;}cmpBoard(force)}
 function cmpOrder(o,quiet){CMP.ord=o;cmpHud(true);if(quiet)return;cRadio({prot:'Les gars, protégez le leader : on se met devant lui.',roul:'On roule en tête du peloton, allure soutenue.',chas:'On chasse ! Tout le monde en tête, à bloc.',lead:'Train pour le sprint : on emmène le leader.',free:'Chacun pour soi, roulez à votre rythme.'}[o])}
 
 // ---- arrivée et classements ----
