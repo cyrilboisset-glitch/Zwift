@@ -970,7 +970,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 #home:not(.sub) .hero .wsel button{font-size:clamp(12px,2vmin,17px);padding:clamp(7px,1.4vmin,13px) clamp(8px,1.4vmin,14px)}
 #home:not(.sub) .hero .b .cta{font-size:clamp(17px,3.2vmin,26px);padding:clamp(13px,2.6vmin,24px) clamp(14px,2.4vmin,22px)}
 #home:not(.sub) .hero .b .ghost{font-size:clamp(14px,2.4vmin,20px);padding:0 clamp(12px,2.2vmin,22px)}
-#home:not(.sub) .tiles{min-height:0;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:clamp(10px,2vmin,22px)}
+#home:not(.sub) .tiles{min-height:0;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:clamp(10px,2vmin,22px)}
 #home:not(.sub) .tiles .card{min-height:0;justify-content:flex-end;padding:clamp(12px,2.6vmin,28px);border-radius:clamp(16px,2.8vmin,28px);gap:clamp(6px,1.2vmin,12px)}
 #home:not(.sub) .tiles .card .ic{margin-bottom:auto;width:clamp(42px,7.6vmin,68px);height:clamp(42px,7.6vmin,68px);font-size:clamp(22px,4vmin,34px);border-radius:clamp(12px,2.2vmin,20px)}
 #home:not(.sub) .tiles .card b{font-size:clamp(17px,3.3vmin,28px)}
@@ -984,7 +984,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 @media(max-aspect-ratio:1/1){#home:not(.sub) #hh h1{font-size:clamp(20px,3.9vmin,36px)}}
 @media(max-aspect-ratio:1/1) and (max-width:520px){#home:not(.sub) #hh{grid-template-columns:1fr auto}#home:not(.sub) #pchip small{display:none}}
 /* écrans très peu hauts : on garde les règles compactes d'avant, mais l'accueil remplit quand même la largeur */
-@media(max-height:520px){#home:not(.sub) .hm{grid-template-columns:minmax(240px,.9fr) 1.5fr}#home:not(.sub) .tiles .card{flex-direction:row;align-items:center;justify-content:flex-start}#home:not(.sub) .tiles .card .ic{margin:0}#home:not(.sub) #zn{display:none}#home:not(.sub) .hero canvas{min-height:36px}}
+@media(max-height:520px){#home:not(.sub) .hero{overflow-y:auto}#home:not(.sub) .hm{grid-template-columns:minmax(240px,.9fr) 1.5fr}#home:not(.sub) .tiles .card{flex-direction:row;align-items:center;justify-content:flex-start}#home:not(.sub) .tiles .card .ic{margin:0}#home:not(.sub) #zn{display:none}#home:not(.sub) .hero canvas{min-height:36px}}
 /* ---- comptes (« Qui roule ? ») et film d'ouverture (18 nov. 2026) ---- */
 #acc{position:fixed;inset:0;z-index:160;display:none;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 30%,rgba(40,33,22,.94),rgba(10,9,8,.98));color:#f4efe6;font-family:'Space Grotesk',system-ui,sans-serif;opacity:0;transition:opacity .35s;overflow-y:auto;padding:max(16px,env(safe-area-inset-top)) 16px 16px}
 #acc.on{opacity:1}#acc .ab{width:min(1000px,100%);text-align:center;margin:auto}
@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='22/11/2026 · d';const ERRL=[];
+const VCT_VER='22/11/2026 · e';const ERRL=[];
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
  let b=document.getElementById('errb');if(!b&&document.body){b=document.createElement('button');b.id='errb';b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:400;padding:6px 10px;border-radius:10px;border:1px solid #b33;background:#2a0e0e;color:#ffb3b3;font:600 12px system-ui;opacity:.9';
   b.onclick=()=>{const t='VCT '+VCT_VER+'\n'+navigator.userAgent+'\n'+ERRL.map(e=>e.t+' '+e.m).join('\n');try{mod('⚠️ Erreurs relevées<br><small>Fais une capture de cet écran pour Claude.</small><pre style="white-space:pre-wrap;font-size:11px;text-align:left;max-height:50vh;overflow:auto">'+t.replace(/[<&]/g,c=>c==='<'?'&lt;':'&amp;')+'</pre>',[['Copier',()=>{try{navigator.clipboard.writeText(t)}catch(e){}}],['Effacer',()=>{ERRL.length=0;b.remove()}],['Fermer',()=>{}]])}catch(e){alert(t)}};document.body.appendChild(b)}
@@ -5859,7 +5859,7 @@ function showMenu(){const n=SHOWK.filter(([k])=>!SHW(k)).length;
   SHOWK.map(([k,t])=>[(SHW(k)?'✅ ':'⬜ ')+t,()=>{showSet(k,!SHW(k));showMenu()}]).concat([['Tout afficher',()=>{SET.show={};ssave();VEG.lp.set(1e9,0,1e9);showMenu()}],['Fermer',()=>{}]]))}
 // ---- accueil façon applis du commerce : carte « prochaine sortie » (profil coloré, gros bouton) + tuiles colorées + niveau ----
 const HTILES=[['wk','🏋️','S\'entraîner','Séances ERG guidées, créateur, test FTP',1],['vel','🏟️','Vélodrome','Piste UCI 250 m, lumière de rythme',4],['crs','📚','Mes parcours','',2],
- ['roul','🚴','Rouler','Importer, exploration, options',0],['sui','📈','Mon suivi','',3],['reg','⚙️','Réglages','Matériel, Strava, vestiaire, graphismes',5]];
+ ['roul','🚴','Rouler','Importer, exploration, options',0],['sui','📈','Mon suivi','',3],['reg','⚙️','Réglages','Matériel, Strava, vestiaire, graphismes',5],['cmp','🏆','Courses','Contre-la-montre, course, étapes, équipes',1]];
 // ---- page « Qui roule ? » : choix, création, modification et suppression des comptes (après le film d'ouverture) ----
 const ACOL=['#f0cf73','#e9a178','#5cc8ff','#7be08a','#d58cff','#ff6b6b','#ffd23f','#9aa6b2'];
 function accInfo(id){const r={lvl:1,km:0,n:0,last:0,ftp:0,crs:0};
@@ -5996,7 +5996,7 @@ function homeRender(){homeHeader();const sm=$('s-main'),c=CRS.cur,w=weekStats(),
  const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};
  on('hgo',()=>nav('ride'));sm.querySelectorAll('#hwd [data-w]').forEach(b=>b.onclick=()=>worldSet(b.dataset.w));sm.querySelectorAll('#hamb [data-a]').forEach(b=>b.onclick=()=>{spAmbSet(b.dataset.a);homeRender()});on('h3d',c3dOpen);on('hch',crsMenu);on('himp',()=>$('gf').click());on('hgen',genCourseOpen);on('hmap',mrOpen);on('hvel',()=>velStart());on('hcmp',cmpOpen);
  sm.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{const h=b.dataset.h;if(h==='roul'){roulRender();showScr('s-roul')}else if(h==='wk'){listWk();showScr('s-wk')}else if(h==='sui'){suiviRender();showScr('s-sui')}
-  else if(h==='vel')velStart();else if(h==='crs')crsMenu();else{regRender();showScr('s-reg')}});
+  else if(h==='vel')velStart();else if(h==='cmp')cmpOpen();else if(h==='crs')crsMenu();else{regRender();showScr('s-reg')}});
  requestAnimationFrame(()=>{const cv=$('hpf');if(cv){const dp=heroDraw(cv);if(dp&&!c.dp){const e=$('hdp');if(e)e.textContent='⛰️ '+nf(dp)+' m D+'}}})}
 { const mk=(id,title)=>{const s=document.createElement('div');s.id=id;s.className='scr';s.innerHTML='<div class="bar"><button class="back">←</button><b>'+title+'</b></div><div class="scrl"><div class="cards"></div></div>';$('hs').appendChild(s);s.querySelector('.back').onclick=()=>showScr('s-main')};
  mk('s-roul','🚴 Rouler');mk('s-reg','⚙️ Réglages');
