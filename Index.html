@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='22/11/2026 · e';const ERRL=[];
+const VCT_VER='22/11/2026 · f';const ERRL=[];
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
  let b=document.getElementById('errb');if(!b&&document.body){b=document.createElement('button');b.id='errb';b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:400;padding:6px 10px;border-radius:10px;border:1px solid #b33;background:#2a0e0e;color:#ffb3b3;font:600 12px system-ui;opacity:.9';
   b.onclick=()=>{const t='VCT '+VCT_VER+'\n'+navigator.userAgent+'\n'+ERRL.map(e=>e.t+' '+e.m).join('\n');try{mod('⚠️ Erreurs relevées<br><small>Fais une capture de cet écran pour Claude.</small><pre style="white-space:pre-wrap;font-size:11px;text-align:left;max-height:50vh;overflow:auto">'+t.replace(/[<&]/g,c=>c==='<'?'&lt;':'&amp;')+'</pre>',[['Copier',()=>{try{navigator.clipboard.writeText(t)}catch(e){}}],['Effacer',()=>{ERRL.length=0;b.remove()}],['Fermer',()=>{}]])}catch(e){alert(t)}};document.body.appendChild(b)}
@@ -7465,14 +7465,14 @@ function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';
  const lp=COURSE&&COURSE.loop;
  let h='<button class="x" id="cmx">✕</button><h2>🏆 Compétition</h2><small>Coureurs calculés sur ta FTP ('+FTP+' W, '+nf(FTP/Math.max(45,+$('kg').value||75),2)+' W/kg) · 6 équipes de 5 · course dans le monde 🔴 Space Astéroïdes (léger pour la tablette)<br>⏳ '+cmpFatTxt(cmpFatLoad())+'</small>';
  if(S&&!S.over)h+='<h3>Course par étapes en cours</h3><div class="cd on"><b>'+esc(S.name)+'</b>Étape '+(S.i+1)+' / '+S.list.length+' : '+esc(S.list[S.i].name)+'<br>'+cmpGCLine(S)+'<div class="chips" style="margin-top:8px"><button id="cmrs">▶ Rouler l\'étape '+(S.i+1)+'</button><button id="cmgc">📋 Classements</button><button id="cmab">🗑 Abandonner</button></div></div>';
- h+='<h3>Format</h3><div class="cards">'+[['clm','⏱️ Contre-la-montre','Seul contre le chrono. 29 adversaires partis une minute avant chacun. Temps intermédiaires.'],['race','🚴 Course en ligne','Peloton de 30, échappées, attaques dans les côtes, sprint final. Tes 4 coéquipiers roulent pour toi.'],['stage','🗓️ Course par étapes','3 à 5 étapes : classement général au temps, maillots jaune, vert et à pois.']].map(([k,t,d])=>'<button class="cd'+(sel.k===k?' on':'')+'" data-k="'+k+'"><b>'+t+'</b>'+d+'</button>').join('')+'</div>';
+ h+='<h3>Format</h3><div class="cards">'+[['clm','⏱️ Contre-la-montre','Seul contre le chrono. 29 adversaires partis avant toi. Le directeur sportif te donne ton avance ou ton retard tous les kilomètres, et les watts pour les battre.'],['race','🚴 Course en ligne','Peloton de 30, échappées, attaques, sprint final. Le directeur sportif te dit d\'y aller ou non, avec les watts. Tes 4 coéquipiers roulent pour toi.'],['stage','🗓️ Course par étapes','Commence par un contre-la-montre, puis 2 à 4 courses en ligne : classement général au temps, maillots jaune, vert et à pois.']].map(([k,t,d])=>'<button class="cd'+(sel.k===k?' on':'')+'" data-k="'+k+'"><b>'+t+'</b>'+d+'</button>').join('')+'</div>';
  h+='<h3>Niveau des adversaires</h3><div class="chips" id="cmdf">'+[[.95,'Plus faibles (−5 %)'],[1,'Comme toi'],[1.05,'Plus forts (+5 %)']].map(([v,t])=>'<button data-v="'+v+'"'+(sel.diff===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
  if(sel.k!=='stage'){h+='<h3>Parcours</h3>'+(c?'<div class="cd"><b>'+esc(c.name)+'</b>'+nf(c.km,1)+' km · '+nf(c.dp||0)+' m D+'+(lp?' · boucle':'')+'<div class="chips" style="margin-top:8px"><button id="cmch">⇄ Changer de parcours</button></div></div>':'<div class="cd">Aucun parcours : importe un GPX ou crée un parcours (Mes parcours).</div>');
   if(lp&&sel.k==='race')h+='<h3>Nombre de tours</h3><div class="chips" id="cmlp">'+[1,2,3].map(n=>'<button data-v="'+n+'"'+(sel.laps===n?' class="on"':'')+'>'+n+' tour'+(n>1?'s':'')+(c?' ('+nf(c.km*n,0)+' km)':'')+'</button>').join('')+'</div>'}
  else{h+='<h3>Nombre d\'étapes</h3><div class="chips" id="cmns">'+[3,4,5].map(n=>'<button data-v="'+n+'"'+(sel.ns===n?' class="on"':'')+'>'+n+' étapes</button>').join('')+'</div>';
   h+='<h3>Étapes</h3><div class="chips" id="cmsrc"><button data-v="gen"'+(sel.src==='gen'?' class="on"':'')+'>✨ Créées par l\'appli</button><button data-v="mine"'+(sel.src==='mine'?' class="on"':'')+'>📚 Mes parcours</button></div>';
   if(sel.src==='gen')h+='<h3>Longueur des étapes</h3><div class="chips" id="cmln">'+[['c','Courtes (10–26 km)'],['m','Moyennes (15–38 km)'],['l','Longues (24–62 km)']].map(([v,t])=>'<button data-v="'+v+'"'+(sel.len===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div><small>Plat, vallonné, contre-la-montre et montagne. Les parcours créés s\'ajoutent à « Mes parcours » (nom 🏆).</small>';
-  else h+='<div class="lst">'+(CRS.list.length?CRS.list.map(q=>'<label><input type="checkbox" data-id="'+q.id+'"'+(sel.pick.includes(q.id)?' checked':'')+'> '+esc(q.name)+' <small>'+nf(q.km,1)+' km · '+nf(q.dp||0)+' m D+</small></label>').join(''):'<small>Aucun parcours enregistré.</small>')+'</div><small>Coche de 3 à 5 parcours, dans l\'ordre des étapes. Si tu en coches 4 ou plus, le plus court devient un contre-la-montre.</small>'}
+  else h+='<div class="lst">'+(CRS.list.length?CRS.list.map(q=>'<label><input type="checkbox" data-id="'+q.id+'"'+(sel.pick.includes(q.id)?' checked':'')+'> '+esc(q.name)+' <small>'+nf(q.km,1)+' km · '+nf(q.dp||0)+' m D+</small></label>').join(''):'<small>Aucun parcours enregistré.</small>')+'</div><small>Coche de 3 à 5 parcours, dans l\'ordre des étapes. La première étape cochée est un contre-la-montre, les suivantes sont des courses en ligne.</small>'}
  h+='<button class="go" id="cmgo">▶ '+(sel.k==='stage'?(S&&!S.over?'Nouvelle course par étapes':'Créer la course par étapes'):'Prendre le départ')+'</button>';
  e.innerHTML=h;const on=(id,f)=>{const x=$(id);if(x)x.onclick=f};
  on('cmx',()=>e.style.display='none');e.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{sel.k=b.dataset.k;cmpOpen()});
@@ -7488,12 +7488,12 @@ function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';
 function cmpStart(o){if(!COURSE)return say('Choisis d\'abord un parcours.');
  if(!CMP.prev)CMP.prev={w:WORLDK,a:SET.spAmb,crs:o.prevCrs||null};
  if(WORLDK!=='space'){SET.spAmb='ast';worldSwitch('space')}else if(SET.spAmb!=='ast')spAmbSet('ast');
- Object.assign(CMP,{on:true,fsaved:false,kind:o.kind,diff:o.diff||1,seed:o.seed||1,laps:o.laps||1,T:0,fin:false,hold:true,cd:-1,ord:'prot',brk:new Set(),ev:{},evT:0,res:null,ff:null,stageK:o.stageK||null,
+ Object.assign(CMP,{cps:500,on:true,fsaved:false,kind:o.kind,diff:o.diff||1,seed:o.seed||1,laps:o.laps||1,T:0,fin:false,hold:true,cd:-1,ord:'prot',brk:new Set(),ev:{},evT:0,res:null,ff:null,stageK:o.stageK||null,
   coach:{t:-1e9,tg:0,ann:-1e9,over:-1e9,p30:FTP*.6,ci:-1,lastTg:0}});
  nav('ride');goStart();s=0;v=0;
  CMP.Llap=COURSE.edges.reduce((a,[e])=>a+NET.E[e].len,0);CMP.L=CMP.Llap*CMP.laps;
  const R=cmpRoster(CMP.seed,CMP.diff);const kg=Math.max(45,+$('kg').value||75);
- CMP.me={id:-1,team:0,role:'lead',name:'Toi',ftp:FTP,fe:FTP,fk:1,kj0:0,kjr:0,m:kg+8,cda:.32,wp:CWP,wbal:CWP,d:0,pd:0,v:0,lat:1.3,x:0,z:0,tx:0,tz:1,ok:true,alive:true,fin:null,kom:{}};
+ CMP.me={id:-1,team:0,role:'lead',name:'Toi',ftp:FTP,fe:FTP,fk:1,kj0:0,kjr:0,m:kg+8,cda:.32,wp:CWP,wbal:CWP,d:0,pd:0,v:0,lat:1.3,x:0,z:0,tx:0,tz:1,ok:true,alive:true,fin:null,kom:{},cp:[]};
  R.forEach((r,i)=>Object.assign(r,{d:0,v:0,P:0,fe:r.ftp,fk:1,st:'pack',fin:null,lat:CLANES[r.lane],tlat:CLANES[r.lane],x:0,z:0,y:0,tx:0,tz:1,g:0,ok:true,alive:true,kom:{},t0:0,ph:Math.random()*6,jer:null}));
  // grille de départ : 6 rangées derrière la ligne (toi en tête avec tes coéquipiers)
  if(o.kind==='race'){R.forEach((r,i)=>{r.d=-2-Math.floor((i+1)/5)*2.2;r.tlat=r.lat=CLANES[(i+1)%5]})}
@@ -7507,7 +7507,7 @@ function cmpStart(o){if(!COURSE)return say('Choisis d\'abord un parcours.');
   const gcL=Object.entries(S.gc).sort((a,b)=>a[1]-b[1])[0],ptL=Object.entries(S.pts).sort((a,b)=>b[1]-a[1])[0],kmL=Object.entries(S.kom).sort((a,b)=>b[1]-a[1])[0];
   const setJ=(e,c)=>{if(!e)return;const r=R.find(q=>q.id===+e[0]);if(r&&!r.jer)r.jer=c};setJ(gcL,'#ffd400');setJ(ptL,'#22c55e');setJ(kmL,'#f5f5f5')}
  // contre-la-montre : départs toutes les minutes, toi en dernier ; les autres ont déjà roulé (calcul rapide)
- if(o.kind==='clm'){R.forEach((r,i)=>{r.t0=-(R.length-i)*60;r.lat=r.tlat=1.3;const pc=cPacing(0,CMP.L,r.fe*r.form,r.wp,r.m,r.cda,true,r.fe);r.tP=pc.P;r.tEst=pc.t;r.split=[]});
+ if(o.kind==='clm'){R.forEach((r,i)=>{r.t0=-(R.length-i)*60;r.lat=r.tlat=1.3;const pc=cPacing(0,CMP.L,r.fe*r.form,r.wp,r.m,r.cda,true,r.fe);r.tP=pc.P;r.tEst=pc.t;r.split=[];r.cp=[]});
   for(const r of R){let t=r.t0;while(t<0){const dt2=Math.min(1,-t);CMP.T=t+dt2;cmpRider(r,dt2,true);t+=dt2}}CMP.T=0}
  cmpBuildMeshes();if(!CMP.M.G.parent)WORLD.add(CMP.M.G);
  cmpArches();
@@ -7563,6 +7563,7 @@ function cmpRider(r,dt,solo,list,idx,ctx){if(r.fin!=null&&CMP.kind!=='clm'){r.v=
   r.P=P;r.kjr+=P*dt/1000;r.fk=cmpFk(r.kj0+r.kjr);r.fe=r.ftp*r.fk;wbalStep(r,P,r.fe,dt);const d0=r.d;r.d+=r.v*dt;
   if(r.fin==null&&r.d>=CMP.L&&d0<CMP.L)r.fin=CMP.T-(r.d-CMP.L)/Math.max(r.v,.5);
   // temps intermédiaires (contre-la-montre) et sommets (classement de la montagne)
+  if(CMP.kind==='clm'&&r.cp){const k=Math.floor(r.d/CMP.cps),k0=Math.floor(d0/CMP.cps);if(k>k0&&k>=1)r.cp[k-1]=CMP.T-r.t0-(r.d-k*CMP.cps)/Math.max(r.v,.5)}
   if(CMP.kind==='clm'&&r.split)for(let q=1;q<=3;q++){const sd=CMP.L*q/4;if(d0<sd&&r.d>=sd&&r.split[q-1]==null)r.split[q-1]=CMP.T-r.t0-(r.d-sd)/Math.max(r.v,.5)}
   for(const c of CMP.climbs)if(d0<c.d1&&r.d>=c.d1&&r.kom[c.i]==null)r.kom[c.i]=CMP.T}
  r.lat+=clamp(r.tlat-r.lat,-1.1*dt,1.1*dt);
@@ -7597,7 +7598,7 @@ function cmpTick(dt,P,now){const me=CMP.me;if(!me)return;
  CMP.evT+=dt;if(CMP.evT>1){CMP.evT=0;cmpEvents(G,pack,list)}
  cmpCoach(now,P);cmpHud();
  if(me.fin==null&&me.d>=CMP.L){me.fin=CMP.T;cmpFinish()}}
-function cmpUpdateMe(P,dt){const me=CMP.me;me.pd=me.d;me.d=s;if(dt>0&&me.fin==null)for(const c of CMP.climbs)if(me.pd<c.d1&&me.d>=c.d1&&me.kom[c.i]==null)me.kom[c.i]=CMP.T;me.v=v;me.lat=RLAT;me.x=RW.x;me.z=RW.z;me.tx=RW.tx;me.tz=RW.tz;me.P=P;if(dt>0){me.kjr+=P*dt/1000;me.fk=cmpFk(me.kj0+me.kjr);me.fe=FTP*me.fk;wbalStep(me,P,me.fe,dt)}
+function cmpUpdateMe(P,dt){const me=CMP.me;me.pd=me.d;me.d=s;if(dt>0&&CMP.kind==='clm'&&me.fin==null&&me.cp){const k=Math.floor(me.d/CMP.cps),k0=Math.floor(me.pd/CMP.cps);if(k>k0&&k>=1)me.cp[k-1]=CMP.T-(me.d-k*CMP.cps)/Math.max(v,.5)}if(dt>0&&me.fin==null)for(const c of CMP.climbs)if(me.pd<c.d1&&me.d>=c.d1&&me.kom[c.i]==null)me.kom[c.i]=CMP.T;me.v=v;me.lat=RLAT;me.x=RW.x;me.z=RW.z;me.tx=RW.tx;me.tz=RW.tz;me.P=P;if(dt>0){me.kjr+=P*dt/1000;me.fk=cmpFk(me.kj0+me.kjr);me.fe=FTP*me.fk;wbalStep(me,P,me.fe,dt)}
  CMP.coach.p30+=(P-CMP.coach.p30)*Math.min(1,dt/30)}
 function cmpAttacks(dt,G,pack,ctx){if(!pack)return;const rem=CMP.L-pack.front,frac=pack.front/CMP.L,brkN=G.filter(x=>x.front>pack.front+5).reduce((a,g)=>a+g.n,0);
  const cand=pack.R.filter(r=>r!==CMP.me&&r.team!==0&&r.st==='pack'&&r.wbal>.8*r.wp);if(!cand.length)return;const pick=f=>cand.filter(f)[Math.floor(Math.random()*cand.filter(f).length)];
@@ -7612,21 +7613,51 @@ function cmpAttacks(dt,G,pack,ctx){if(!pack)return;const rem=CMP.L-pack.front,fr
  for(const r of CMP.R)if(r.fin==null&&r.st!=='spr'&&CMP.L-r.d<(r.role==='spr'?300:230)&&r.wbal>.15*r.wp&&(ctx.grpOf.get(r)===G[0]||r.st==='brk'))r.st='spr'}
 
 // ---- directeur sportif ----
+
+// ---- directeur sportif (22 nov. 2026, demande de Cyril : « tout ce que fait un DS dans une vraie course ») ----
+const cmpPmax=sec=>{const me=CMP.me;return Math.min(1.7*me.fe,me.fe+Math.max(0,me.wbal)/sec)};
+const cmpWb=()=>Math.round(100*clamp(CMP.me.wbal/CMP.me.wp,0,1));
+// contre-la-montre : temps au point de passage (500 m) de chaque coureur ; avance ou retard, coureur devant et derrière, watts pour battre le meilleur
+function cmpClmDS(k){const me=CMP.me,j=Math.round(k*1000/CMP.cps)-1,myT=me.cp[j]!=null?me.cp[j]:CMP.T,T=CMP.T,d=k*1000;
+ const kn=CMP.R.filter(r=>r.cp&&r.cp[j]!=null).map(r=>({r,t:r.cp[j]})).sort((a,b)=>a.t-b.t);if(!kn.length)return;
+ const rk=kn.filter(x=>x.t<myT).length+1,best=kn[0],ahead=kn.filter(x=>x.t<myT).pop(),behind=kn.find(x=>x.t>myT),sg=x=>cGapTxt(Math.abs(x));
+ let l1='Km '+k+' : <b>'+fmt(myT)+'</b> · '+rk+'<sup>e</sup> sur '+(kn.length+1)+'. ';
+ l1+=myT<best.t?'<b>Tu avances de '+sg(best.t-myT)+'</b> sur le meilleur ('+best.r.name+').':'<b>Retard de '+sg(myT-best.t)+'</b> sur le meilleur ('+best.r.name+').';
+ let l2='';if(ahead&&rk>1)l2+='Devant : '+ahead.r.name+' à '+sg(myT-ahead.t)+' d\'avance. ';if(behind)l2+='Derrière : '+behind.r.name+' à '+sg(behind.t-myT)+' de retard.';
+ const rv=best,r=rv.r,fin=r.fin!=null?r.fin-r.t0:rv.t+cDur(d,CMP.L,r.tP||r.fe*.9,r.m,r.cda,true),budget=fin-T;
+ const pc=cPacing(me.d,CMP.L,me.fe,Math.max(0,me.wbal),me.m,me.cda,true,FTP),Ps=Math.round(pc.P);let l3='';
+ if(budget>5){let lo=.4*me.fe,hi=1.8*me.fe;if(cDur(me.d,CMP.L,hi,me.m,me.cda,true)>budget)l3='Même à fond tu ne battras plus '+r.name+' ('+fmt(fin)+' estimé). Assure ta place : <b>'+Ps+' W</b>.';
+  else{for(let i=0;i<22;i++){const m=(lo+hi)/2;if(cDur(me.d,CMP.L,m,me.m,me.cda,true)>budget)lo=m;else hi=m}const Pn=Math.round(hi);
+   l3=(rk===1?'Pour garder la tête face à '+r.name:'Pour battre '+r.name)+' ('+fmt(fin)+' estimé) : <b>'+Pn+' W</b> jusqu\'à l\'arrivée. Tu peux tenir <b>'+Ps+' W</b> → '+(Pn<=Ps*1.02?'<b>c\'est jouable, vas-y</b>.':Pn<=Ps*1.1?'<b>ça se joue à rien, serre les dents</b>.':'<b>trop dur : vise '+Ps+' W et assure ta place</b>.')}}
+ else l3='Tiens <b>'+Ps+' W</b> jusqu\'à l\'arrivée.';
+ cRadio(l1+'<br>'+(l2?l2+'<br>':'')+l3+' Réserve '+cmpWb()+' %.')}
+// course en ligne : faut-il suivre ? watts à tenir pour suivre ou rejoindre une attaque / une échappée
+function cmpDangerous(att){const me=CMP.me;if(att.length>=3)return true;
+ return att.some(r=>r.role==='lead'||r.fe>=FTP*.98||(r.role==='grim'&&CMP.climbs.some(c=>me.d>c.d0-900&&me.d<c.d1)))}
+function cmpAdvice(att,gapS,sec){const me=CMP.me,g=cGrade(me.d+30),pk=(CMP.R.find(r=>r.st==='pack')||me),vp=Math.max(5,Math.min(20,pk.v||me.v)),mates=att.filter(r=>r.team===0);
+ const need=Math.round(powFor(vp+Math.max(.5,gapS*vp/sec),g,me.m,me.cda,0)),pm=Math.round(cmpPmax(sec)),ok=need<=pm*.97&&me.wbal>.35*me.wp,dg=cmpDangerous(att);
+ if(mates.length)return 'Un des nôtres ('+mates[0].name+') est devant : <b>ne roule pas</b>, reste dans les roues et laisse les autres rouler. Garde tes jambes.';
+ if(dg&&ok)return '<b>Vas-y, saute dans la roue !</b> Il te faut <b>'+need+' W</b> pendant '+Math.round(sec)+' s (tu peux '+pm+' W), réserve '+cmpWb()+' %.';
+ if(dg)return '<b>Ne pars pas seul</b> : il te faudrait '+need+' W pendant '+Math.round(sec)+' s, tu n\'as que '+pm+' W (réserve '+cmpWb()+' %). Reste dans le peloton'+(CMP.ord==='chas'?'.':' ; touche « 🎯 Chasse » pour que tes coéquipiers fassent le travail.');
+ return 'Pas dangereux : <b>laisse-le partir</b>, ne gaspille pas ta réserve ('+cmpWb()+' %). Suis le peloton à environ <b>'+Math.round(powFor(vp,g,me.m,me.cda,RDRAFT||.15))+' W</b>.'}
 function cmpEvents(G,pack,list){const me=CMP.me,E=CMP.ev,T=CMP.T,rem=CMP.L-me.d,crossed=x=>(E.lr==null?CMP.L:E.lr)>=x&&rem<x;
- if(CMP.kind==='clm'){// temps intermédiaires
-  for(let q=1;q<=3;q++){const sd=CMP.L*q/4;if(me.d>=sd&&!E['sp'+q]){E['sp'+q]=1;const myT=T,done=CMP.R.filter(r=>r.split[q-1]!=null).map(r=>r.split[q-1]),best=Math.min(...done,1e9),rk=done.filter(x=>x<myT).length+1;
-   cRadio('Temps intermédiaire '+q+' : <b>'+fmt(myT)+'</b>, '+rk+'<sup>e</sup>'+(best<1e9?(myT<=best?' · meilleur temps ! ':' à '+cGapTxt(myT-best)+' du meilleur'):'')+'. '+(q<3?'Continue comme ça.':'Dernier quart : vide-toi !'))}}
+ if(CMP.kind==='clm'){// directeur sportif : avance / retard à chaque kilomètre, avec les watts pour battre le meilleur
+  {const k=Math.floor(me.d/1000);if(k>=1&&!E['d'+k]&&rem>300){E['d'+k]=1;cmpClmDS(k)}}
   const mm=CMP.R[CMP.R.length-1];if(mm&&mm.fin==null&&!E.mm&&T>90){E.mm=1;const gp=(mm.d-me.d)/Math.max(me.v,5);if(gp>0)cRadio('Ton coureur à une minute, '+mm.name+', est à '+cGapTxt(gp)+' devant toi.')}
   if(rem<1000&&!E.km1){E.km1=1;cRadio('Dernier kilomètre ! Tout ce qui reste, maintenant.')}return}
  if(!pack||T<60||me.d<400)return;
+ for(const r of pack.R){if(r.st==='att'&&!r.anc&&r!==me){r.anc=1;if(T-(E.attT||-1e9)>25&&!CMP.brk.size){E.attT=T;cRadio('<b>Attaque de '+r.name+'</b> ('+cTeamName(r.team)+') ! '+cmpAdvice([r],3,45))}}else if(r.st!=='att')r.anc=0}
  const brkG=G.filter(x=>x.front>pack.front+5),brkR=brkG.flatMap(g=>g.R).filter(r=>r!==me),meIn=brkG.some(g=>g.R.includes(me)),meDrop=G.indexOf(pack)<G.findIndex(g=>g.R.includes(me))&&!meIn;
  const ids=new Set(brkR.map(r=>r.id)),gapS=brkG.length?(brkG[0].front-pack.front)/Math.max(pack.R[0].v,5):0;
  const names=a=>a.slice(0,4).map(r=>r.name+' ('+cTeamName(r.team)+')').join(', ')+(a.length>4?' et '+(a.length-4)+' autres':'');
- if(ids.size&&![...ids].every(i=>CMP.brk.has(i))&&gapS>4){cRadio('Attaque ! '+(brkR.length>1?'Échappée de '+brkR.length+' : ':'')+names(brkR)+'. '+cGapTxt(gapS)+' d\'avance.'+(meIn?'':' On ne panique pas, on contrôle.'));E.gT=T;E.gD=me.d}
- else if(ids.size&&(T-(E.gT||0)>150||me.d-(E.gD||0)>4000)&&!meIn){E.gT=T;E.gD=me.d;const ch=pack.R[0];cRadio('L\'échappée ('+brkR.length+') a <b>'+cGapTxt(gapS)+'</b>. Il reste '+cKm(rem)+'.'+(ch&&ch!==me?' Les '+cTeamName(ch.team)+' roulent en tête du peloton.':''))}
+ if(ids.size&&![...ids].every(i=>CMP.brk.has(i))&&gapS>4&&(!CMP.brk.size||T-(E.gT||-1e9)>40)){cRadio('Échappée'+(brkR.length>1?' de '+brkR.length:'')+' : '+names(brkR)+', <b>'+cGapTxt(gapS)+'</b> d\'avance. '+(meIn?'':cmpAdvice(brkR,gapS,120)));E.gT=T;E.gD=me.d;E.gap0=gapS}
+ else if(ids.size&&(T-(E.gT||0)>75||me.d-(E.gD||0)>2500)&&!meIn){E.gT=T;E.gD=me.d;const ch=pack.R[0],tr=gapS-(E.gap0==null?gapS:E.gap0),tt=Math.abs(tr)<4?'stable':tr>0?'<b>elle prend du temps</b> (+'+Math.round(tr)+' s)':'<b>on revient</b> ('+Math.round(tr)+' s)';E.gap0=gapS;
+  cRadio('Écart avec l\'échappée ('+brkR.length+') : <b>'+cGapTxt(gapS)+'</b>, '+tt+'. Il reste '+cKm(rem)+'.'+(ch&&ch!==me?' Les '+cTeamName(ch.team)+' roulent en tête.':'')+' '+cmpAdvice(brkR,gapS,Math.max(60,Math.min(240,gapS*3))))}
  if(CMP.brk.size&&!ids.size&&!meIn)cRadio('L\'échappée est reprise. Tout le monde ensemble.');
  CMP.brk=ids;
- if(meIn&&!E.meIn){E.meIn=1;const ga=(me.d-pack.front)/Math.max(me.v,5);cRadio('Tu es échappé'+(brkR.length?' avec '+names(brkR):'')+' ! '+cGapTxt(ga)+' d\'avance. Prends des relais réguliers.')}
+ if(meIn&&!E.meIn){E.meIn=1;E.inT=T;E.gap1=null;const ga=(me.d-pack.front)/Math.max(me.v,5);cRadio('Tu es échappé'+(brkR.length?' avec '+names(brkR):'')+' ! '+cGapTxt(ga)+' d\'avance. Prends des relais réguliers.')}
+ if(meIn&&E.meIn&&T-(E.inT||0)>70){E.inT=T;const ga=(me.d-pack.front)/Math.max(me.v,5),g2=cGrade(me.d+30),vh=Math.max(6,pack.R[0].v+.5),ph=Math.round(powFor(vh,g2,me.m,me.cda,brkR.length?.2:0)),tr=ga-(E.gap1==null?ga:E.gap1);E.gap1=ga;
+  cRadio('Tu as <b>'+cGapTxt(ga)+'</b> d\'avance sur le peloton ('+(Math.abs(tr)<3?'stable':tr>0?'ça augmente':'<b>ça baisse</b>')+'). '+(me.wbal<.25*me.wp?'<b>Tu craques</b> : laisse les autres relayer, roule à '+Math.round(me.fe*.85)+' W.':'Tiens <b>'+ph+' W</b> pour garder l\'écart, relais réguliers. Réserve '+cmpWb()+' %.')+(rem<8000?' Plus que '+cKm(rem)+' : garde un peu pour le sprint.':''))}
  if(!meIn)E.meIn=0;
  if(meDrop&&T-(E.dropT||-1e9)>60){E.dropT=T;const gb=(pack.tail-me.d)/Math.max(me.v,5);cRadio('Tu es lâché à '+cGapTxt(gb)+' du peloton. '+(CMP.ord!=='free'?'Tes coéquipiers t\'attendent : prends leurs roues.':'Accroche-toi !'));if(CMP.ord!=='free')cmpOrder('prot',true)}
  // montées
@@ -7712,8 +7743,8 @@ function cmpSave(S){try{localStorage.v3comp=JSON.stringify(S)}catch(e){say('Stoc
 function cmpGCLine(S){const L=Object.entries(S.gc||{}).sort((a,b)=>a[1]-b[1]);if(!L.length)return 'Classement général : à venir';const k=L.findIndex(x=>x[0]=='-1');return 'Général : tu es <b>'+(k+1)+'<sup>e</sup></b>'+(k>0?' à '+fmtH(L[k][1]-L[0][1]):' · maillot jaune 💛')}
 function cmpStageNew(sel){let list=[];
  if(sel.src==='mine'){const ids=sel.pick.filter(id=>CRS.list.some(q=>q.id===id));if(ids.length<3||ids.length>5)return say('Coche de 3 à 5 parcours.');
-  list=ids.map(id=>{const q=CRS.list.find(c=>c.id===id);return{id,name:q.name,kind:'race',km:q.km}});if(list.length>=4){const sh=list.slice().sort((a,b)=>a.km-b.km)[0];sh.kind='clm'}}
- else{const len={c:1,m:1.45,l:2.4}[sel.len]||1.45,plan=[['Plat',22,.004,true,'race'],['Vallonnée',24,.022,true,'race'],['Contre-la-montre',10,.006,true,'clm'],['Montagne',22,.05,false,'race'],['Vallonnée',26,.02,true,'race']].slice(0,sel.ns);
+  list=ids.map(id=>{const q=CRS.list.find(c=>c.id===id);return{id,name:q.name,kind:'race',km:q.km}});list[0].kind='clm'}
+ else{const len={c:1,m:1.45,l:2.4}[sel.len]||1.45,plan=[['Contre-la-montre',10,.006,true,'clm'],['Plat',22,.004,true,'race'],['Vallonnée',24,.022,true,'race'],['Montagne',22,.05,false,'race'],['Vallonnée',26,.02,true,'race']].slice(0,sel.ns);
   const base=CRS.list.length;for(let i=0;i<plan.length;i++){const[t,km,r,loop,kind]=plan[i],k2=Math.round(km*len);let g=null;try{g=crsGenerate({name:'🏆 Étape '+(i+1)+' · '+t,km:k2,dp:Math.round(k2*1000*r),loop,seed:(Date.now()%90000)+i*131+7})}catch(e){console.warn(e)}
    if(!g||!g.c)return say('Création des étapes impossible.');CRS.list.push(g.c);list.push({id:g.c.id,name:g.c.name,kind,km:g.c.km})}
   try{localStorage.v3crs=JSON.stringify(CRS.list)}catch(e){CRS.list.splice(base);return say('Stockage plein : supprime des parcours dans « Mes parcours ».')}}
