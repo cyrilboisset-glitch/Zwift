@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='24/11/2026 · c';const ERRL=[];
+const VCT_VER='24/11/2026 · d';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7486,11 +7486,14 @@ function dsBed(on){try{if(!DSV.on||!AC||AC.state!=='running'||MUTE){return}
 function dsSpeak(txt,co){try{if(!self.speechSynthesis)return;speechSynthesis.cancel();clearInterval(dsSpeak.iv);dsBed(false);const ds=!co,T0=DST[DSV.tone]||DST.s,fv=dsVoice(),urg=DSURG.test(dsClean(txt));
   if(!ds){const u=new SpeechSynthesisUtterance(dsClean(txt));u.lang='fr-FR';u.rate=1.06;if(fv)u.voice=fv;speechSynthesis.speak(u);return}
   const segs=dsSegs(txt);if(!segs.length)return;dsFx('open');
-  const start=()=>{dsBed(true);clearInterval(dsSpeak.iv);dsSpeak.iv=setInterval(()=>{if(Math.random()<.75)dsFx('crack')},210)},end=()=>{clearInterval(dsSpeak.iv);dsBed(false);dsFx('close')};
+  const tok=DSV.tk=(DSV.tk||0)+1,t0=performance.now(),maxMs=Math.min(22000,2500+segs.reduce((n,g)=>n+g.t.length,0)*95/T0.r);let done=0;
+  // fin garantie : l'événement « fin de parole » n'arrive pas toujours sur Android, donc minuteur de sécurité + test « la voix parle-t-elle encore ? »
+  const end=()=>{if(done||DSV.tk!==tok)return;done=1;clearInterval(dsSpeak.iv);dsBed(false);dsFx('close')};
+  dsBed(true);dsSpeak.iv=setInterval(()=>{const el=performance.now()-t0;if(DSV.tk!==tok){clearInterval(dsSpeak.iv);return}if(el>maxMs||(el>2200&&!speechSynthesis.speaking&&!speechSynthesis.pending)){end();return}if(Math.random()<.75)dsFx('crack')},210);
   segs.forEach((g,i)=>{const u=new SpeechSynthesisUtterance(g.t);u.lang='fr-FR';let p=T0.p,r=T0.r;const last=/[.!?:;]$/.test(g.t)?g.t.slice(-1):'';
    if(g.em){p*=1.1;r*=.93}if(last==='!'){p*=1.1;r*=1.07}if(last==='?')p*=1.15;if(last===':')r*=.96;if(urg){p*=1.04;r*=1.06}if(i===segs.length-1&&last!=='!'){p*=.93;r*=.97}
    u.pitch=clamp(p,.1,2);u.rate=clamp(r,.5,2);u.volume=1;if(fv)u.voice=fv;
-   if(i===0)u.onstart=start;if(i===segs.length-1){u.onend=end}u.onerror=end;
+   if(i===segs.length-1)u.onend=end;u.onerror=end;
    setTimeout(()=>speechSynthesis.speak(u),i===0?230:0)})}catch(e){}}
 try{if(self.speechSynthesis)speechSynthesis.onvoiceschanged=()=>{const e=$('cmp');if(e&&e.style.display==='block'&&e.querySelector('#cmvc'))cmpVoiceUI(e)}}catch(x){}
 function cmpVoiceUI(e){const vs=dsVoices();const box=e.querySelector('#cmvc');if(!box)return;
