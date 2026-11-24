@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='24/11/2026 · d';const ERRL=[];
+const VCT_VER='24/11/2026 · e';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7469,7 +7469,8 @@ function dsFx(kind){if(!DSV.on||!AC||AC.state!=='running'||MUTE)return;try{const
  else if(kind==='close'){dsBeep(t,980,.07);g.gain.setValueAtTime(.0001,t+.08);g.gain.exponentialRampToValueAtTime(.17,t+.1);g.gain.exponentialRampToValueAtTime(.0001,t+.34);s0.start(t+.08,Math.random(),.3)}
  else{g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.04+Math.random()*.07,t+.004);g.gain.exponentialRampToValueAtTime(.0001,t+.03+Math.random()*.07);s0.start(t,Math.random(),.12)}}catch(e){}}
 const DSBAD=/female|femme|amélie|amelie|marie|julie|hortense|audrey|léa|denise|eloise|céline|celine|sylvie|brigitte|chantal/i;
-function dsVoices(){return self.speechSynthesis?speechSynthesis.getVoices().filter(x=>/^fr/i.test(x.lang)):[]}
+function dsAllVoices(){try{return self.speechSynthesis?speechSynthesis.getVoices():[]}catch(e){return[]}}
+function dsVoices(){return dsAllVoices().filter(x=>/^fr|^fra/i.test(x.lang)||/fran|french|\bfr[-_]/i.test(x.name))}
 function dsVoice(){const vs=dsVoices();if(DSV.name){const v=vs.find(x=>x.name===DSV.name);if(v)return v}
  return vs.find(x=>/fr-FR/i.test(x.lang)&&!DSBAD.test(x.name)&&/thomas|henri|paul|nicolas|jean|antoine|male|homme|-frb|-frc|-fra/i.test(x.name))||vs.find(x=>/fr-FR/i.test(x.lang)&&!DSBAD.test(x.name))||frVoice()}
 function dsClean(txt){return txt.replace(/<sup>e<\/sup>/g,'ème').replace(/<[^>]+>/g,'').replace(/(\d+)\s*W\/kg/g,'$1 watts par kilo').replace(/(\d+)\s*W\b/g,'$1 watts').replace(/(\d+)\s*s\b/g,(m,n)=>n+(+n>1?' secondes':' seconde')).replace(/\bW'bal\b/g,'réserve').replace(/(\d+)\s*kJ\b/g,'$1 kilojoules').replace(/\b1ème\b/g,'première').replace(/(\d+)\s*%/g,'$1 pour cent').replace(/\bG(\d+)\b/g,'$1ème au général')}
@@ -7496,12 +7497,17 @@ function dsSpeak(txt,co){try{if(!self.speechSynthesis)return;speechSynthesis.can
    if(i===segs.length-1)u.onend=end;u.onerror=end;
    setTimeout(()=>speechSynthesis.speak(u),i===0?230:0)})}catch(e){}}
 try{if(self.speechSynthesis)speechSynthesis.onvoiceschanged=()=>{const e=$('cmp');if(e&&e.style.display==='block'&&e.querySelector('#cmvc'))cmpVoiceUI(e)}}catch(x){}
-function cmpVoiceUI(e){const vs=dsVoices();const box=e.querySelector('#cmvc');if(!box)return;
- box.innerHTML='<button data-v=""'+(!DSV.name?' class="on"':'')+'>Auto (voix grave)</button>'+vs.slice(0,8).map(v=>'<button data-v="'+esc(v.name)+'"'+(DSV.name===v.name?' class="on"':'')+'>'+esc(v.name.replace(/Google |français|French/gi,'').trim()||v.name)+'</button>').join('')+Object.entries(DST).map(([k,v])=>'<button data-tn="'+k+'"'+(DSV.tone===k?' class="on"':'')+'>Ton '+v.t.toLowerCase()+'</button>').join('')+'<button data-fx="1"'+(DSV.on?' class="on"':'')+'>📻 Crépitements '+(DSV.on?'oui':'non')+'</button><button data-t="1">▶ Tester</button>'+(vs.length?'':'<small>Aucune voix française trouvée sur cette tablette.</small>');
+function cmpVoiceUI(e){const vs=dsVoices(),all=dsAllVoices();const box=e.querySelector('#cmvc');if(!box)return;
+ const lab=v=>esc(v.name.replace(/Google |français|French/gi,'').trim()||v.name)+(v.localService===false?' ☁':'');
+ box.innerHTML='<button data-v=""'+(!DSV.name?' class="on"':'')+'>Auto (voix grave)</button>'+vs.map(v=>'<button data-v="'+esc(v.name)+'"'+(DSV.name===v.name?' class="on"':'')+'>'+lab(v)+'</button>').join('')+Object.entries(DST).map(([k,v])=>'<button data-tn="'+k+'"'+(DSV.tone===k?' class="on"':'')+'>Ton '+v.t.toLowerCase()+'</button>').join('')+'<button data-fx="1"'+(DSV.on?' class="on"':'')+'>📻 Crépitements '+(DSV.on?'oui':'non')+'</button><button data-t="1">▶ Tester</button><button data-rf="1">🔄 Actualiser les voix</button><button data-cp="1">📋 Copier la liste</button>'+
+  '<small style="display:block;width:100%;margin-top:4px">'+(vs.length?vs.length+' voix française'+(vs.length>1?'s':'')+' trouvée'+(vs.length>1?'s':'')+' (sur '+all.length+' au total)':'Aucune voix française trouvée (sur '+all.length+' au total)')+'. ☁ = voix en ligne. Pour une voix plus naturelle : installe un moteur de synthèse vocale (ex. SherpaTTS) et choisis-le comme moteur par défaut dans les réglages Android, puis touche « Actualiser ».</small>';
  box.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{DSV.name=b.dataset.v;try{localStorage.v3dsv=DSV.name}catch(x){}cmpVoiceUI(e);dsSpeak('Directeur sportif à coureur. Tu me reçois ? Allez, on est dans le final, tiens la roue.')});
  box.querySelectorAll('[data-tn]').forEach(b=>b.onclick=()=>{DSV.tone=b.dataset.tn;try{localStorage.v3dst=DSV.tone}catch(x){}cmpVoiceUI(e);dsSpeak('<b>Allez, allez, allez !</b> Saute dans la roue, <b>cent quatre-vingts watts</b>, tiens bon, on y est presque !')});
  box.querySelectorAll('[data-fx]').forEach(b=>b.onclick=()=>{DSV.on=!DSV.on;try{localStorage.v3dsfx=DSV.on?'1':'0'}catch(x){}cmpVoiceUI(e)});
- box.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>dsSpeak('Directeur sportif à coureur. Échappée à trente secondes, saute dans la roue, cent quatre-vingts watts, allez, allez !'))}
+ box.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>dsSpeak('Directeur sportif à coureur. Échappée à trente secondes, saute dans la roue, cent quatre-vingts watts, allez, allez !'));
+ box.querySelectorAll('[data-rf]').forEach(b=>b.onclick=()=>{try{speechSynthesis.cancel();speechSynthesis.getVoices()}catch(x){}setTimeout(()=>cmpVoiceUI(e),400)});
+ box.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{const t=all.map(v=>v.name+' | '+v.lang+' | '+(v.localService?'local':'en ligne')).join('\n')||'(aucune voix)';try{navigator.clipboard.writeText(t);say('Liste des voix copiée.')}catch(x){mod('<small style="white-space:pre-wrap">'+esc(t)+'</small>',[['Fermer',()=>{}]])}})}
+
 function cRadio(txt,co){const e=cEl('cmr');e.className=co?'co':'';e.innerHTML=(co?'<b>🎧 Coach</b> · ':'<b>📻 Directeur sportif</b> · ')+txt;e.style.display='block';clearTimeout(cRadio.t);cRadio.t=setTimeout(()=>e.style.display='none',co?7000:9000);
  if(SET.voice)dsSpeak(txt,co)}
 const cGapTxt=s=>{s=Math.max(0,Math.round(s));return s<60?s+' s':Math.floor(s/60)+' min '+String(s%60).padStart(2,'0')};
