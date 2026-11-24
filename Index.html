@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='24/11/2026 · k';const ERRL=[];
+const VCT_VER='24/11/2026 · l';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -6012,7 +6012,7 @@ function homeRender(){homeHeader();const sm=$('s-main'),c=CRS.cur,w=weekStats(),
  // les écrans Matériel, Garage et Vestiaire reviennent maintenant aux Réglages
  document.querySelector('#s-hw .back').dataset.b='s-reg';for(const id of['s-gar','s-kit'])document.querySelector('#'+id+' .back').onclick=()=>{regRender();showScr('s-reg')}}
 // ====================== préférences, commentateur vocal, écrans de résultat, célébrations, musique, météo, moment de la journée ======================
-const SET=Object.assign({corner:1,brk:0,world:'real',arch:'neon',wkRel:1,spAmb:'neb',sprLen:150,sprGap:5,snap:1,profAll:0,voice:1,coach:1,mus:0,musV:.5,natV:1,tod:'real',fcmax:185,rkg:0,
+const SET=Object.assign({corner:1,cornerFlat:2,brk:1,world:'real',arch:'neon',wkRel:1,spAmb:'neb',sprLen:150,sprGap:5,snap:1,profAll:0,voice:1,coach:1,mus:0,musV:.5,natV:1,tod:'real',fcmax:185,rkg:0,
  hud:['spd','pw','cad','grd','hr','dist','avg','rest','alt','dp','time','kcal','zone'],hudBig:0},(()=>{try{return JSON.parse(localStorage.v3set||'{}')}catch(e){return{}}})());
 const ssave=()=>{try{localStorage.v3set=JSON.stringify(SET)}catch(e){}};
 // HUD enregistré avant l'ajout de la vitesse moyenne, du D+ et de la jauge des zones : on les ajoute une fois
@@ -6455,7 +6455,7 @@ function prefRender(){const ch=(key,L)=>'<div class="chips" data-p="'+key+'">'+L
  $('pfb').innerHTML='<div class="gq">Sprints aux pancartes : longueur</div>'+ch('sprLen',[100,150,200,250,300,400,500].map(x=>[x,x+' m']))+
   '<div class="gq">Import des GPX : recaler le tracé sur les vraies routes</div>'+ch('snap',[[1,'Oui'],[0,'Non']])+
   '<div class="gq">Arches de sprint et de côte</div>'+ch('arch',[['neon','✨ Néon'],['led','Classiques (LED)']])+'<div class="gq">Sprints : écart minimal entre deux sprints</div>'+ch('sprGap',[[-1,'Aucun sprint'],[0,'Tous les villages'],[2,'2 km'],[5,'5 km'],[10,'10 km'],[20,'20 km'],[40,'40 km']])+
-  '<div class="gq">Commentateur vocal</div>'+ch('voice',[[1,'🔊 Activé'],[0,'Coupé']])+'<div class="gq">Coach pendant les séances</div>'+ch('coach',[[1,'Activé'],[0,'Coupé']])+'<div class="gq">Séances sur un parcours : vitesse à l\'écran</div>'+ch('wkRel',[[1,'Relief adouci (conseillé)'],[2,'Relief réel'],[0,'Comme sur le plat']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">En ERG la puissance est imposée : avec le relief réel, une montée à 10–15 % fait tomber la vitesse sous 5 km/h. Adouci : pente des montées divisée par 3 et au moins 12 km/h quand tu pédales.</div>'+'<div class="gq">Virages : vitesse adaptée et trajectoires</div>'+ch('corner',[[1,'Oui (conseillé)'],[0,'Non']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">Oui : tu ralentis avant les virages serrés (en descente surtout) et ton avatar prend la corde dans sa voie.</div><div class="gq">Home trainer : freiner la roue avant les virages</div>'+ch('brk',[[0,'Désactivé'],[1,'Doux (+8 % max)'],[2,'Fort (+12 % max)']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">Pendant que l\'avatar ralentit avant un virage, une pente positive est envoyée au home trainer pour freiner la roue libre, puis la vraie pente revient. Commence par « Doux » ; ne pas pédaler pendant le freinage.</div>'+'<button id="pvt">▶ Tester la voix</button>'+
+  '<div class="gq">Commentateur vocal</div>'+ch('voice',[[1,'🔊 Activé'],[0,'Coupé']])+'<div class="gq">Coach pendant les séances</div>'+ch('coach',[[1,'Activé'],[0,'Coupé']])+'<div class="gq">Séances sur un parcours : vitesse à l\'écran</div>'+ch('wkRel',[[1,'Relief adouci (conseillé)'],[2,'Relief réel'],[0,'Comme sur le plat']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">En ERG la puissance est imposée : avec le relief réel, une montée à 10–15 % fait tomber la vitesse sous 5 km/h. Adouci : pente des montées divisée par 3 et au moins 12 km/h quand tu pédales.</div>'+'<div class="gq">Virages : vitesse adaptée et trajectoires</div>'+ch('corner',[[1,'Oui (conseillé)'],[0,'Non']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">Oui : tu ralentis avant les virages serrés (en descente surtout) et ton avatar prend la corde dans sa voie.</div><div class="gq">Virages sur le plat : ralentir si on arrive trop vite (toi et les adversaires)</div>'+ch('cornerFlat',[[0,'Désactivé'],[1,'Doux'],[2,'Normal'],[3,'Sévère']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">Comme en descente : l\'appli juge si la vitesse est trop élevée pour le virage, ton avatar se met en roue libre et la vitesse baisse avant l\'entrée ; le frein est relâché aux deux tiers du virage, il faut relancer.</div><div class="gq">Home trainer : freiner la roue avant les virages</div>'+ch('brk',[[0,'Désactivé'],[1,'Doux (+8 % max)'],[2,'Fort (+12 % max)']])+'<div style="font-size:12px;color:var(--mut);margin:-2px 0 8px">Pendant que l\'avatar ralentit avant un virage, une pente positive est envoyée au home trainer pour freiner la roue libre, puis la vraie pente revient. Commence par « Doux » ; ne pas pédaler pendant le freinage.</div>'+'<button id="pvt">▶ Tester la voix</button>'+
   '<div class="gq">Musique d\'ambiance</div>'+ch('mus',[[0,'Aucune'],[1,'Calme'],[2,'Motivation'],[3,'Adaptée à l\'effort']])+'<label>Volume musique <input id="pmv" type="range" min="0" max="1" step=".05" value="'+SET.musV+'"></label>'+
   '<label>Sons de la nature <input id="pnv" type="range" min="0" max="1.5" step=".05" value="'+SET.natV+'"></label>'+
   '<div class="gq">Moment de la journée</div>'+ch('tod',TODS)+
@@ -7397,7 +7397,15 @@ function steadyV(P,g,m,cda){const a=Math.atan(g),A=m*9.81*(Math.sin(a)+.004*Math
  for(let k=0;k<14;k++){const f=K*v*v*v+A*v-Pe,df=3*K*v*v+A;if(df<=1e-6){v+=2;continue}const nv=v-f/df;v=nv>.3?nv:v*.5}return clamp(v,1,20)}
 function powFor(v,g,m,cda,red){const a=Math.atan(g);return Math.max(0,(m*9.81*(Math.sin(a)+.004*Math.cos(a))+.6*cda*(1-(red||0))*v*Math.abs(v))*v/.975)}
 // pente du parcours tous les 50 m (un tour)
-function cmpProfile(){const n=Math.max(2,Math.ceil(CMP.Llap/50)),gp=new Float32Array(n),o={};for(let i=0;i<n;i++){cpPos(i*50+25,o);gp[i]=clamp(o.g||0,-.2,.2)}CMP.gp=gp}
+function cmpProfile(){const n=Math.max(2,Math.ceil(CMP.Llap/50)),gp=new Float32Array(n),o={};for(let i=0;i<n;i++){cpPos(i*50+25,o);gp[i]=clamp(o.g||0,-.2,.2)}CMP.gp=gp;
+ const n2=Math.max(2,Math.ceil(CMP.Llap/20)),cv=new Float32Array(n2);for(let i=0;i<n2;i++){cpPos(i*20+10,o);cv[i]=Math.abs(o.da||0)}CMP.cv=cv}
+// vitesse tenable devant un coureur : même règle que pour toi (limite d'après la courbure à venir, freinage 3,2 m/s², relâchement aux deux tiers du virage)
+function cmpVmax(r){const cv=CMP.cv,k0=SET.cornerFlat|0;if(!cv||!k0||SET.corner===0)return 99;const n=cv.length,Ll=CMP.Llap,loop=CMP.laps>1||COURSE.loop,b=3.2,v=r.v,
+  a=[4.6,6,4.6,3.6][k0]*(.95+.1*((r.id*37)%10)/10),d0=loop?((r.d%Ll)+Ll)%Ll:Math.min(Math.max(0,r.d),Ll),idx=Math.floor(d0/20),look=Math.min(40,Math.ceil((v*v/(2*b)+40)/20));
+ const kA=j=>{if(loop)j=((j%n)+n)%n;else if(j<0||j>=n)return 0;return cv[j]};let vm=99;
+ for(let k=0;k<=look;k++){const kap=kA(idx+k);if(kap<.004)continue;let s0=k,e0=k;while(s0>-12&&kA(idx+s0-1)>=.004)s0--;while(e0<look+12&&kA(idx+e0+1)>=.004)e0++;
+  if((0-s0)/Math.max(1,e0-s0+1)>.667)continue;const vc=Math.max(5,Math.sqrt(a/kap)),dd=Math.max(0,k*20-5),va=Math.sqrt(vc*vc+2*b*dd);if(va<vm)vm=va}
+ return vm}
 const cGrade=d=>{const gp=CMP.gp;if(!gp)return 0;const n=gp.length;let i=Math.floor(d/50);i=COURSE.loop||CMP.laps>1?((i%n)+n)%n:clamp(i,0,n-1);return gp[i]}
 // durée pour aller de d0 à d1 à la puissance P (descentes : moins de watts, vitesse plafonnée)
 function cDur(d0,d1,P,m,cda,tt){let t=0;for(let d=d0;d<d1;d+=50){const g=cGrade(d),k=tt?(g>.03?1.06:g<-.03?.55:1):(g<-.03?.5:1);t+=Math.min(50,d1-d)/steadyV(P*k,g,m,cda)}return t}
@@ -7677,8 +7685,9 @@ function cmpRider(r,dt,solo,list,idx,ctx){if(r.fin!=null&&CMP.kind!=='clm'){r.v=
    else if(r.d<ctx.packTail&&r.wbal>.35*r.wp&&ctx.packTail-r.d<70){P=Math.min(cap,1.1*fe)}// on revient
    else P=Math.min(cap,fe*(r.d>ctx.packFront?.9:.8))}
   if(!r.st||r.st==='drop')r.st='pack'}
+ const vmx=dt>0?cmpVmax(r):99;if(r.v>vmx)P=0;// virage trop rapide : roue libre, puis freinage avant l'entrée
  if(dt>0){const a=Math.atan(g),cda=r.cda*(1-red),F=.975*P*(1+(g>.02?red*clamp((g-.02)/.04,0,1)*.45:0))/Math.max(r.v,1.2)-r.m*9.81*Math.sin(a)-.004*r.m*9.81*Math.cos(a)-.6*cda*r.v*r.v;
-  r.v=clamp(r.v+F/(r.m+1.5)*dt,0,24);if(r.tr===1&&r.ti===0&&CMP.ord==='train'&&r.d>CMP.me.d+1.8*(CMP.trN||1)+3&&r.v>CMP.me.v)r.v=Math.max(CMP.me.v,r.v-3*dt);if(r.da){const vc=Math.sqrt(9.81*.42/Math.max(Math.abs(r.da),1e-4));if(r.v>vc)r.v+=(vc-r.v)*Math.min(1,dt*1.5)}
+  r.v=clamp(r.v+F/(r.m+1.5)*dt,0,24);if(r.tr===1&&r.ti===0&&CMP.ord==='train'&&r.d>CMP.me.d+1.8*(CMP.trN||1)+3&&r.v>CMP.me.v)r.v=Math.max(CMP.me.v,r.v-3*dt);if(r.v>vmx){r.v=Math.max(vmx,r.v-5.5*dt);r.cb=1}else r.cb=0
   if(!solo&&list){const L2=cmpLead(r,list,idx);if(L2&&L2.gap<.8&&r.v>L2.o.v)r.v=L2.o.v}
   r.P=P;r.kjr+=P*dt/1000;r.fk=cmpFk(r.kj0+r.kjr);r.fe=r.ftp*r.fk*(1+(CMP.upP||0)/100);wbalStep(r,P,r.fe*cmpTerr(r,g),dt);const d0=r.d;r.d+=r.v*dt;
   if(r.fin==null&&r.d>=CMP.L&&d0<CMP.L)r.fin=CMP.T-(r.d-CMP.L)/Math.max(r.v,.5);
@@ -13432,7 +13441,7 @@ let last=performance.now(),fA=16,dprT=0,hudT=0,skT=-1e9,clipT2=0,lean=0,yawR=0,s
 // courbure signée DA > 0 = virage à gauche ; décalage latéral RLAT > 0 = vers la droite.
 const DSC={g:0,on:false,w:0};// descente : pente réelle lissée (2 s), active sous −2,5 %, quitte au-dessus de −1 % ; virages (inclinaison, trajectoire, jambe intérieure) seulement en descente
 const BRK={a:0,s:0};// freinage envoyé au home trainer (a : décélération du virage, s : pente de freinage ajoutée)
-const CRN={on:false,vmax:99,o:1.3,f:.5,dr:0,yd:0,a:4.6,b:3.2,ka:0,lp:0,cs:0,te:0};// a : accélération latérale tenue en virage (4,6 m/s² ≈ 25° d'inclinaison), b : freinage
+const CRN={on:false,sp:false,br:0,vmax:99,o:1.3,f:.5,dr:0,yd:0,a:4.6,b:3.2,ka:0,lp:0,cs:0,te:0};// a : accélération latérale tenue en virage (4,6 m/s² ≈ 25° d'inclinaison), b : freinage
 // trajectoire idéale (16 nov. 2026) : pour chaque route, ligne qui rend les virages les plus coulés possible sur toute la largeur de la chaussée
 // (y = décalage vers la gauche du sens a->b ; courbure de la ligne ≈ k + k²·y + y'' ; on minimise la somme des courbures au carré avec |y| ≤ demi-largeur − 0,6 m,
 // plus un léger rappel vers la droite du sens de marche (1,3 m) qui ne joue que sur les portions presque droites ; Gauss-Seidel projeté du pas de 80 m au pas de 5 m) :
@@ -13454,15 +13463,20 @@ function* crlGen(e,dir){const E=NET.E[e];if(!E)return;const n=E.i1-E.i0+1,K=new 
  if(NET.E[e]===E)CRL[e+':'+dir]={o,k,ver,t:performance.now(),E}}// E : la route pour laquelle la ligne a été calculée (un changement de parcours la périme)
 function crlLine(e,d){const L=CRL[e+':'+d];return L&&L.E===NET.E[e]?L:null}
 function crlEnsure(e){for(const d of[1,-1]){const L=crlLine(e,d);if(!L||(L.ver!==CRLV.v&&performance.now()-L.t>8000))job(crlGen(e,d),0,'crl'+e+':'+d)}}
-function cornerCalc(pos,v){const e=RID.e,E=NET.E[e],dir=RID.dir;if(!E||!NET.ready){CRN.vmax=99;CRN.o=1.3;CRN.lp=0;return}
+function cornerCalc(pos,v,flat){const e=RID.e,E=NET.E[e],dir=RID.dir;if(!E||!NET.ready){CRN.vmax=99;CRN.o=1.3;CRN.lp=0;return}
  const now=performance.now();if(!crlLine(e,dir)||now-CRN.te>1500){CRN.te=now;crlEnsure(e);for(let e2=0;e2<NET.E.length;e2++)if(e2!==e&&NET.E[e2]&&inWorld(NET.E[e2]))crlEnsure(e2)}
- const L=crlLine(e,dir),i=pos.i,w=sm(5,9,v);CRN.f=w;// plus on va vite, plus on suit la trajectoire idéale (18 → 32 km/h)
+ const L=flat?null:crlLine(e,dir),i=pos.i,w=flat?0:sm(5,9,v);CRN.f=w;const aC=flat?[4.6,6,4.6,3.6][SET.cornerFlat|0]||4.6:CRN.a;// plus on va vite, plus on suit la trajectoire idéale (18 → 32 km/h)
  // vitesse tenable (courbure de la ligne suivie devant soi) et inclinaison prévue dans la seconde qui vient
  let vm=99,lp=0;const look=Math.min(48,Math.ceil((v*v/(2*CRN.b)+40)/SEG)),ahd=Math.max(8,v*1.1);
  for(let k=0;k<=look;k++){const j=i+dir*k;if(j<E.i0||j>E.i1)break;const kl=L?w*L.k[j-E.i0]+(1-w)*DA[j]:DA[j],kap=Math.abs(kl);
   if(k*SEG<=ahd){const la=-Math.atan(v*v*kl*dir/9.81);if(Math.abs(la)>Math.abs(lp))lp=la}
-  if(kap<.004)continue;const vc=Math.max(5,Math.sqrt(CRN.a/kap)),d=Math.max(0,k*SEG-5),va=Math.sqrt(vc*vc+2*CRN.b*d);if(va<vm)vm=va}
- CRN.vmax=vm;CRN.lp=lp;
+  if(kap<.004)continue;
+  {// relâchement aux deux tiers du virage : on cherche le début et la fin du virage (échantillons contigus), au-delà de 2/3 il ne limite plus
+   const kk=q=>{const jq=i+dir*q;if(jq<E.i0||jq>E.i1)return 0;return Math.abs(L?w*L.k[jq-E.i0]+(1-w)*DA[jq]:DA[jq])};let s0=k,e0=k;while(s0>-14&&kk(s0-1)>=.004)s0--;while(e0<look+14&&kk(e0+1)>=.004)e0++;
+   if((0-s0)/Math.max(1,e0-s0+1)>.667)continue}
+  const vc=Math.max(5,Math.sqrt(aC/kap)),d=Math.max(0,k*SEG-5),va=Math.sqrt(vc*vc+2*CRN.b*d);if(va<vm)vm=va}
+ CRN.vmax=vm;CRN.lp=flat?0:lp;
+ if(flat){CRN.o=1.3;return}
  const hw=3.5*roadScale(i,E),o1=Math.max(.8,hw-.6),om=clamp(1.3,-o1,o1);/* toute la largeur de la chaussée : de 0,6 m du bord gauche à 0,6 m du bord droit */
  let ol=om;if(L){const[si,t]=sampleAt(e,RID.u+dir*v*.25),q=si-E.i0;ol=clamp((L.o[q]+(L.o[q+1]-L.o[q])*t)*dir,-o1,o1)}// un peu en avant : compense le temps de réaction
  CRN.o=om+(ol-om)*w}
@@ -13502,7 +13516,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  if(VEL.on&&!hm){velFrame(now,dt,P);return}// vélodrome : piste plate, monde extérieur caché
  const pos=posAt(RID.e,RID.u,RID.dir,_PS),g=pos.g,wkA=mode==='wk'&&SET.wkRel===1,gP=mode==='wk'&&!SET.wkRel?0:wkA&&g>0?g/3:g;// séance : relief adouci (montées /3), réel ou plat// séance : résistance toujours en ERG ; vitesse, danseuse et posture selon le relief (SET.wkRel) ou comme sur le plat
  DSC.g+=(pos.g-DSC.g)*Math.min(1,dt/2);if(DSC.on?DSC.g>-.01:DSC.g<-.025)DSC.on=!DSC.on;if(hm||LDG.on)DSC.on=false;DSC.w+=((DSC.on?1:0)-DSC.w)*Math.min(1,dt*1.5);// w : transition progressive (~1 s)
- CRN.on=SET.corner!==0&&!hm&&!LDG.on&&DSC.w>.02;if(CRN.on)cornerCalc(pos,v);else{CRN.vmax=99;CRN.o=1.3;CRN.lp=0}
+ CRN.on=SET.corner!==0&&!hm&&!LDG.on&&DSC.w>.02;CRN.sp=!CRN.on&&SET.corner!==0&&SET.cornerFlat!==0&&!hm&&!LDG.on&&mode!=='explore';if(CRN.on)cornerCalc(pos,v);else if(CRN.sp)cornerCalc(pos,v,true);else{CRN.vmax=99;CRN.o=1.3;CRN.lp=0}
  const tuck=v>13.2&&P<FTP*.45&&gP<-.015,sprinting=P>FTP*1.45&&v<16,surge=riding?standLogic(dt,P,gP,v):false;
  if(gP>.06&&(riding||mode==='explore')){standT+=dt;if(standT>75)standT=0}else standT=0;
  const stand=(sprinting||surge||(gP>.075&&P>FTP*.95)||(standT>60))&&v>1.2;
@@ -13513,7 +13527,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  else if(riding){const m=Math.max(40,(+$('kg').value||80)-EQ.mass),a=Math.atan(gP),cda=EQ.cda*(tuck?.82:stand?1.12:1)*(1-RDRAFT),va=v+WX.head,// vitesse de l'air (vent de face > 0)
   F=EQ.eff*P*(1+(CMP.on&&gP>.02?RDRAFT*clamp((gP-.02)/.04,0,1)*.45:0))/Math.max(v,.6)-m*9.81*Math.sin(a)-.004*EQ.crr*m*9.81*Math.cos(a)-.5*1.2*.32*cda*va*Math.abs(va),
   gW=clamp(.5*1.2*.32*cda*(va*Math.abs(va)-v*v)/(m*9.81),-.08,.08);// le vent envoyé au home trainer sous forme de pente équivalente
-  v=Math.max(0,Math.min(25,v+F/(m+1.5)*dt));{const vb=v;if(CRN.on&&v>CRN.vmax)v=Math.max(CRN.vmax,v-5.5*dt);/* freinage avant les virages */BRK.a+=((vb-v)/Math.max(dt,1e-3)-BRK.a)*Math.min(1,dt*6)}if(wkA&&P>30&&v<3.33)v=Math.min(3.33,v+dt*1.5);if(P<5&&v<.25&&gP>-.015)v=0;// séance adoucie : au moins 12 km/h quand on pédale
+  v=Math.max(0,Math.min(25,v+F/(m+1.5)*dt));{const vb=v;if((CRN.on||CRN.sp)&&v>CRN.vmax){v=Math.max(CRN.vmax,v-5.5*dt);CRN.br=1}else CRN.br=0;/* freinage avant les virages */BRK.a+=((vb-v)/Math.max(dt,1e-3)-BRK.a)*Math.min(1,dt*6)}if(wkA&&P>30&&v<3.33)v=Math.min(3.33,v+dt*1.5);if(P<5&&v<.25&&gP>-.015)v=0;// séance adoucie : au moins 12 km/h quand on pédale
   const ah=riderAhead();if(ah&&ah.d<.6&&RLAT>1&&v>ah.o.v)v=ah.o.v;// on ne rentre pas dans la roue de devant
   const ds=v*dt;advance(RID,ds,riderChoose);histTick();s+=ds;PEMA=PEMA?PEMA+(P-PEMA)*Math.min(1,dt/180):P;
   if(mode==='ride'){if(v>.1)tt+=dt;if(conn){/* freinage avant un virage (17 nov. 2026) : pente positive ajoutée, montée en 0,5 s, plafond +8 % (doux) / +12 % (fort) ; envoi toutes les 120 ms pendant le freinage */
@@ -13543,7 +13557,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
  Object.assign(RW,{x:R.position.x,z:R.position.z,tx,tz,v,lat:RLAT,e:RID.e,u:RID.u,dir:RID.dir});if(CMP.on&&mode==='ride'&&!LDG.on)try{cmpTick(dt,P,now)}catch(e){console.warn('compétition',e)}if(!hm){RPOS.x=x;RPOS.z=z;routeTick(x,z)}
  if(riding)sesTick(dt,P,v*dt,y);// km, kcal, D+ et récompenses de la sortie ou de la séance
  // pédalage
- const rc=cadReal(dt,riding,P),pedal=riding?(rc?cad>5:P>5&&v>.3):hm?true:v>.3&&g>-.03;
+ const rc=cadReal(dt,riding,P),pedal=(riding?(rc?cad>5:P>5&&v>.3):hm?true:v>.3&&g>-.03)&&!(CRN.sp&&CRN.br&&riding);
  const cadT=hm?78:rc?cad:clamp(86+(P/FTP-.7)*14-Math.max(0,gP-.04)*220+(stand?-14:0),58,118);cadS+=(cadT-cadS)*Math.min(1,dt*(rc?7:2));
  Object.assign(RS2,{cad:pedal?cadS:0,P,v:hm?0:v,g:gP,coast:!pedal,stand:stand&&!hm,tuck:tuck&&!hm,steer:hm?0:clamp(lean*1.8,-1,1),cside:hm?0:CRN.cs,blean:hm?0:lean*.26,hyaw:hm?0:clamp(-lean*.55,-.3,.3)});if(!(IN.on&&IN.wp))riderAnim(dt,RS2);faceTick(dt,riding?P:0,stand&&!hm);// film d'ouverture : c'est lui qui anime le cycliste dans le paysage
  if(hm){FAN.rotation.z+=dt*22;if(now-(loop.mt||0)>100){loop.mt=now;mon(now)}}
