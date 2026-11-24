@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='24/11/2026 · g';const ERRL=[];
+const VCT_VER='24/11/2026 · h';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7578,7 +7578,7 @@ function cmpStart(o){if(!COURSE)return say('Choisis d\'abord un parcours.');
   for(const r of R){let t=r.t0;while(t<0){const dt2=Math.min(1,-t);CMP.T=t+dt2;cmpRider(r,dt2,true);t+=dt2}}CMP.T=0}
  cmpBuildMeshes();if(!CMP.M.G.parent)WORLD.add(CMP.M.G);
  cmpArches();
- cEl('cmh').style.display='block';cmpHud(true);
+ cEl('cmh').style.display='block';cmpHud(true);voxOn();
  const hd=o.kind==='clm'?'Contre-la-montre':o.kind==='race'?'Course en ligne':'Étape';
  setTimeout(()=>cRadio(cmpFatNote()+(o.kind==='clm'?dsF('depart_clm',{km:cKm(CMP.L)}):dsF('depart')+' '+hd+' de '+cKm(CMP.L)+(CMP.climbs.length?', '+CMP.climbs.length+' montée'+(CMP.climbs.length>1?'s':'')+' au programme':'')+'.')),1500)}
 function cmpArches(){if(CMP.G){disposeGroup(CMP.G);CMP.G=null}const G=new T.Group();G.userData.keep=true;const o={};
@@ -7590,7 +7590,7 @@ function cmpArches(){if(CMP.G){disposeGroup(CMP.G);CMP.G=null}const G=new T.Grou
 function cmpFatNote(){const F=CMP.fat;if(!F)return '';const h=(Date.now()-F.t)/3600000,me=CMP.me,op=CMP.R.reduce((a,r)=>a+r.fk,0)/CMP.R.length;
  if(h>=60||(me.fk>.995&&op>.995&&me.wbal>.97*me.wp))return 'Tout le monde a récupéré. ';
  return 'Course enchaînée '+(h<1?Math.round(h*60)+' min':nf(h,1)+' h')+' après la précédente : '+(op<.995?'les adversaires sont à '+Math.round(op*100)+' % de leur forme':'les adversaires ont récupéré leur fond')+', toi à '+Math.round(me.fk*100)+' %'+(me.wbal<.9*me.wp?', réserve à '+Math.round(100*me.wbal/me.wp)+' %':'')+'. '}
-function cmpStop(){if(!CMP.on)return;if(!CMP.fsaved&&CMP.T>60)cmpFatSave();CMP.on=false;CMP.hold=false;['cmh','cmr','cmcd','cmk','cme'].forEach(i=>{const e=$(i);if(e)e.style.display='none'});
+function cmpStop(){if(!CMP.on)return;if(!CMP.fsaved&&CMP.T>60)cmpFatSave();CMP.on=false;CMP.hold=false;voxOff();['cmh','cmr','cmcd','cmk','cme'].forEach(i=>{const e=$(i);if(e)e.style.display='none'});
  if(CMP.M&&CMP.M.G.parent)CMP.M.G.parent.remove(CMP.M.G);if(CMP.G){disposeGroup(CMP.G);CMP.G=null}CMP.R=[];
  const p=CMP.prev;CMP.prev=null;if(CMP.next){CMP.next=false;CMP.prevKeep=p;return}if(p){setTimeout(()=>{try{if(p.crs&&CRS.cur&&p.crs!==CRS.cur.id&&CRS.list.some(q=>q.id===p.crs))crsSwitch(p.crs);
    const gen=CRS.cur&&CRS.cur.gen;if(p.w!==WORLDK&&!(gen&&(p.w==='real'||p.w==='mont'))){SET.spAmb=p.a;worldSwitch(p.w)}else if(WORLDK==='space'&&p.a&&p.a!==SET.spAmb)spAmbSet(p.a);homeRender()}catch(e){console.warn('cmpStop',e)}},400)}}
@@ -7815,7 +7815,7 @@ function cmpCoach(now,P){const C=CMP.coach,me=CMP.me,T=CMP.T;if(me.fin!=null)ret
 // ---- panneau de course ----
 // ---- classement de l'étape à droite : place, écart, place au général, danger, coupe, leader ----
 function cmpBoard(force){const e=cEl('cmk');if(!CMP.on||CMP.hold&&CMP.cd>5){e.style.display='none';return}const now=performance.now();if(!force&&now-(cmpBoard.t||0)<700)return;cmpBoard.t=now;
- if(CMP.kind!=='race'){const h0='<div class="ob"><button class="ds" data-ds="1">📻 DS</button></div>';if(e._h!==h0){e._h=h0;e.innerHTML=h0;cmpBtn(e)}e.style.display='block';return}
+ if(CMP.kind!=='race'){const h0='<div class="ob"><button class="ds" data-ds="1">📻 DS</button><button class="ds" data-vox="1">🎤 Parler</button></div>';if(e._h!==h0){e._h=h0;e.innerHTML=h0;cmpBtn(e)}e.style.display='block';return}
  const me=CMP.me,S=CMP.stageK?cmpLoad():null,gcOn=S&&Object.keys(S.gc||{}).length>0,all=[me,...CMP.R].sort((a,b)=>(a.fin!=null&&b.fin!=null?a.fin-b.fin:b.d-a.d)),lead=all[0],vr=Math.max(6,lead.v||8);
  const gapS=r=>r===lead?0:Math.max(0,(lead.d-r.d)/vr),gcT=r=>(S&&S.gc[r.id]!=null?S.gc[r.id]:null);
  const live=r=>gcT(r)==null?null:gcT(r)+gapS(r)-(CMP.bon[r.id]||0);
@@ -7834,9 +7834,37 @@ CMP.dg=new Set(all.filter(danger).map(r=>r.id));
   let pv=-1;for(const j of idx){const r=all[j];if(pv>=0&&j-pv>1)h+='<div class="sep">⋮</div>';pv=j;
    const dg=danger(r),cup=gcRank&&gcRank.get(r)<=5,gl=gcRank?gcRank.get(r):null,nm=r===me?'Toi':r.name;
    h+='<div class="r'+(r===me?' me':'')+'"><span>'+(j+1)+'</span><i style="background:'+cTeamCol(r.team)+'"></i><span class="nm">'+(r.role==='lead'&&r!==me?'★ ':'')+esc(nm)+(dg?' ⚠️':'')+(cup?' 🏆':'')+'</span><span class="g">'+(gl?'G'+gl+' ':'')+(j===0?'tête':(r.fin!=null?'':'+'+cGapTxt(gapS(r))))+'</span></div>'}}
- h+='<div class="ob"><button class="ds" data-ds="1">📻 DS</button>'+[['train','🚆 Train'],['prot','🛡 Protège-moi'],['roul','🚂 Roulez'],['chas','🎯 Chasse'],['lead','⚡ Sprint'],['free','🆓 Libres']].map(([k,t])=>'<button data-o="'+k+'"'+(CMP.ord===k?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
+ h+='<div class="ob"><button class="ds" data-ds="1">📻 DS</button><button class="ds" data-vox="1">🎤 Parler</button>'+[['train','🚆 Train'],['prot','🛡 Protège-moi'],['roul','🚂 Roulez'],['chas','🎯 Chasse'],['lead','⚡ Sprint'],['free','🆓 Libres']].map(([k,t])=>'<button data-o="'+k+'"'+(CMP.ord===k?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
  if(h!==e._h){e._h=h;e.innerHTML=h;e.querySelectorAll('[data-b]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpBoard.tab=b.dataset.b;cmpBoard(true)});cmpBtn(e)}e.style.display='block'}
-function cmpBtn(e){e.querySelectorAll('[data-o]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpOrder(b.dataset.o)});e.querySelectorAll('[data-ds]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpDsNow()})}
+// ---- ordres à la voix : bouton des écouteurs (touches multimédia) ou bouton 🎤 Parler ----
+const VXO={busy:false,rec:null,aud:null,t:0,ac:null,tt:0};
+function voxWav(){const n=8000,b=new ArrayBuffer(44+n*2),v=new DataView(b),w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+ w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,8000,true);v.setUint32(28,16000,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+ for(let i=0;i<n;i++)v.setInt16(44+i*2,i%2?1:-1,true);let t='';const u=new Uint8Array(b);for(let i=0;i<u.length;i++)t+=String.fromCharCode(u[i]);return 'data:audio/wav;base64,'+btoa(t)}
+function voxOn(){try{if(!VXO.aud){const a=new Audio(voxWav());a.loop=true;a.volume=1;VXO.aud=a}
+ VXO.aud.play().catch(()=>{});const ms=navigator.mediaSession;if(!ms)return;
+ ms.metadata=new MediaMetadata({title:'Course VCT',artist:'Appuie pour parler au DS'});ms.playbackState='playing';
+ ['play','pause','nexttrack','previoustrack','stop'].forEach(k=>{try{ms.setActionHandler(k,()=>{voxTalk();try{VXO.aud.play().catch(()=>{});ms.playbackState='playing'}catch(e){}})}catch(e){}})}catch(e){}}
+function voxOff(){try{if(VXO.aud)VXO.aud.pause();const ms=navigator.mediaSession;if(ms){['play','pause','nexttrack','previoustrack','stop'].forEach(k=>{try{ms.setActionHandler(k,null)}catch(e){}});ms.playbackState='none'}}catch(e){}
+ try{if(VXO.rec)VXO.rec.abort()}catch(e){}VXO.busy=false;const e=$('vox');if(e)e.style.display='none'}
+function voxBeep(fr){try{const A=window.AudioContext||window.webkitAudioContext;VXO.ac=VXO.ac||new A();const c=VXO.ac,o=c.createOscillator(),g=c.createGain();o.frequency.value=fr;g.gain.value=.12;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.12)}catch(e){}}
+function voxMsg(h,ms){let e=$('vox');if(!e){e=document.createElement('div');e.id='vox';e.style.cssText='position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:99999;background:rgba(15,14,13,.92);color:#f4efe6;border:2px solid #f0cf73;border-radius:14px;padding:10px 18px;font:600 17px system-ui,sans-serif;max-width:86vw;text-align:center;pointer-events:none';document.body.appendChild(e)}
+ e.innerHTML=h;e.style.display='block';clearTimeout(VXO.tt);if(ms)VXO.tt=setTimeout(()=>{e.style.display='none'},ms)}
+const VOXR=[[/point|situation|directeur|\bds\b|ou en est|ecart|info/,'ds','Point du DS'],[/train/,'train','Train'],[/proteg|protec|abrit/,'prot','Protège-moi'],[/roul|relais|tirez|tempo/,'roul','Roulez'],[/chass|poursuit|rattrap|ferme|bouche/,'chas','Chasse'],[/sprint|lance|emmen/,'lead','Sprint'],[/libre|chacun|votre rythme/,'free','Libres']];
+function voxDo(alts){const n=alts.map(a=>a.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''));
+ for(const t of n){for(const [re,k,nm] of VOXR){if(re.test(t)){if(k!=='ds'&&CMP.kind==='clm'){voxMsg('🎤 Pas d\'ordres en contre-la-montre',2500);return}
+  voxMsg('🎤 Compris : <b>'+nm+'</b>',2000);voxBeep(880);if(k==='ds')cmpDsNow();else cmpOrder(k);return}}}
+ voxMsg('🎤 Pas compris : « '+(alts[0]||'…')+' »<br><small>Dis : protège-moi, roulez, chasse, sprint, train, libres, point</small>',4500);voxBeep(300)}
+function voxTalk(){if(!CMP.on||!CMP.me)return;
+ if(VXO.busy){try{VXO.rec.stop()}catch(e){}return}
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){voxMsg('🎤 Reconnaissance vocale indisponible sur ce navigateur',4000);return}
+ try{if(window.speechSynthesis)speechSynthesis.cancel()}catch(e){}
+ const r=new SR();r.lang='fr-FR';r.interimResults=false;r.maxAlternatives=4;r.continuous=false;let got=false,err='';VXO.rec=r;VXO.busy=true;
+ r.onresult=ev=>{got=true;voxDo([...ev.results[0]].map(a=>a.transcript))};
+ r.onerror=ev=>{err=ev.error||'?'};
+ r.onend=()=>{VXO.busy=false;clearTimeout(VXO.t);if(!got){voxMsg(err==='not-allowed'||err==='service-not-allowed'?'🎤 Micro refusé : autorise-le dans Chrome':err==='network'?'🎤 Internet nécessaire pour la voix':err==='no-speech'||!err||err==='aborted'?'🎤 Je n\'ai rien entendu':'🎤 Erreur : '+err,3500);voxBeep(300)}};
+ try{r.start();voxBeep(660);voxMsg('🎤 <b>Je t\'écoute…</b> dis ton ordre',7000);VXO.t=setTimeout(()=>{try{r.stop()}catch(e){}},7000)}catch(e){VXO.busy=false;voxMsg('🎤 Impossible d\'écouter',3000)}}
+function cmpBtn(e){e.querySelectorAll('[data-o]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpOrder(b.dataset.o)});e.querySelectorAll('[data-ds]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpDsNow()});e.querySelectorAll('[data-vox]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();voxTalk()})}
 // ---- bouton DS : point de situation à la demande ----
 function cmpDsNow(){const me=CMP.me;if(!me||CMP.kind==='clm'&&me.fin==null&&!CMP.on)return;const rem=CMP.L-me.d,all=[me,...CMP.R].filter(r=>r.fin==null||r===me).sort((a,b)=>b.d-a.d),rk=all.indexOf(me)+1,lead=all[0];
  if(CMP.kind==='clm'){const k=Math.floor(me.d/CMP.cps);return cRadio('Reste <b>'+cKm(rem)+'</b>. Réserve <b>'+cmpWb()+' %</b>. Cible coach : <b>'+(CMP.coach.tg||'…')+' W</b>.')}
