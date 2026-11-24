@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='24/11/2026 · h';const ERRL=[];
+const VCT_VER='24/11/2026 · i';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7851,8 +7851,38 @@ function voxBeep(fr){try{const A=window.AudioContext||window.webkitAudioContext;
 function voxMsg(h,ms){let e=$('vox');if(!e){e=document.createElement('div');e.id='vox';e.style.cssText='position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:99999;background:rgba(15,14,13,.92);color:#f4efe6;border:2px solid #f0cf73;border-radius:14px;padding:10px 18px;font:600 17px system-ui,sans-serif;max-width:86vw;text-align:center;pointer-events:none';document.body.appendChild(e)}
  e.innerHTML=h;e.style.display='block';clearTimeout(VXO.tt);if(ms)VXO.tt=setTimeout(()=>{e.style.display='none'},ms)}
 const VOXR=[[/point|situation|directeur|\bds\b|ou en est|ecart|info/,'ds','Point du DS'],[/train/,'train','Train'],[/proteg|protec|abrit/,'prot','Protège-moi'],[/roul|relais|tirez|tempo/,'roul','Roulez'],[/chass|poursuit|rattrap|ferme|bouche/,'chas','Chasse'],[/sprint|lance|emmen/,'lead','Sprint'],[/libre|chacun|votre rythme/,'free','Libres']];
+// questions posées à la voix : le DS répond avec les vraies infos de la course
+const VXQ=[
+ ['echap',/echapp|fuyard|groupe de tete|ceux de devant/,"l'échappée"],
+ ['reserve',/reserve|jambe|forme|fatigue|batterie|energie|\bjus\b|\bjuice/,'ta réserve'],
+ ['watts',/watt|puissance|cible|combien .*tenir|a quel rythme|quel rythme/,'les watts'],
+ ['next',/(prochain|quand|combien|distance|avant).*(sprint|sommet|montee|\bcol\b|prime)|(sprint|sommet|montee|\bcol\b|prime).*(quand|combien|prochain)/,'la prochaine échéance'],
+ ['reste',/combien .*(reste|km)|il reste|distance|kilometre|arrivee dans/,'la distance'],
+ ['gc',/general|maillot|\bgc\b/,'le général'],
+ ['place',/(quelle|ma|mon|c.est quoi).*(place|classement|position)|classement|je suis (combien|quel)|ou je suis/,'ta place'],
+ ['danger',/danger|menace|adversaire|surveill|rival|qui .*(craindre|attaque)/,'les dangers'],
+ ['mates',/equipier|coequipier|les gars|mes gars|mon equipe|ou sont/,'tes coéquipiers'],
+ ['aide',/\baide\b|commande|que puis|qu.est.ce que je peux/,'l\'aide']];
+function voxAnswer(t){const q=VXQ.find(x=>x[1].test(t));if(!q)return false;const me=CMP.me,k=q[0],clm=CMP.kind==='clm',rem=CMP.L-me.d;
+ const all=[me,...CMP.R].filter(r=>r.fin==null||r===me).sort((a,b)=>b.d-a.d),rk=all.indexOf(me)+1,lead=all[0];
+ const tg=CMP.coach&&CMP.coach.tg&&CMP.coach.ci!==-1?CMP.coach.tg:Math.round(me.fe*.8),wb=Math.round(100*me.wbal/me.wp);
+ let a='';
+ if(clm&&['echap','danger','mates','gc'].includes(k))a='Ça n\'existe pas en contre-la-montre : tu es seul sur la route. Ta réserve est de <b>'+cmpWb()+' %</b>, tiens <b>'+tg+' W</b>.';
+ else if(k==='echap'){const b=CMP.bw;if(!b)a='Pas d\'échappée pour l\'instant : <b>tout le monde est ensemble</b>.';else if(b.meIn)a='Tu es <b>dans l\'échappée</b> : <b>'+cGapTxt(b.gap)+'</b> d\'avance sur le peloton, réserve <b>'+cmpWb()+' %</b>.';
+  else{const tr=b.tr;a='L\'échappée a <b>'+cGapTxt(b.gap)+'</b> d\'avance ('+(Math.abs(tr)<3?'stable':tr>0?'<b>elle prend du temps</b>':'<b>on revient</b>')+'). '+b.near.map(cmpGcTxt).join(' ; ')+'. '+cmpAdvice(b.R,b.gap,Math.max(60,Math.min(240,b.gap*3)))}}
+ else if(k==='reserve')a='Ta réserve est de <b>'+cmpWb()+' %</b> : '+(wb>65?'<b>tu as de la marge</b>, tu peux relancer si besoin.':wb>30?'<b>gère</b>, ne gaspille rien, reste dans les roues.':'<b>tu es dans le rouge</b>, abrite-toi et récupère.');
+ else if(k==='watts')a='Tiens <b>'+tg+' W</b> pour l\'instant'+(clm?' (cible du coach)':'')+'. Réserve <b>'+cmpWb()+' %</b>.';
+ else if(k==='reste'||k==='next'){const nx=[...(CMP.sprints||[]).filter(x=>x.d>me.d).map(x=>({d:x.d,t:'sprint intermédiaire'})),...(CMP.climbs||[]).filter(c=>c.d1>me.d).map(c=>({d:c.d1,t:'sommet'}))].sort((x,y)=>x.d-y.d)[0];
+  a=k==='next'?(nx?'Prochain '+nx.t+' dans <b>'+cKm(nx.d-me.d)+'</b>.':'Plus de sprint ni de sommet avant l\'arrivée.'):'Il reste <b>'+cKm(rem)+'</b>.'+(nx?' Prochain '+nx.t+' dans <b>'+cKm(nx.d-me.d)+'</b>.':'')}
+ else if(k==='place'){if(clm)return cmpDsNow(),voxMsg('🎤 Compris : <b>ta place</b>',2000),true;const vp=Math.max(5,lead.v||8);a=rk===1?'Tu es <b>en tête</b> de la course.':'Tu es <b>'+rk+'<sup>e</sup></b>, la tête est à <b>'+cGapTxt((lead.d-me.d)/vp)+'</b>.'}
+ else if(k==='gc'){const S=CMP.stageK?cmpLoad():null,g=cmpGcOf(me);if(!S||!g)a='Pas de classement général sur cette course (ou pas encore de temps du jour).';else{const m=Math.min(...Object.values(S.gc));a='Au général tu es <b>'+g.my+'<sup>e</sup></b>'+(S.gc[-1]-m>0.5?', à <b>'+cGapTxt(S.gc[-1]-m)+'</b> du maillot jaune':', <b>tu portes le maillot jaune</b>')+'.'}}
+ else if(k==='danger'){const d=CMP.R.filter(r=>CMP.dg&&CMP.dg.has(r.id)&&r.fin==null).sort((x,y)=>Math.abs(x.d-me.d)-Math.abs(y.d-me.d)).slice(0,3);
+  a=d.length?'Surveille '+d.map(r=>{const gs=(r.d-me.d)/Math.max(me.v,5);return '<b>'+r.name+'</b> ('+cTeamName(r.team)+'), '+(Math.abs(gs)<2?'dans ta roue':'à '+cGapTxt(Math.abs(gs))+(gs>0?' devant':' derrière'))}).join(' ; ')+'.':'<b>Aucun danger</b> au général pour l\'instant.'}
+ else if(k==='mates'){const m=CMP.R.filter(r=>r.team===0&&r.fin==null);a=m.length?'Tes coéquipiers : '+m.map(r=>{const dm=Math.round(r.d-me.d);return '<b>'+r.name+'</b> '+(Math.abs(dm)<8?'à ta hauteur':Math.abs(dm)+' m '+(dm>0?'devant':'derrière'))+', réserve '+Math.round(100*r.wbal/r.wp)+' %'+(r.st==='spent'?' (rincé)':'')}).join(' ; ')+'.':'Plus aucun coéquipier en course.'}
+ else if(k==='aide')a='Tu peux dire : <b>protège-moi, roulez, chasse, sprint, train, libres</b>, ou demander : <b>l\'échappée, ma réserve, les watts, combien il reste, prochain sprint, ma place, le général, les dangers, mes coéquipiers</b>, ou <b>point</b>.';
+ voxMsg('🎤 Question : <b>'+q[2]+'</b>',2000);voxBeep(880);cRadio(a);return true}
 function voxDo(alts){const n=alts.map(a=>a.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''));
- for(const t of n){for(const [re,k,nm] of VOXR){if(re.test(t)){if(k!=='ds'&&CMP.kind==='clm'){voxMsg('🎤 Pas d\'ordres en contre-la-montre',2500);return}
+ for(const t of n){if(voxAnswer(t))return;for(const [re,k,nm] of VOXR){if(re.test(t)){if(k!=='ds'&&CMP.kind==='clm'){voxMsg('🎤 Pas d\'ordres en contre-la-montre',2500);return}
   voxMsg('🎤 Compris : <b>'+nm+'</b>',2000);voxBeep(880);if(k==='ds')cmpDsNow();else cmpOrder(k);return}}}
  voxMsg('🎤 Pas compris : « '+(alts[0]||'…')+' »<br><small>Dis : protège-moi, roulez, chasse, sprint, train, libres, point</small>',4500);voxBeep(300)}
 function voxTalk(){if(!CMP.on||!CMP.me)return;
