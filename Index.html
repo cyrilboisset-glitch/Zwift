@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='24/11/2026 · e';const ERRL=[];
+const VCT_VER='24/11/2026 · f';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7412,32 +7412,41 @@ function cSeg(a,b,w,h){const dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2],L=Math.hypot
 function cmpBuildMeshes(){if(CMP.M)return CMP.M;const N=30,mat=new T.MeshLambertMaterial({vertexColors:true}),G=new T.Group();G.userData.keep=true;G.matrixAutoUpdate=false;
  const wh=()=>{const t=new T.TorusGeometry(.335,.024,4,14);t.rotateY(Math.PI/2);return t};
  const dark=0x1b1d22,metal=0x5a5f68,skin=0xd9a27e,blk=0x111114;
- const frame=[{g:wh().translate(0,.34,.5),c:dark},{g:wh().translate(0,.34,-.5),c:dark},{g:cSeg([0,.3,0],[0,.78,-.13],.04),c:metal},{g:cSeg([0,.3,0],[0,.76,.42],.05),c:metal},{g:cSeg([0,.79,-.13],[0,.81,.42],.04),c:metal},
+ const tire=()=>{const t=new T.TorusGeometry(.352,.017,4,14);t.rotateY(Math.PI/2);return t},hub=(z)=>cSeg([-.02,.34,z],[.02,.34,z],.045);
+ const frame=[{g:wh().translate(0,.34,.5),c:metal},{g:wh().translate(0,.34,-.5),c:metal},{g:tire().translate(0,.34,.5),c:blk},{g:tire().translate(0,.34,-.5),c:blk},{g:hub(.5),c:dark},{g:hub(-.5),c:dark},{g:cSeg([0,.34,.5],[0,.62,.5],.012),c:dark},{g:cSeg([0,.34,-.5],[0,.62,-.5],.012),c:dark},{g:new T.BoxGeometry(.17,.035,.05).translate(0,1.405,.525),c:blk},{g:cSeg([0,.58,.02],[0,.7,.18],.03),c:0xe8eef2},{g:cSeg([0,.3,0],[0,.78,-.13],.04),c:metal},{g:cSeg([0,.3,0],[0,.76,.42],.05),c:metal},{g:cSeg([0,.79,-.13],[0,.81,.42],.04),c:metal},
   {g:cSeg([0,.3,0],[0,.34,-.5],.03),c:metal},{g:cSeg([0,.78,-.13],[0,.34,-.5],.03),c:metal},{g:cSeg([0,.81,.42],[0,.34,.5],.035),c:metal},{g:cSeg([-.21,.9,.53],[.21,.9,.53],.03),c:dark},{g:cSeg([0,.84,.44],[0,.9,.53],.035),c:dark},
   {g:new T.BoxGeometry(.13,.05,.26).translate(0,.89,-.15),c:blk},{g:new T.SphereGeometry(.095,8,6).translate(0,1.39,.43),c:skin},{g:cSeg([.19,1.0,.46],[.2,.9,.53],.04),c:skin},{g:cSeg([-.19,1.0,.46],[-.2,.9,.53],.04),c:skin}];
  const body=[{g:cSeg([0,.92,-.15],[0,1.3,.3],.33,.22),c:0xffffff},{g:new T.SphereGeometry(.125,8,6).scale(1,.8,1.25).translate(0,1.47,.4),c:0xffffff},
   {g:cSeg([.18,1.27,.27],[.19,1.0,.46],.075),c:0xffffff},{g:cSeg([-.18,1.27,.27],[-.19,1.0,.46],.075),c:0xffffff},{g:new T.BoxGeometry(.34,.14,.24).translate(0,.92,-.13),c:0x26282e}];
- const leg=sd=>cGeo([{g:cSeg([0,0,0],[0,-.34,.3],.12),c:blk},{g:cSeg([0,-.34,.3],[0,-.66,.17],.085),c:skin},{g:new T.BoxGeometry(.09,.06,.24).translate(0,-.69,.2),c:0xf0f0f0}]);
+ const leg=sd=>cGeo([{g:cSeg([0,0,0],[0,-.34,.3],.12),c:blk},{g:cSeg([0,-.34,.3],[0,-.56,.21],.085),c:skin},{g:cSeg([0,-.56,.21],[0,-.66,.17],.07),c:0xf4f4f4},{g:new T.BoxGeometry(.09,.06,.24).translate(0,-.69,.2),c:0xf0f0f0}]);
  const mk=(geo,col)=>{const m=new T.InstancedMesh(geo,mat,N);m.instanceMatrix.setUsage(T.DynamicDrawUsage);m.frustumCulled=false;m.castShadow=false;m.receiveShadow=false;m.count=0;if(col){for(let i=0;i<N;i++)m.setColorAt(i,new T.Color(1,1,1))}G.add(m);return m};
- CMP.M={G,frame:mk(cGeo(frame)),body:mk(cGeo(body),true),legL:mk(leg(1)),legR:mk(leg(-1)),labels:[],dm:new T.Object3D(),q:new T.Object3D()};
+ const head=[{g:new T.SphereGeometry(.118,8,6).scale(1,.82,1.28).translate(0,1.435,.405),c:0xffffff},{g:cSeg([0,1.40,.30],[0,1.46,.2],.12),c:0xffffff}],band=[{g:cSeg([0,1.045,-.0015],[0,1.148,.12],.307,.274),c:0xffffff}];
+ // halo : jaune = ton équipe, rouge = dangereux au général (ellipsoïde lumineux + disque au sol, mélange additif)
+ const au=new T.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.45,blending:T.AdditiveBlending,depthWrite:false,fog:false});
+ const ag=cGeo([{g:new T.SphereGeometry(1,10,7).scale(.8,1.12,1.5).translate(0,1.0,.05),c:0xffffff},{g:new T.CircleGeometry(1,14).rotateX(-Math.PI/2).scale(1.25,1,1.9).translate(0,.03,.0),c:0xffffff}]);
+ const aura=new T.InstancedMesh(ag,au,N);aura.instanceMatrix.setUsage(T.DynamicDrawUsage);aura.frustumCulled=false;aura.count=0;aura.renderOrder=2;for(let i=0;i<N;i++)aura.setColorAt(i,new T.Color(1,1,1));G.add(aura);
+ CMP.M={G,frame:mk(cGeo(frame),true),body:mk(cGeo(body),true),head:mk(cGeo(head),true),band:mk(cGeo(band),true),legL:mk(leg(1)),legR:mk(leg(-1)),aura,au,labels:[],dm:new T.Object3D(),q:new T.Object3D()};
  for(let i=0;i<4;i++){const cv=mkCanvas(256,64),tx=new T.CanvasTexture(cv),sp=new T.Sprite(new T.SpriteMaterial({map:tx,depthWrite:false,transparent:true,fog:true}));sp.scale.set(1.25,.31,1);sp.visible=false;sp.renderOrder=3;sp.userData={cv,tx,who:-1};G.add(sp);CMP.M.labels.push(sp)}
  return CMP.M}
 function cLabelDraw(sp,r){const cv=sp.userData.cv,g=cv.getContext('2d');g.clearRect(0,0,256,64);g.fillStyle='rgba(14,19,26,.75)';g.beginPath();g.roundRect?g.roundRect(8,6,240,52,14):g.rect(8,6,240,52);g.fill();
  g.fillStyle=cTeamCol(r.team);g.beginPath();g.arc(32,32,10,0,6.283);g.fill();g.fillStyle='#fff';g.font='700 24px "Arial Narrow",Arial';g.textBaseline='middle';g.fillText(r.name,50,25);
  g.font='600 16px Arial';g.fillStyle=r.team===0?'#f0cf73':'#c9d3dd';g.fillText((r.team===0?'Coéquipier · ':'')+CROLE[r.role],50,47);sp.userData.tx.needsUpdate=true;sp.userData.who=r.id}
 // dessin du peloton
-function cmpDraw(dt){const M=CMP.M;if(!M)return;const dm=M.dm,q=M.q;let k=0;const near=[];
+function cmpDraw(dt){const M=CMP.M;if(!M)return;const dm=M.dm,q=M.q;let k=0,ka=0;const near=[];
  for(const r of CMP.R){if(r.fin!=null&&CMP.kind==='clm'&&CMP.T-r.fin>20)continue;const dc=Math.hypot(r.x-cam.position.x,r.z-cam.position.z);if(dc>650||(CMP.kind==='clm'&&r.t0>CMP.T))continue;
   if(dc<60)near.push([dc,r]);
   dm.position.set(r.x,r.y+.03,r.z);dm.rotation.set(-Math.atan(r.g),Math.atan2(r.tx,r.tz),-clamp(Math.atan(r.v*r.v*(r.da||0)/9.81),-.45,.45),'YXZ');dm.updateMatrix();
   M.frame.setMatrixAt(k,dm.matrix);M.body.setMatrixAt(k,dm.matrix);
   const jc=r.jer||cTeamCol(r.team);M.body.setColorAt(k,_cc.set(jc));
+  {const tc=cTeamCol(r.team);_cc.set(tc);const lum=.3*_cc.r+.59*_cc.g+.11*_cc.b;M.frame.setColorAt(k,_cc2.set(tc).lerp(_cWh,.4));M.head.setColorAt(k,_cc2.set(tc).lerp(_cWh,.25));M.band.setColorAt(k,_cc2.set(lum>.55?0x20232a:0xffffff));M.frame.setMatrixAt(k,dm.matrix);M.head.setMatrixAt(k,dm.matrix);M.band.setMatrixAt(k,dm.matrix)}
+  {const gl=r.team===0?0xffd21f:(CMP.dg&&CMP.dg.has(r.id)?0xff2323:0);if(gl){M.aura.setColorAt(ka,_cc2.set(gl));M.aura.setMatrixAt(ka,dm.matrix);ka++}}
   r.ph=(r.ph||0)+dt*6.283*((r.P>15&&r.v>.5)?(r.st==='spr'?1.65:1.45):0);
   for(const[mesh,sd,off]of[[M.legL,1,0],[M.legR,-1,Math.PI]]){q.position.set(.1*sd,.92,-.13);q.rotation.set(.42*Math.sin(r.ph+off),0,0);q.updateMatrix();q.matrix.premultiply(dm.matrix);mesh.setMatrixAt(k,q.matrix)}
   k++;if(k>=30)break}
- for(const m of[M.frame,M.body,M.legL,M.legR]){m.count=k;m.instanceMatrix.needsUpdate=true}if(M.body.instanceColor)M.body.instanceColor.needsUpdate=true;
+ for(const m of[M.frame,M.body,M.head,M.band,M.legL,M.legR]){m.count=k;m.instanceMatrix.needsUpdate=true}for(const m of[M.frame,M.body,M.head,M.band])if(m.instanceColor)m.instanceColor.needsUpdate=true;
+ M.aura.count=ka;M.aura.instanceMatrix.needsUpdate=true;if(M.aura.instanceColor)M.aura.instanceColor.needsUpdate=true;M.au.opacity=.4+.12*Math.sin(CMP.T*4.5);
  near.sort((a,b)=>a[0]-b[0]);M.labels.forEach((sp,i)=>{const e=near[i];if(!e||e[0]<6){sp.visible=false;return}const r=e[1];if(sp.userData.who!==r.id)cLabelDraw(sp,r);sp.position.set(r.x,r.y+2.05,r.z);sp.visible=true})}
-const _cc=new T.Color();
+const _cc=new T.Color(),_cc2=new T.Color(),_cWh=new T.Color(1,1,1);
 
 // ---- interface : panneau de course, radio, compte à rebours, écrans ----
 function cEl(id,css){let e=$(id);if(!e){e=document.createElement('div');e.id=id;document.body.appendChild(e)}if(css)e.style.cssText=css;return e}
@@ -7544,7 +7553,7 @@ function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';
 function cmpStart(o){if(!COURSE)return say('Choisis d\'abord un parcours.');
  if(!CMP.prev)CMP.prev={w:WORLDK,a:SET.spAmb,crs:o.prevCrs||null};
  if(WORLDK!=='space'){SET.spAmb='ast';worldSwitch('space')}else if(SET.spAmb!=='ast')spAmbSet('ast');
- Object.assign(CMP,{spO:[],koO:[],spt:{},kpt:{},bon:{},stat:{t:0,e:0,mx:0,dr:0,drs:0,fr:0,lo:0,best:0,top3:0,top10:0,wb:100,rk:0,n:0},cps:500,on:true,fsaved:false,kind:o.kind,diff:o.diff||1,seed:o.seed||1,laps:o.laps||1,T:0,fin:false,hold:true,cd:-1,ord:'prot',brk:new Set(),ev:{},evT:0,res:null,ff:null,stageK:o.stageK||null,
+ Object.assign(CMP,{dg:null,spO:[],koO:[],spt:{},kpt:{},bon:{},stat:{t:0,e:0,mx:0,dr:0,drs:0,fr:0,lo:0,best:0,top3:0,top10:0,wb:100,rk:0,n:0},cps:500,on:true,fsaved:false,kind:o.kind,diff:o.diff||1,seed:o.seed||1,laps:o.laps||1,T:0,fin:false,hold:true,cd:-1,ord:'prot',brk:new Set(),ev:{},evT:0,res:null,ff:null,stageK:o.stageK||null,
   coach:{t:-1e9,tg:0,ann:-1e9,over:-1e9,p30:FTP*.6,ci:-1,lastTg:0}});
  nav('ride');goStart();s=0;v=0;
  CMP.Llap=COURSE.edges.reduce((a,[e])=>a+NET.E[e].len,0);CMP.L=CMP.Llap*CMP.laps;
@@ -7813,6 +7822,7 @@ function cmpBoard(force){const e=cEl('cmk');if(!CMP.on||CMP.hold&&CMP.cd>5){e.st
  const danger=r=>{if(r===me||r.team===0)return false;const g=gapS(r)-gapS(me);// écart de course avec moi (négatif = il est devant)
   if(gcOn&&myL!=null){const l=live(r);if(l!=null&&l<myL+25&&gcRank.get(r)<=Math.max(5,(myG||5)+2)&&Math.abs(g)<60)return true}
   return r.role==='lead'&&g>-40&&g<30};
+CMP.dg=new Set(all.filter(danger).map(r=>r.id));
  const tab=cmpBoard.tab||'st',rows=Math.max(4,Math.min(9,Math.floor((innerHeight-560)/20)));let h='<div class="th"><button data-b="st"'+(tab==='st'?' class="on"':'')+'>Étape</button><button data-b="eq"'+(tab==='eq'?' class="on"':'')+'>Équipes</button></div>';
  if(tab==='eq'){const tt={};all.forEach(r=>{(tt[r.team]=tt[r.team]||[]).push(r)});const L=Object.entries(tt).map(([k,a])=>{const b=a.slice(0,3);return[+k,b.reduce((x,r)=>x+gapS(r),0),b.length]}).sort((a,b)=>a[1]-b[1]);
   L.forEach(([k,g],i)=>h+='<div class="r'+(k===0?' me':'')+'"><span>'+(i+1)+'</span><i style="background:'+cTeamCol(k)+'"></i><span class="nm">'+esc(cTeamName(k))+'</span><span class="g">'+(i?'+'+cGapTxt(g-L[0][1]):'3 meilleurs')+'</span></div>')}
