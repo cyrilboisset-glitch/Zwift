@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='25/11/2026 · q';const ERRL=[];
+const VCT_VER='25/11/2026 · r';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7401,13 +7401,13 @@ function cmpOptsN(o){o=o||{};const opp=clamp(Math.round(o.opp||5),1,10),per=clam
 const cmpTotal=o=>{o=cmpOptsN(o);return o.mine+o.opp*o.per};
 function cmpShuf(n,r){const a=[...Array(n).keys()];for(let i=n-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 // effectif : mêmes coureurs pour toute une course par étapes (graine gardée) ; équipes et noms inventés
-function cmpRoster(seed,diff,o){o=cmpOptsN(o);const r=rng(seed),kg=Math.max(45,+$('kg').value||75),wkg0=FTP/kg,L=[];let id=0;const pf=cmpShuf(CFN.length,rng(seed*3+1)),ps=cmpShuf(CSN.length,rng(seed*5+2));
+function cmpRoster(seed,diff,o){o=cmpOptsN(o);const r=rng(seed),kg=Math.max(45,+$('kg').value||75),wkg0=FTP/kg,L=[];let id=0;const sk=clamp(kg/75,.8,1.3);/* gabarit des adversaires proportionnel au tien (version r) */const pf=cmpShuf(CFN.length,rng(seed*3+1)),ps=cmpShuf(CSN.length,rng(seed*5+2));
  for(let t=0;t<=o.opp;t++){const roles=t===0?CMROLES.slice(0,o.mine-1):CROLES.slice(0,o.per);
-  for(const ro of roles){const m=ro==='grim'?57+r()*7:ro==='spr'||ro==='roul'?71+r()*9:63+r()*10;
+  for(const ro of roles){const m=(ro==='grim'?57+r()*7:ro==='spr'||ro==='roul'?71+r()*9:63+r()*10)*sk;
    let f=t===0?.9+r()*.08:ro==='lead'?1.02+r()*.08:.86+r()*.16;f*=diff;// coéquipiers un peu sous ton niveau, leaders adverses au-dessus
    const wkg=wkg0*f*(ro==='grim'?1.05:ro==='roul'?.99:ro==='spr'?.93:1),ftp=Math.round(wkg*m);
    const nm=CFN[pf[id%pf.length]],sn=CSN[ps[id%ps.length]];
-   L.push({id:id++,team:t,role:ro,name:nm.charAt(0)+'. '+sn,full:nm+' '+sn,ftp,m:m+8,cda:(ro==='roul'?.285:ro==='grim'?.305:.315)+r()*.02,
+   L.push({id:id++,team:t,role:ro,name:nm.charAt(0)+'. '+sn,full:nm+' '+sn,ftp,m:m+8,cda:((ro==='roul'?.285:ro==='grim'?.305:.315)+r()*.02)*Math.pow(sk,.45),
     spw:ftp*(ro==='spr'?4.3:ro==='lead'?3.3:2.9),wp:CWP*(ro==='spr'?1.3:ro==='grim'?1.05:1),lane:id%5,form:.97+r()*.06})}}
  return L}
 // position sur le parcours à la distance d (m) : routes du parcours bout à bout, tours enchaînés pour une boucle
