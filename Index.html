@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='25/11/2026 · w';const ERRL=[];
+const VCT_VER='25/11/2026 · x';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7557,6 +7557,97 @@ Object.assign(DSB,{"neu_dep":["Les gars, on est <b>neutralisés</b> sur le premi
 Object.assign(DSB,{"jour_sans":["Petit bruit dans le peloton : <b>{name}</b> ({team}) n'a pas ses jambes aujourd'hui, il grimace déjà. À surveiller.","On me dit que <b>{name}</b> ({team}) a mal dormi : il est <b>dans le dur</b> dès le départ.","<b>{name}</b> ({team}) a l'air en méforme, il n'est pas dans son assiette aujourd'hui."],
  "jour_bon":["Attention, <b>{name}</b> ({team}) a l'air <b>en grande forme</b> aujourd'hui, les jambes sont bonnes.","<b>{name}</b> ({team}) est <b>affûté</b> ce matin : méfie-toi, il peut faire mal.","Info du peloton : <b>{name}</b> ({team}) a de <b>super sensations</b> aujourd'hui."]});
 Object.assign(DSB,{cer_jersey:["Remise des maillots ! <b>{nom}</b> endosse le maillot jaune, sous les applaudissements.","Sur le podium, c'est <b>{nom}</b> qui enfile le maillot jaune. Les fleurs, le bouquet, le sourire !"],cer_cup:["Et voilà ! <b>{nom}</b> soulève le trophée de la course par étapes. Quel tour !","Le tour est terminé : <b>{nom}</b> reçoit la coupe. Bravo à tout le peloton, on a vu du beau spectacle."]});
+Object.assign(DSB,{
+// ===== SEUL EN TÊTE =====
+solo_start:["<b>Tu es seul en tête</b> ! {gap} d'avance sur le peloton. Pas de relais à prendre : <b>tout seul face au vent</b>, tiens {w} W et ne regarde pas derrière.","Tu viens de <b>sortir seul</b> ! {gap} d'avance. <b>Fais le trou</b> maintenant : position basse, {w} W, aucune roue où te cacher.","<b>Seul devant</b> ! Plus personne avec toi : <b>tout donner</b>, c'est {w} W jusqu'à l'arrivée. Écart : {gap}.","Ça y est, <b>tu es parti en solitaire</b> ! {gap} sur le peloton. <b>Cadre bas, cadence ronde</b>, {w} W, et tu creuses.","<b>Solo !</b> {gap} d'avance, {rem} à parcourir. <b>Il n'y a que toi et la route</b> : {w} W, aéro à fond.","Tu es <b>seul à l'avant</b>, {gap} d'avance. Les autres vont rouler derrière : <b>à toi de ne pas les laisser revenir</b>, {w} W.","<b>Tu as fait le trou</b> : {gap}. Seul, <b>pas question de lever le pied</b> : {w} W, tu t'accroches à ton avance.","Tu passes <b>seul en tête</b>. {gap} sur le peloton : <b>donne tout ce que tu as</b>, {w} W, et ne te retourne pas."],
+solo_from_break:["Tu <b>restes seul devant</b> : tes compagnons d'échappée ont lâché. {gap} d'avance, plus personne pour relayer : {w} W, <b>tu y vas seul</b>.","<b>Plus personne avec toi</b> ! Tu es seul à l'avant, {gap} sur le peloton. Le travail est pour toi : {w} W, position basse.","Tes compagnons sont <b>décrochés</b> : tu es <b>seul en tête</b>, {gap} d'avance. Maintenant c'est un contre-la-montre jusqu'à l'arrivée : {w} W.","L'échappée s'est <b>réduite à toi</b> : {gap} d'avance. Plus de relais possible, <b>tout donner</b> à {w} W."],
+solo_suivi_up:["Tu <b>creuses l'écart</b> : {gap} ({tend}). Continue à {w} W, <b>ne relâche rien</b>, tu es seul à décider.","{gap} d'avance et ça <b>augmente</b> ! Tiens {w} W, <b>les jambes répondent</b>, garde la position aéro.","Le peloton <b>perd du terrain</b> : {gap} ({tend}). {w} W, tu gères ton effort sans lever le pied.","<b>Ça passe</b> : {gap} d'avance ({tend}). Seul devant, {w} W, <b>pas de cadeau</b> jusqu'à la ligne. Réserve {wb} %.","L'écart monte à <b>{gap}</b>. Tu es sur le bon rythme, {w} W. <b>Reste lucide</b>, il reste {rem}."],
+solo_suivi_flat:["{gap} d'avance, <b>stable</b>. Tu tiens {w} W : <b>continue comme ça</b>, ne regarde pas derrière. Réserve {wb} %.","L'écart ne bouge pas : <b>{gap}</b>. Seul devant, {w} W, <b>cadence ronde</b>, concentre-toi sur ta position.","Toujours <b>{gap}</b> d'avance. Il reste {rem} : <b>ne te relève pas</b>, {w} W. Réserve {wb} %.","Le peloton roule mais ne revient pas : {gap}. <b>Tiens ton rythme</b>, {w} W, aucune faute.","<b>{gap}</b>, c'est stable. Tu es <b>seul au vent</b>, <b>baisse la tête</b> et roule : {w} W."],
+solo_suivi_down:["<b>Attention, l'écart fond</b> : {gap} ({tend}). Ils roulent fort derrière : monte à {w} W, <b>tu es seul, il faut tout donner</b>.","Le peloton <b>revient</b> : {gap} d'avance ({tend}). <b>Serre les dents</b>, {w} W, position la plus aéro possible. Réserve {wb} %.","Ça <b>baisse</b> : {gap} ({tend}). Les {team} chassent derrière. <b>Relance</b>, {w} W, ne te laisse pas reprendre sans te battre.","L'écart <b>diminue</b> ({gap}). <b>Ne panique pas</b> : cadence ronde, {w} W, <b>reste dans ta bulle</b>. Il reste {rem}.","<b>{gap}</b> seulement ({tend}) ! <b>Il faut y aller</b> : {w} W, tout ce que tu as, ils sont lancés à ta poursuite."],
+solo_danger:["<b>Ils sont à {gap}</b> ! Tu es seul : <b>donne tout</b>, {w} W et plus si tu peux. Ils te voient !","Le peloton <b>est sur toi</b> : {gap} ! <b>Dernier effort</b>, accroche ta cadence, ne te retourne pas.","<b>{gap}</b> : <b>ça se joue maintenant</b> ! Tu es seul, relance de toutes tes forces, {w} W !","Ils <b>reviennent à toute vitesse</b> ({gap}) ! <b>Tout, tout, tout</b> : il te reste {rem}, ne lâche rien."],
+solo_safe:["Tu as <b>{gap}</b> d'avance pour {rem} : <b>c'est bon si tu ne faiblis pas</b>. Reste régulier, {w} W, sans te griller.","{gap} d'écart, il reste {rem} : <b>tu peux gérer</b>, mais tant que la ligne n'est pas franchie, <b>tu roules</b>.","Avance confortable ({gap}) : <b>continue à ton rythme</b>, {w} W, <b>pas de défaillance</b>. Plus que {rem}."],
+solo_craque:["Tu es <b>au bout</b>, je le vois. Seul devant, <b>personne pour te remplacer</b> : {w} W, cadence souple, <b>respire profond</b>. Avance : {gap}.","Là tu es dans le rouge, <b>seul au vent</b>. <b>Ne baisse pas la tête, mais baisse l'intensité</b> : {w} W, tu gardes {gap} d'avance.","La réserve est vide. <b>Pas de roue où se cacher</b> : détends les épaules, <b>cherche l'aéro</b>, {w} W et tiens ce que tu peux. {gap} d'avance.","Ça brûle ? <b>C'est normal, tu es seul devant</b>. Respire, <b>un coup de pédale après l'autre</b>, {w} W : l'écart est de {gap}.","<b>Accroche-toi</b>, l'avance est là ({gap}). <b>Allège le braquet</b>, pédale rond, {w} W."],
+solo_recup:["Tu <b>reprends du jus</b> : réserve {wb} %. Toujours seul devant, tu peux <b>remettre un peu</b> : {w} W.","<b>Bien</b> : tu as récupéré, réserve {wb} %. Seul en tête, <b>relance doucement</b> à {w} W.","Les jambes reviennent ({wb} %). <b>Continue seul</b> : {w} W, régulier."],
+solo_repris_pack:["<b>Tu es repris</b>… pas de panique : tu étais seul, c'est normal. <b>Mets-toi dans les roues</b>, récupère, on repart plus tard.","Le peloton <b>t'a avalé</b>. Tu as tout donné : <b>profite maintenant de l'abri</b>, bois, respire, replace-toi dans les premiers.","<b>Jonction</b> : ta fugue s'arrête là. <b>Reste dans les roues</b>, ne roule pas, on joue autre chose.","Tu es <b>rattrapé</b> après ton raid solitaire. <b>Pas de regret</b> : abrite-toi, récupère et attends le final."],
+solo_repris_drop:["<b>Tu es repris puis lâché</b> : tu as tout laissé devant. Roule à ton rythme, <b>tes coéquipiers t'attendent</b>.","Le peloton te passe et <b>tu n'as plus de jambes</b>. Pas de drame : <b>gère</b> et finis proprement.","Après ton effort solitaire, <b>tu paies la note</b> : fais ton train, laisse revenir tes équipiers."],
+solo_mates:["Tes coéquipiers {names} sont dans le peloton : <b>ils ne roulent pas</b>, ils bloquent la chasse. Ça joue pour toi.","{names} (ton équipe) sont derrière : <b>ils ne collaborent pas</b>, ils te font gagner du temps.","Dans le groupe de chasse, {names} <b>cassent le rythme</b> pour toi : continue à ton rythme."],
+// terrain / ambiance — seul
+plat_solo:["<b>Seul sur le plat</b> : tout est dans la position. <b>Coudes pliés, dos plat, tête basse</b> : chaque watt compte contre le vent.","Longue ligne droite, <b>seul face au vent</b>. <b>Regarde loin devant</b>, relâche les mains, garde ta cadence autour de 90.","Pas de roue où s'abriter : <b>reste aéro</b>, régulier, <b>pas d'à-coups</b>. C'est ta course, ton rythme.","Section plate : <b>c'est ton terrain</b> pour garder l'écart. <b>Cadence ronde</b>, respire par le ventre.","Ça roule à plat, tu es <b>seul au vent</b>. <b>Bois une gorgée</b> si tu peux, sans perdre ta position."],
+descente_solo:["<b>Descente</b> : tu es seul, <b>profite de la gravité</b> mais ne prends aucun risque : trajectoire propre, freine avant le virage.","Ça plonge : <b>reste aéro</b> sur le cadre, mains en bas, <b>pas de folie dans les épingles</b>. Tu récupères en même temps.","On bascule ! <b>Seul devant, aucun risque inutile</b> : l'écart se gagne aussi en descendant proprement.","Descente : <b>regarde loin</b>, corde puis sortie extérieure. <b>Ne crame pas tes freins</b>, et profite pour boire.","Ça descend : <b>tu peux creuser un peu</b> en relançant à la sortie des virages. <b>Prudence</b>, tu es seul."],
+montee_mid_solo:["<b>Seul dans la pente</b> : cadence souple, <b>ne force pas le braquet</b>. Ton rythme, c'est ton allié.","Dans la montée tu es <b>seul à gérer</b> : régulier, <b>pas de grosse accélération</b>. Regarde ton avance, pas la pente.","Ça grimpe : <b>assis, souple</b>, respire. <b>Si tu te lèves, fais-le court</b>. L'écart se défend dans la régularité.","<b>Courage</b>, seul dans la côte : un coup de pédale après l'autre. <b>Les poursuivants souffrent aussi</b>.","Montée : <b>tiens le rythme du coach</b>, pas plus. Tu es seul : <b>si tu explose ici, tu es repris</b>."],
+montee_pied_solo:["La côte arrive et <b>tu es seul</b> : <b>pas de démarrage</b>, entre régulier, c'est là qu'on se fait reprendre si on part trop fort.","Au pied de la montée : <b>braquet souple dès maintenant</b>. Tu es seul devant, <b>garde ta fraîcheur</b> pour le haut.","Une côte devant toi. <b>Seul, tu dois la monter à ton rythme</b>, pas à celui des grimpeurs derrière.","Ça va monter : <b>reste régulier</b>, sans à-coup. <b>Les grimpeurs vont chasser</b> : la montée sera décisive."],
+tempo_solo:["Tu roules <b>très vite</b> seul en tête ! Attention à ne pas <b>brûler tes cartouches</b> : surveille la réserve.","Belle allure ! Seul devant, tu fais un gros boulot : <b>garde une cadence régulière</b>.","Ça file ! <b>Seul et lancé</b>, ne t'emballe pas : la ligne est encore loin."],
+calme_solo:["<b>Régularité</b> : tu es seul devant, tu roules sur ton rythme. <b>Rien à changer</b>.","Tout va bien. <b>Concentre-toi sur ta position</b> et ne regarde pas derrière, <b>l'écart est là</b>.","Tu mènes seul : <b>ne te fais pas endormir</b>, garde une puissance constante."],
+danger_solo:["Seul devant : <b>personne pour t'ouvrir la route</b>. Regarde bien devant, virages, gravillons, <b>reste propre</b>.","Attention à <b>ne pas te mettre en danger</b> : seul en tête, <b>une chute ici et tout est perdu</b>.","Virage devant : <b>freine avant, pas dedans</b>. Tu es seul, <b>aucune raison de prendre un risque</b>."],
+encourage_solo:["<b>Tu es en train de faire une course énorme</b> : seul devant, <b>continue</b> !","<b>Du cran</b> ! Seul en tête, tu fais peur au peloton. <b>On y croit</b> !","<b>Le peloton te regarde</b> s'éloigner. <b>Reste concentré</b>, tout se joue à la régularité.","<b>Tu fais la course</b> ! <b>Un effort après l'autre</b>, c'est comme ça qu'on gagne seul.","Seul devant, <b>tu mènes la danse</b> : respire, aéro, et <b>ne regarde pas derrière</b>."],
+conseil_eco_solo:["Seul devant : <b>bois une gorgée</b> quand c'est plat, <b>sans perdre ta position</b>.","<b>Ne gaspille rien</b> : une cadence ronde, un dos plat, <b>pas de relance inutile</b>.","Relâche les épaules et la nuque, <b>souffle longuement</b>. <b>Économise-toi</b> pour le final."],
+// repères kilométriques — seul
+km10_solo:["<b>10 km de l'arrivée</b>, seul en tête.","Plus que <b>10 bornes</b> et tu es toujours seul devant.","<b>Dix kilomètres</b> : <b>tu es seul à l'avant</b>."],
+km5_solo:["<b>5 km</b> à parcourir, seul devant.","Plus que <b>5 bornes</b> : <b>tu es seul en tête</b>.","<b>Cinq kilomètres</b> ! Toujours seul à l'avant."],
+km3_solo:["<b>3 km</b> : tu es toujours seul en tête.","Plus que <b>3 bornes</b>, seul devant.","<b>Trois kilomètres</b> à parcourir, tu mènes seul."],
+km1_solo:["<b>Flamme rouge</b> et toujours seul ! Dernier kilomètre.","<b>Dernier kilomètre</b>, tu es seul devant.","<b>Un kilomètre</b> ! Seul en tête, la ligne est là."],
+fin_solo_safe:["{gap} d'avance : <b>tu peux gérer</b>, mais ne te relève pas avant la ligne.","L'avance est <b>confortable</b> ({gap}) : continue à ton rythme, <b>sans te griller</b>.","Avec {gap} d'écart, <b>c'est bon</b> : roule régulier jusqu'au bout."],
+fin_solo_tight:["Seulement {gap} d'avance : <b>ça va être serré</b>, tout donner, {w} W !","{gap} d'écart, il faut <b>tout donner</b> : {w} W jusqu'à la ligne, <b>aucun relâchement</b>.","L'avance fond : {gap}. <b>Mets tout</b>, {w} W, <b>aéro à fond</b>."],
+fin_solo_lost:["<b>Ils sont à {gap}</b> : ils vont te reprendre si tu ne <b>donnes pas tout</b> ! {w} W, à fond !","{gap} seulement : <b>c'est maintenant ou jamais</b>, relance de toutes tes forces !","Le peloton est <b>sur toi</b> ({gap}) : <b>tout, tout, tout</b> jusqu'à la ligne !"],
+m300_solo_safe:["<b>300 mètres</b>, seul en tête ! <b>La victoire est là</b>, savoure et finis fort !","<b>Dernière ligne droite</b>, personne ne te reprendra : <b>donne tout</b> et lève les bras !","C'est bon, <b>tu y es</b> ! 300 m seul devant, <b>profite</b> !"],
+m300_solo_tight:["<b>300 mètres</b> ! Seul devant mais ils reviennent : <b>sprint ! tout, tout, tout</b> !","<b>Lance ton sprint</b>, ils sont sur toi ! <b>Tout dans le braquet</b> !","Dernière ligne droite : <b>pas de regard derrière</b>, <b>sprint à fond</b> !"],
+// ===== À DEUX OU EN GROUPE D'ÉCHAPPÉE =====
+duo_start:["<b>Vous êtes deux devant</b>{avec} ! {gap} d'avance. <b>Relais courts, nets et réguliers</b> : à deux, on va deux fois plus vite.","Tu es <b>échappé à deux</b>{avec}, {gap} sur le peloton. <b>Relais à tour de rôle</b>, ne laisse pas l'autre rouler seul.","<b>Duo en tête</b>{avec} ! {gap} d'avance. <b>Collabore</b>, mais garde de quoi te battre à l'arrivée."],
+duo_suivi:["À deux devant : <b>{gap}</b> d'avance ({tend}). Tiens {w} W en tête, <b>relais toutes les minutes</b>. Réserve {wb} %.","{gap} sur le peloton ({tend}). <b>Relaie franchement</b>, {w} W quand tu es devant, et <b>repose-toi dans la roue</b>.","L'écart est de <b>{gap}</b> ({tend}). Ton compagnon fait sa part : <b>fais la tienne</b>, {w} W en tête. Réserve {wb} %.","<b>{gap}</b> d'avance ({tend}). À deux, <b>on s'entend</b> : relais, relais, relais. {w} W en tête. Réserve {wb} %."],
+echappe_repris:["<b>Vous êtes repris</b> : l'échappée est finie. <b>Mets-toi dans les roues</b>, récupère, on joue la suite.","Le peloton <b>fait la jonction</b> avec l'échappée. Pas de regret : <b>abrite-toi</b> et surveille les contre-attaques.","<b>Fin de l'aventure</b> pour les échappés. Dans les roues, bois, respire, replace-toi."],
+echappe_recup:["Tu <b>reprends du jus</b> (réserve {wb} %) : tu peux <b>reprendre ta part de relais</b>.","Les jambes reviennent ({wb} %) : <b>reprends tes relais</b>, ton groupe a besoin de toi."],
+plat_break:["Sur le plat, <b>relayez-vous franchement</b> : un relais de 30 secondes, puis tu te replaces dans la roue.","Ça roule à plat : <b>changez de rythme sans à-coup</b>, passage de relais fluide, <b>pas de trou</b>.","Ligne droite : <b>à tour de rôle</b>, chacun sa part, <b>l'écart se gagne ensemble</b>."],
+descente_break:["Descente : <b>gardez vos distances</b>, ne roulez pas roue dans roue dans les virages.","Ça plonge : <b>relais courts</b>, trajectoires propres, <b>pas de risque inutile</b> avec tes compagnons.","On descend : <b>profite pour récupérer</b>, laisse l'autre mener, mais <b>reste attentif aux freinages</b>."],
+montee_mid_break:["Dans la pente, <b>chacun son rythme</b> : ne t'épuise pas à suivre l'autre si tu es moins bon, <b>gère</b>.","Ça grimpe : <b>reste régulier</b>, méfie-toi des attaques de tes compagnons d'échappée.","La montée <b>peut casser le groupe</b> : garde ton rythme, tu rattraperas peut-être en haut."],
+montee_pied_break:["La côte arrive : <b>méfie-toi des attaques</b> dans ton groupe d'échappée, reste dans la roue des meilleurs.","Au pied de la montée : <b>garde de la fraîcheur</b>, les autres échappés vont tester tes jambes.","Une côte devant : <b>ne roule pas trop fort</b> en bas, <b>reste dans la roue</b> du plus fort."],
+tempo_break:["Ça roule <b>très fort</b> devant : relais appuyés, <b>garde un peu de marge</b> pour la fin.","Belle allure dans l'échappée ! <b>Ne te cramer pas</b> à rouler trop longtemps en tête."],
+calme_break:["L'échappée <b>tourne bien</b> : relais réguliers, <b>économise-toi</b> pendant que tu es dans la roue.","Ça roule <b>sans à-coup</b> : ton groupe s'entend, <b>continue à relayer</b>.","Tout va bien devant : <b>reste concentré</b>, on est loin du final."],
+danger_break:["Attention <b>aux trajectoires</b> dans le groupe : ne te laisse pas serrer, garde ta ligne.","Virage devant : <b>laisse de la place</b> entre vous, un accrochage serait fatal à l'échappée."],
+encourage_break:["<b>Belle échappée</b> ! Vous creusez l'écart ensemble, <b>continuez</b> !","<b>Du caractère</b> : l'échappée tient bon, <b>reste dans la combine</b>.","Le peloton vous regarde partir : <b>relais, relais, relais</b> !"],
+conseil_eco_break:["Quand tu es dans la roue, <b>détends-toi</b> et bois : tu en auras besoin pour le final.","<b>Garde un peu de jus</b> : l'échappée se joue à l'arrivée, <b>pas dans les relais</b>."],
+km10_brk:["<b>10 km</b> : vous avez {gap} d'avance. <b>Collabore</b> jusqu'à 3 km, puis surveille les attaques.","Plus que <b>10 bornes</b>, {gap} d'avance : <b>relais</b>, mais pas de gaspillage.","<b>Dix kilomètres</b> : vous êtes devant ({gap}). <b>Garde de quoi sprinter</b>."],
+km5_brk:["<b>5 km</b> : {gap} d'avance. <b>Attention aux attaques</b> de tes compagnons d'échappée.","Plus que <b>5 bornes</b>, {gap} d'avance : <b>ne mène pas trop</b>, surveille les roues.","<b>Cinq kilomètres</b> ! Vous avez {gap} : <b>le jeu du chat et de la souris commence</b>."],
+km3_brk:["<b>3 km</b> : {gap} d'avance. <b>Ne laisse partir personne</b>, reste dans la bonne roue.","Plus que <b>3 bornes</b> ! Si le peloton est loin, <b>c'est la bataille entre échappés</b> : reste placé.","<b>Trois kilomètres</b> : <b>ne mène pas le sprint trop tôt</b>, mais ne laisse pas d'espace."],
+km1_brk:["<b>Flamme rouge</b> ! Vous êtes devant : <b>place-toi dans la roue du plus fort</b>, lance au bon moment.","<b>Dernier kilomètre</b> : <b>ne te fais pas enfermer</b> par tes compagnons d'échappée.","<b>Un kilomètre</b> ! <b>Attends ton heure</b>, puis lance-toi sur les 250 derniers mètres."],
+m300_brk:["<b>300 mètres !</b> Lance ton sprint, <b>tout, tout, tout</b> !","<b>C'est maintenant</b> ! Sors de la roue et <b>envoie tout</b> !","<b>Sprint</b> ! Vous êtes devant, <b>donne tout</b> pour la victoire !"],
+prime_solo:["<b>{titre}</b> dans {dist} m : prime <b>{prime}</b>. <b>Tu es seul devant</b>, elle est pour toi : passe à ton rythme, <b>pas besoin de sprinter</b>.","<b>{titre}</b> dans {dist} m, prime <b>{prime}</b>. Personne ne te dispute : <b>prends-la sans te cramer</b>, tiens ton allure.","<b>{titre}</b> dans {dist} m : {prime} pour toi, <b>seul devant</b>. Garde le rythme, <b>ne gaspille rien</b>."],
+prime_brk:["<b>{titre}</b> dans {dist} m : prime <b>{prime}</b>. Tu es {rk}<sup>e</sup> dans l'échappée : <b>reste dans la roue</b> et <b>lance-toi à {w} W</b> sur les 200 derniers mètres.","<b>{titre}</b> dans {dist} m, prime <b>{prime}</b>. Vous êtes devant : <b>surveille tes compagnons</b>, balance {w} W à 200 m."],
+// ===== GROUPE DE POURSUITE (entre l'échappée et le peloton) =====
+chase_start:["Tu es dans un <b>groupe de poursuite</b>{avec} : l'échappée est à {gapA} devant, le peloton à {gap} derrière. <b>Roulez ensemble</b> pour revenir.","<b>Contre-attaque</b>{avec} ! Tu es entre l'échappée ({gapA} devant) et le peloton. <b>Relais réguliers</b>, on va chercher la tête.","Vous formez un <b>groupe de chasse</b>{avec} : {gapA} à combler sur la tête. <b>Collaborez</b>, chaque seconde compte."],
+chase_suivi:["Groupe de poursuite : <b>{gapA}</b> à combler sur la tête ({tend}), {gap} d'avance sur le peloton. Relais à {w} W. Réserve {wb} %.","Tu es à <b>{gapA}</b> de la tête ({tend}). <b>Relais fluides</b>, {w} W en tête. Réserve {wb} %.","L'échappée est à <b>{gapA}</b> ({tend}), le peloton à {gap} derrière. <b>Tout le monde relaie</b>, {w} W. Réserve {wb} %."],
+chase_craque:["Tu es <b>dans le rouge</b> dans le groupe de chasse : <b>laisse les autres relayer</b>, roule à {w} W dans la roue.","<b>Réserve vide</b> : ne prends plus de relais, <b>reste dans le dernier</b> pour ne pas perdre le contact.","Ça pique : <b>abrite-toi</b> dans le groupe, {w} W, <b>un relais court si tu peux</b>."],
+chase_repris:["Le peloton <b>vous reprend</b> : la contre-attaque s'arrête. <b>Dans les roues</b>, récupère.","<b>Jonction avec le peloton</b> : fin de la poursuite. <b>Abrite-toi</b> et attends le final."],
+plat_chase:["Plat : <b>roulez fort et fluide</b>, chaque relais compte pour revenir sur la tête.","Ligne droite : <b>relais courts</b>, enchaînez, <b>l'écart avec la tête doit fondre</b>.","Ça roule à plat dans le groupe de chasse : <b>ne laisse pas de trou</b>, passe-relais net."],
+descente_chase:["Descente : <b>gardez vos distances</b>, ne prenez pas de risque pour revenir : la tête n'est pas loin.","On descend : <b>relance à la sortie des virages</b>, mais <b>sans prendre de risque</b>."],
+montee_mid_chase:["Dans la pente, <b>chacun son rythme</b> : ne te grille pas pour suivre, tu peux recoller au sommet.","Ça grimpe : <b>reste régulier</b>, la tête peut revenir si elle faiblit."],
+montee_pied_chase:["La côte arrive : <b>reste groupé</b>, relance ensuite pour boucher le trou avec la tête.","Au pied de la montée : <b>garde un rythme régulier</b>, ne démarre pas trop fort."],
+tempo_chase:["Ça roule <b>très fort</b> dans la poursuite : <b>ne te laisse pas décrocher</b>, le trou se réduit.","Belle allure du groupe de chasse ! <b>Garde le contact</b>."],
+calme_chase:["La poursuite <b>tourne bien</b> : <b>relais réguliers</b>, on rapproche la tête.","Tout va bien : <b>reste concentré</b>, la tête n'est pas hors de portée."],
+danger_chase:["Attention aux <b>trajectoires</b> dans le groupe : ne te fais pas serrer.","Virage devant : <b>garde ta ligne</b>, la poursuite ne doit pas finir au sol."],
+encourage_chase:["<b>Belle poursuite</b> ! <b>Continuez</b>, la jonction est possible.","<b>Du caractère</b> : on revient, <b>relais, relais</b> !"],
+conseil_eco_chase:["Dans la roue, <b>détends-toi</b> : tu as besoin de jambes pour la jonction.","<b>Ne te cramer pas</b> trop tôt : si tu reviens, il faudra encore lutter."],
+km10_chase:["<b>10 km</b> : la tête est à {gapA}. <b>Il faut revenir</b> ou jouer la place.","Plus que <b>10 bornes</b>, tête à {gapA} : <b>relayez</b> pour recoller."],
+km5_chase:["<b>5 km</b> : tête à {gapA}. <b>Dernière chance</b> de revenir, relais maximum.","Plus que <b>5 bornes</b> : si la tête est trop loin, <b>assure ta place</b>."],
+km3_chase:["<b>3 km</b> : tête à {gapA}. <b>Soit on revient maintenant</b>, soit on joue la place.","Plus que <b>3 bornes</b>, tête à {gapA} : <b>tout donner</b> ou assurer."],
+km1_chase:["<b>Flamme rouge</b> : <b>sprint pour la place</b>, reste placé dans le groupe.","<b>Dernier kilomètre</b> : plus de retour possible sur la tête, <b>joue ta place</b>."],
+m300_chase:["<b>300 mètres</b> : <b>sprint pour la place</b>, tout, tout, tout !","<b>Lance-toi</b>, gagne une place !"],
+// ===== LÂCHÉ =====
+plat_drop:["Section plate : <b>roule à ton rythme</b>, tes équipiers te ramènent, <b>ne te cramer pas pour revenir seul</b>.","Ça roule à plat : <b>reste en aéro</b>, régulier, <b>le peloton n'est pas inaccessible</b>.","Ligne droite : <b>cadence ronde</b>, tu peux revenir à ton rythme si les copains t'aident."],
+descente_drop:["Descente : <b>ne prends pas de risque pour revenir</b>, relance à la sortie des virages.","On descend : <b>tu peux recoller</b> sans te mettre dans le rouge, prudence dans les virages."],
+montee_mid_drop:["Dans la côte, <b>fais ton rythme</b> : inutile de suivre les costauds, <b>tu limites les dégâts</b>.","Ça grimpe : <b>reste régulier</b>, l'écart ne doit pas exploser."],
+montee_pied_drop:["Au pied de la côte, <b>pas de panique</b> : monte à ton rythme, <b>tu récupères en haut</b>.","La montée arrive : <b>cadence souple</b>, <b>ne te cramer pas</b> à courir derrière."],
+tempo_drop:["Le peloton roule vite : <b>ne cherche pas à revenir seul</b>, vise le groupe suivant.","Ça file devant : <b>gère ton effort</b>, tu n'as pas à te griller."],
+calme_drop:["Tu es à ton rythme : <b>respire</b>, bois, reprends des forces.","<b>Concentre-toi sur ta régularité</b> : les copains arrivent."],
+danger_drop:["Seul derrière : <b>personne pour t'ouvrir</b>, prudence dans les virages.","Attention : <b>un coup de frein inutile</b> et tu perds encore du temps."],
+encourage_drop:["<b>Accroche-toi</b>, la course n'est pas finie.","Tu as <b>encore des ressources</b> : <b>un coup de pédale après l'autre</b>."],
+conseil_eco_drop:["<b>Mange et bois</b> pendant que tu roules seul : tu récupères.","Ne te cramer pas pour rien : <b>gère</b> jusqu'à l'arrivée."],
+km10_drop:["<b>10 km</b> : tu es à {gap} du peloton. <b>Assure ta place</b>, ne te cramer pas.","Plus que <b>10 bornes</b> : <b>finis proprement</b>, {gap} de retard."],
+km5_drop:["<b>5 km</b> : <b>finis à ton rythme</b>, {gap} de retard.","Plus que <b>5 bornes</b> : assure ta place, pas de risque."],
+km3_drop:["<b>3 km</b> : tiens ton rythme, <b>finis proprement</b>.","Plus que <b>3 bornes</b> : <b>garde un peu de jus</b> pour finir."],
+km1_drop:["<b>Dernier kilomètre</b> : <b>finis fort</b> pour la dignité.","<b>Flamme rouge</b> : donne ce qu'il te reste."],
+m300_drop:["<b>300 mètres</b> : sprint pour finir, <b>donne tout</b> !","C'est <b>la dernière ligne droite</b>, <b>allez</b> !"]
+});
+
 const DSBAD=/female|femme|amélie|amelie|marie|julie|hortense|audrey|léa|denise|eloise|céline|celine|sylvie|brigitte|chantal/i;
 function dsAllVoices(){try{return self.speechSynthesis?speechSynthesis.getVoices():[]}catch(e){return[]}}
 function dsVoices(){return dsAllVoices().filter(x=>/^fr|^fra/i.test(x.lang)||/fran|french|\bfr[-_]/i.test(x.name))}
@@ -7720,6 +7811,7 @@ function cmpCross(type,i,r){if(CMP.kind!=='race')return;const arr=type==='s'?CMP
 // avant une ligne de sprint ou un sommet : si tu es bien placé pour la prime, le directeur sportif te le dit
 function cmpPrimeDS(type,dLine,title,pts,bn){const me=CMP.me,list=[me,...CMP.R].filter(r=>r.fin==null||r===me),rk=1+list.filter(r=>r.d>me.d).length,w=me.wbal>.35*me.wp,P=Math.round(cmpPmax(15)),dist=Math.round(dLine-me.d);
  const prime=(pts[0]||0)+' pts'+(bn[0]?' et '+bn[0]+' s de bonification':'');
+ {const S=CMP.sit;if(S&&S.mode==='solo'){cRadio(dsF('prime_solo',{titre:title,dist:dist,prime:prime}));return}if(S&&(S.mode==='duo'||S.mode==='break')&&rk<=3){cRadio(dsF('prime_brk',{titre:title,dist:dist,prime:prime,rk:rk,w:P}));return}}
  if(rk<=3&&w)cRadio(dsF('sprint_prime',{titre:title,dist:dist,prime:prime,rk:rk,w:P}));
  else if(rk<=8&&me.wbal>.3*me.wp)cRadio(dsF('sprint_prime_poss',{titre:title,dist:dist,prime:prime,rk:rk,w:P}))}
 function cmpRider(r,dt,solo,list,idx,ctx){if(r.fin!=null&&CMP.kind!=='clm'){r.v=Math.max(0,r.v-dt*1.2);r.P=0}
@@ -7859,49 +7951,89 @@ function cmpAdvice(att,gapS,sec){const c=cmpAdvCalc(att,gapS,sec),w='<b>'+c.need
  if(c.k==='go')return dsP(['<b>Il faut y aller</b>, saute maintenant ! Pour les rattraper : '+w+cap+'. Allez, en danseuse, dans la roue !','<b>Vas-y, c\'est le moment !</b> Pour recoller : '+w+cap+'. Tu tiens, tu les ramènes.','<b>Go, go, go !</b> Colle-toi à eux : '+w+cap+'.']);
  if(c.k==='wait')return dsP(['<b>Temporise</b>, ne pars pas seul. Pour les revoir il faudrait '+w+', et tu ne peux que '+c.pm+' W. Reste au chaud'+(CMP.ord==='chas'||CMP.ord==='train'?'.':' ; touche 🎯 Chasse ou 🚆 Train pour que les gars fassent le travail.'),'<b>Pas maintenant</b>, tu te cramerais : '+w+' pour les rattraper, c\'est trop'+cap+'. Garde ta réserve pour plus tard.']);
  return dsP(['<b>Laisse-les partir</b>, ils ne sont pas dangereux. Les rattraper coûterait '+w+' : pas la peine, suis le peloton à <b>'+pw+' W</b>.','<b>On ne bouge pas</b>, ils ne nous font pas peur. Suis les roues à <b>'+pw+' W</b>, économise.'])}
+// ---- situation du joueur : seul, à deux, échappée, poursuite, peloton, lâché (version x) ----
+// tous les commentaires du directeur sportif en dépendent (dsM choisit la banque de phrases selon la situation)
+function dsM(k,v){const m=CMP.sit?CMP.sit.mode:'pack',c=[k+'_'+m];if(m==='duo')c.push(k+'_break');for(const x of c)if(DSB[x])return dsF(x,v);return dsF(k,v)}
+function cmpSoloW(){const me=CMP.me,E=CMP.ev,T=CMP.T;if(E.swT==null||T-E.swT>20||T<E.swT){E.swT=T;try{E.sw=Math.round(cPacing(me.d,CMP.L,me.fe,Math.max(0,me.wbal),me.m,me.cda,true,FTP).P)}catch(x){E.sw=null}}return E.sw||Math.round(me.fe*.9)}
+function cmpSitu(G,pack){const me=CMP.me,T=CMP.T,gi=G.findIndex(g=>g.R.includes(me)),pi=G.indexOf(pack);if(gi<0)return CMP.sit=null;
+ const g=G[gi],mates=g.R.filter(r=>r!==me),v=Math.max(me.v,5),behind=G[gi+1]||null,ahead=gi>0?G[gi-1]:null;
+ const mode=gi===pi?'pack':gi>pi?'drop':gi===0?(mates.length?(mates.length===1?'duo':'break'):'solo'):'chase';
+ const gapB=behind?Math.max(0,(me.d-behind.front)/v):0,gapA=ahead?Math.max(0,(ahead.tail-me.d)/v):0,H=CMP.sh||(CMP.sh={m:null,a:[]}),gm=mode==='chase'?gapA:gapB;
+ if(H.m!==mode||(H.a.length&&T<H.a[H.a.length-1][0])){H.m=mode;H.a=[]}
+ if(!H.a.length||T-H.a[H.a.length-1][0]>=5){H.a.push([T,gm]);while(H.a.length>2&&T-H.a[0][0]>70)H.a.shift()}
+ const a0=H.a[0],dt=T-a0[0],tr=dt>8?(gm-a0[1])/dt*30:0,rem=CMP.L-me.d,projB=mode==='chase'?gapB:gapB+(tr/30)*(rem/v),fin=gapB<6||projB<6?'lost':projB<20?'tight':'safe';
+ return CMP.sit={mode,ahead:mode==='solo'||mode==='duo'||mode==='break'||mode==='chase',mates,gapB,gapA,tr,fin,ch:behind?behind.R[0]:null,chT:behind?behind.R.filter(r=>r.team===0&&r!==me):[]}}
+function cmpTend(S){const t=S.tr;if(Math.abs(t)<3)return 'stable';if(S.mode==='chase')return t<0?'on revient, '+Math.round(t)+' s':'<b>ils s\'éloignent</b>, +'+Math.round(t)+' s';return t>0?'ça augmente, +'+Math.round(t)+' s':'<b>ça baisse</b>, '+Math.round(t)+' s'}
+function cmpSitV(S,rem){return{gap:cGapTxt(S.gapB),gapA:cGapTxt(S.gapA),w:cmpSoloW(),wb:cmpWb(),rem:cKm(rem),tend:cmpTend(S),team:S.ch?cTeamName(S.ch.team):'peloton',names:S.chT.slice(0,3).map(r=>'<b>'+r.name+'</b>').join(', '),avec:S.mates.length?' avec '+S.mates.slice(0,3).map(r=>r.name).join(', '):''}}
+function cmpMark(k,S,rem){if(!S||S.mode==='pack')return '';const V=cmpSitV(S,rem),mk=S.mode==='duo'||S.mode==='break'?'brk':S.mode;
+ if(k==='m300')return mk==='solo'?dsF('m300_solo_'+(S.fin==='safe'?'safe':'tight'),V):dsF('m300_'+mk,V);
+ let t=dsF(k+'_'+mk,V);if(mk==='solo')t+=' '+dsF('fin_solo_'+S.fin,V);return t}
+function cmpLeadTxt(){const S=CMP.sit;if(!S||S.mode==='pack')return 'Tu es en tête !';if(S.mode==='solo')return 'Seul en tête · '+cGapTxt(S.gapB)+' d\'avance';return 'En tête à '+(S.mates.length+1)+' · '+cGapTxt(S.gapB)+' d\'avance'}
+function cmpResAdvice(wb){const al=CMP.sit&&CMP.sit.mode==='solo';return wb>65?'<b>tu as de la marge</b>, tu peux relancer si besoin.':wb>30?(al?'<b>gère</b> : seul devant, la régularité paie.':'<b>gère</b>, ne gaspille rien, reste dans les roues.'):(al?'<b>tu es dans le rouge</b> : allège le braquet, reste aéro, ne t\'arrête pas.':'<b>tu es dans le rouge</b>, abrite-toi et récupère.')}
+// changements de situation (stables 4 s) et points réguliers selon la situation
+function cmpSituDS(S,rem){const me=CMP.me,E=CMP.ev,T=CMP.T;if(!S)return;const m=S.mode;
+ if(m!==E.smc||T<(E.smt||0)){E.smc=m;E.smt=T}if(T-E.smt<4)return;
+ const V=cmpSitV(S,rem);
+ if(m!==E.sm){const from=E.sm;E.sm=m;E.sT=T;let t='';
+  if(m==='solo'){t=dsF(from==='duo'||from==='break'?'solo_from_break':'solo_start',V);if(S.chT.length&&Math.random()<.6)t+=' '+dsF('solo_mates',V)}
+  else if(m==='duo')t=dsF('duo_start',V);
+  else if(m==='break')t=dsF('echappe',{avec:V.avec,gap:V.gap});
+  else if(m==='chase')t=dsF('chase_start',V);
+  else if(m==='pack'){if(from==='solo')t=dsF('solo_repris_pack',V);else if(from==='duo'||from==='break')t=dsF('echappe_repris',V);else if(from==='chase')t=dsF('chase_repris',V)}
+  else if(m==='drop'&&from==='solo'){t=dsF('solo_repris_drop',V);E.dropT=T}
+  if(t){E.mdT=T;cRadio(t)}return}
+ const iv=m==='solo'?50:(m==='duo'||m==='break'||m==='chase')?70:1e9;
+ if(iv<1e8&&T-(E.sT||0)>iv&&T-(E.mdT||-1e9)>15&&T-(E.gT||-1e9)>8&&me.wbal>=.2*me.wp){E.sT=T;E.mdT=T-25;let t='';
+  if(m==='solo'){const k=S.gapB<8?'solo_danger':(S.fin==='lost'||S.tr<-6)?'solo_suivi_down':(rem<6000&&S.fin==='safe')?'solo_safe':S.tr>6?'solo_suivi_up':'solo_suivi_flat';t=dsF(k,V);if(S.chT.length&&Math.random()<.25)t+=' '+dsF('solo_mates',V)}
+  else if(m==='duo')t=dsF('duo_suivi',V);
+  else if(m==='break'){const g2=cGrade(me.d+30),vh=Math.max(6,(CMP.R.find(r=>r.st==='pack')||me).v+.5),ph=Math.min(Math.round(me.fe*1.2),Math.round(powFor(vh,g2,me.m,me.cda,.2)));t=dsF('echappe_suivi',{gap:V.gap,tend:V.tend,w:ph,wb:V.wb})+(rem<8000?' Plus que '+V.rem+' : garde un peu pour le sprint.':'')}
+  else if(m==='chase')t=dsF('chase_suivi',V);
+  if(t)cRadio(t)}}
 function cmpEvents(G,pack,list){const me=CMP.me,E=CMP.ev,T=CMP.T,rem=CMP.L-me.d,crossed=x=>(E.lr==null?CMP.L:E.lr)>=x&&rem<x;
  if(CMP.kind==='clm'){// directeur sportif : avance / retard à chaque kilomètre, avec les watts pour battre le meilleur
   {const k=Math.floor(me.d/1000);if(k>=1&&!E['d'+k]&&rem>300){E['d'+k]=1;cmpClmDS(k)}}
   const mm=CMP.R[CMP.R.length-1];if(mm&&mm.fin==null&&!E.mm&&T>90){E.mm=1;const gp=(mm.d-me.d)/Math.max(me.v,5);if(gp>0)cRadio(dsF('clm_mm',{name:mm.name,gap:cGapTxt(gp)}))}
   if(rem<1000&&!E.km1){E.km1=1;cRadio(dsF('clm_dernier_km'))}return}
  if(!pack||T<60||me.d<400)return;
- for(const r of pack.R){if(r.st==='att'&&!r.anc&&r!==me){r.anc=1;if(T-(E.attT||-1e9)>25&&!CMP.brk.size){E.attT=T;cRadio(dsF('attaque',{name:r.name,team:cTeamName(r.team)})+' '+cmpAdvice([r],3,45))}}else if(r.st!=='att')r.anc=0}
+ const SIT=cmpSitu(G,pack);
+ for(const r of pack.R){if(r.st==='att'&&!r.anc&&r!==me){r.anc=1;if(T-(E.attT||-1e9)>25&&!CMP.brk.size&&!(SIT&&SIT.ahead)){E.attT=T;cRadio(dsF('attaque',{name:r.name,team:cTeamName(r.team)})+' '+cmpAdvice([r],3,45))}}else if(r.st!=='att')r.anc=0}
  const brkG=G.filter(x=>x.front>pack.front+5),brkR=brkG.flatMap(g=>g.R).filter(r=>r!==me),meIn=brkG.some(g=>g.R.includes(me)),meDrop=G.indexOf(pack)<G.findIndex(g=>g.R.includes(me))&&!meIn;
  const ids=new Set(brkR.map(r=>r.id)),gapS=brkG.length?(brkG[0].front-pack.front)/Math.max(pack.R[0].v,5):0;
  const names=a=>a.slice(0,4).map(r=>r.name+' ('+cTeamName(r.team)+')').join(', ')+(a.length>4?' et '+(a.length-4)+' autres':'');
- if(ids.size&&![...ids].every(i=>CMP.brk.has(i))&&gapS>4&&(!CMP.brk.size||T-(E.gT||-1e9)>40)){{const nr=cmpBrkNear(brkR),hasG=!!cmpGcOf(brkR[0]);cRadio(dsF('brk')+' '+brkR.length+' coureur'+(brkR.length>1?'s':'')+', <b>'+cGapTxt(gapS)+'</b> d\'avance. '+(hasG?'Les plus proches au général : ':'On y trouve : ')+nr.map(cmpGcTxt).join(' ; ')+'. '+(meIn?'':cmpAdvice(brkR,gapS,120)))}E.gT=T;E.gD=me.d;E.gap0=gapS}
+ if(ids.size&&![...ids].every(i=>CMP.brk.has(i))&&gapS>4&&(!CMP.brk.size||T-(E.gT||-1e9)>40)&&(!meIn||(SIT&&SIT.mode==='chase'))){{const nr=cmpBrkNear(brkR),hasG=!!cmpGcOf(brkR[0]);cRadio(dsF('brk')+' '+brkR.length+' coureur'+(brkR.length>1?'s':'')+', <b>'+cGapTxt(gapS)+'</b> d\'avance. '+(hasG?'Les plus proches au général : ':'On y trouve : ')+nr.map(cmpGcTxt).join(' ; ')+'. '+(meIn?'':cmpAdvice(brkR,gapS,120)))}E.gT=T;E.gD=me.d;E.gap0=gapS}
  else if(ids.size&&(T-(E.gT||0)>75||me.d-(E.gD||0)>2500)&&!meIn){E.gT=T;E.gD=me.d;const ch=pack.R[0],tr=gapS-(E.gap0==null?gapS:E.gap0),tt=Math.abs(tr)<4?'stable':tr>0?'<b>elle prend du temps</b> (+'+Math.round(tr)+' s)':'<b>on revient</b> ('+Math.round(tr)+' s)';E.gap0=gapS;
   {const nr=cmpBrkNear(brkR);cRadio(dsF('brk_ecart',{gap:cGapTxt(gapS),tt:tt,rem:cKm(rem)})+(nr[0]&&cmpGcOf(nr[0])?' Le plus menaçant : '+cmpGcTxt(nr[0])+'.':'')+(ch&&ch!==me?' Les '+cTeamName(ch.team)+' roulent derrière.':'')+' '+cmpAdvice(brkR,gapS,Math.max(60,Math.min(240,gapS*3))))}}
- if(CMP.brk.size&&!ids.size&&!meIn)cRadio(dsF('reprise'));
+ if(CMP.brk.size&&!ids.size&&!meIn&&!(E.sm&&E.sm!=='pack'&&E.sm!=='drop'))cRadio(dsF('reprise'));
  CMP.brk=ids;
  {const bt=cmpEvents.bt||(cmpEvents.bt={t:T,g:gapS,tr:0});if(T-bt.t>10||T<bt.t){bt.tr=T<bt.t?0:gapS-bt.g;bt.t=T;bt.g=gapS}
-  if(ids.size||meIn){const R=meIn?brkG.flatMap(g=>g.R).filter(r=>r!==me):brkR,ga=meIn?(me.d-pack.front)/Math.max(me.v,5):gapS;CMP.bw={gap:ga,R,near:cmpBrkNear(R),meIn,tr:meIn?0:bt.tr,adv:meIn?null:cmpAdvCalc(R,gapS,Math.max(60,Math.min(240,gapS*3)))}}else CMP.bw=null}
- if(meIn&&!E.meIn){E.meIn=1;E.inT=T;E.gap1=null;const ga=(me.d-pack.front)/Math.max(me.v,5);cRadio(dsF('echappe',{avec:(brkR.length?' avec '+names(brkR):''),gap:cGapTxt(ga)}))}
- if(meIn&&E.meIn&&T-(E.inT||0)>70){E.inT=T;const ga=(me.d-pack.front)/Math.max(me.v,5),g2=cGrade(me.d+30),vh=Math.max(6,pack.R[0].v+.5),ph=Math.round(powFor(vh,g2,me.m,me.cda,brkR.length?.2:0)),tr=ga-(E.gap1==null?ga:E.gap1);E.gap1=ga;
-  cRadio((me.wbal<.25*me.wp?'<b>'+cGapTxt(ga)+'</b> d\'avance. '+dsF('echappe_craque',{w:Math.round(me.fe*.85)}):dsF('echappe_suivi',{gap:cGapTxt(ga),tend:(Math.abs(tr)<3?'stable':tr>0?'ça augmente':'<b>ça baisse</b>'),w:ph,wb:cmpWb()}))+(rem<8000?' Plus que '+cKm(rem)+' : garde un peu pour le sprint.':''))}
- if(!meIn)E.meIn=0;
+  if(ids.size||meIn){const R=meIn?brkG.flatMap(g=>g.R).filter(r=>r!==me):brkR,ga=meIn?(me.d-pack.front)/Math.max(me.v,5):gapS;CMP.bw={gap:ga,R,near:R.length?cmpBrkNear(R):[],meIn,sit:SIT,mode:SIT?SIT.mode:'pack',tr:meIn&&SIT?SIT.tr:bt.tr,adv:meIn?null:cmpAdvCalc(R,gapS,Math.max(60,Math.min(240,gapS*3)))}}else CMP.bw=null}
+ cmpSituDS(SIT,rem);
  if(meDrop&&T-(E.dropT||-1e9)>60){E.dropT=T;const gb=(pack.tail-me.d)/Math.max(me.v,5);cRadio(dsF('lache',{gap:cGapTxt(gb)})+' '+(CMP.ord!=='free'?dsF('lache_suite'):'<b>Accroche-toi</b>, ne baisse pas la tête !'));if(CMP.ord!=='free')cmpOrder('prot',true)}
  for(const sp of CMP.sprints){const d=sp.d-me.d;if(d<900&&d>250&&!E['ps'+sp.i]){E['ps'+sp.i]=1;cmpPrimeDS('s',sp.d,'Sprint intermédiaire',CSPP,CBON)}}
  for(const c of CMP.climbs){const d=c.d1-me.d;if(d<800&&d>250&&!E['pk'+c.i]&&me.kom[c.i]==null){E['pk'+c.i]=1;cmpPrimeDS('k',c.d1,'Sommet',cmpKP(c),c.dp>=150?CBON:[])}}
  // montées
- for(const c of CMP.climbs){if(!E['c'+c.i]&&c.d0-me.d<1200&&c.d0-me.d>0){E['c'+c.i]=1;cRadio(dsF('montee_info',{dist:cKm(c.d0-me.d),len:nf(c.len/1000,1),pct:nf(c.avg*100,1)})+' '+dsF('montee_pied'))}
+ for(const c of CMP.climbs){if(!E['c'+c.i]&&c.d0-me.d<1200&&c.d0-me.d>0){E['c'+c.i]=1;cRadio(dsF('montee_info',{dist:cKm(c.d0-me.d),len:nf(c.len/1000,1),pct:nf(c.avg*100,1)})+' '+dsM('montee_pied'))}
   if(!E['k'+c.i]&&me.d>c.d1+30){E['k'+c.i]=1;const order=CMP.R.filter(r=>r.kom[c.i]!=null).sort((a,b)=>a.kom[c.i]-b.kom[c.i]);if(order[0]){const mt=me.kom[c.i];cRadio(dsF('sommet',{name:order[0].name,team:cTeamName(order[0].team)})+(mt!=null?' '+dsF('sommet_toi',{n:order.filter(r=>r.kom[c.i]<mt).length+1}):''))}}}
- if(crossed(10000)&&!E.k10){E.k10=1;cRadio(dsF('km10',{suite:dsF(meIn?'km10_in':'km10_out')}))}
- if(crossed(5000)&&!E.k5){E.k5=1;cRadio(dsF('km5'))}
- if(crossed(3000)&&!E.k3){E.k3=1;cRadio(dsF('km3',{suite:dsF(CMP.ord==='lead'?'km3_lead':'km3_other')}))}
- if(crossed(1000)&&!E.k1){E.k1=1;cRadio(dsF('km1'))}
- if(crossed(300)&&!E.k03){E.k03=1;cRadio(dsF('m300'))}
+ if(crossed(10000)&&!E.k10){E.k10=1;cRadio(cmpMark('km10',SIT,rem)||dsF('km10',{suite:dsF(meIn?'km10_in':'km10_out')}))}
+ if(crossed(5000)&&!E.k5){E.k5=1;cRadio(cmpMark('km5',SIT,rem)||dsF('km5'))}
+ if(crossed(3000)&&!E.k3){E.k3=1;cRadio(cmpMark('km3',SIT,rem)||dsF('km3',{suite:dsF(CMP.ord==='lead'?'km3_lead':'km3_other')}))}
+ if(crossed(1000)&&!E.k1){E.k1=1;cRadio(cmpMark('km1',SIT,rem)||dsF('km1'))}
+ if(crossed(300)&&!E.k03){E.k03=1;cRadio(cmpMark('m300',SIT,rem)||dsF('m300'))}
  cmpMood(pack,meDrop,meIn,rem);cmpGcDS(rem);E.lr=rem}
 
 // ---- le DS improvise selon l'état de forme et la course ----
 function cmpMood(pack,meDrop,meIn,rem){const me=CMP.me,E=CMP.ev,T=CMP.T,w=me.wbal/me.wp;if(T-(E.mdT||-1e9)<45||me.fin!=null)return;
- const gb=pack?Math.max(0,(pack.tail-me.d)/Math.max(me.v,5)):0;
- if(w<.2&&(meDrop||gb>6||meIn)){E.mdT=T;E.cr=(E.cr||0)+1;E.crk=1;
-  cRadio(E.cr>2&&gb>25?dsF('craque_perdu'):dsF('craque',{gap:cGapTxt(gb)}));return}
- if(E.crk&&w>.5&&!meDrop&&gb<4){E.crk=0;E.cr=0;E.mdT=T;cRadio(dsF('retour'));return}
- if(!meIn&&!meDrop&&rem>2500&&T-(E.pT||-1e9)>95&&T-(E.gT||-1e9)>20){E.pT=T;E.mdT=T-20;const g=cGrade(me.d+40),sp=pack.R.length?pack.R[0].v:me.v;let k;if(g>.035)k='montee_mid';else if(g<-.03)k='descente';else if(sp>11.5)k='tempo';else k=dsP(['calme','plat','plat','danger','encourage','conseil_eco','calme']);cRadio(dsF(k));return}
+ const S=CMP.sit,m=S?S.mode:'pack',gb=pack?Math.max(0,(pack.tail-me.d)/Math.max(me.v,5)):0,V=S?cmpSitV(S,rem):{};
+ if(w<.2&&(meDrop||gb>6||meIn)){E.mdT=T;E.cr=(E.cr||0)+1;E.crk=1;const ph=Math.round(me.fe*.85);let t;
+  if(m==='solo')t=dsF('solo_craque',V);else if(m==='duo'||m==='break')t=dsF('echappe_craque',{w:ph});else if(m==='chase')t=dsF('chase_craque',{w:ph});else t=E.cr>2&&gb>25?dsF('craque_perdu'):dsF('craque',{gap:cGapTxt(gb)});
+  cRadio(t);return}
+ if(E.crk&&w>.5&&!meDrop&&(gb<4||meIn)){E.crk=0;E.cr=0;E.mdT=T;cRadio(m==='solo'?dsF('solo_recup',V):(m==='duo'||m==='break'||m==='chase')?dsF('echappe_recup',V):dsF('retour'));return}
+ if(rem>2500&&T-(E.pT||-1e9)>95&&T-(E.gT||-1e9)>20&&T-(E.sT||-1e9)>25){E.pT=T;E.mdT=T-20;const g=cGrade(me.d+40),sp=(m==='pack'||m==='drop')&&pack&&pack.R.length?pack.R[0].v:me.v;let k;
+  if(g>.035)k='montee_mid';else if(g<-.03)k='descente';else if(sp>11.5)k='tempo';else k=m==='pack'?dsP(['calme','plat','plat','danger','encourage','conseil_eco','calme']):dsP(['calme','plat','plat','danger','encourage','conseil_eco']);
+  cRadio(dsM(k,V));return}
  const all=[me,...CMP.R].filter(r=>r.fin==null).sort((a,b)=>b.d-a.d),rk=all.indexOf(me)+1;
- if(rk<=3&&w>.55&&T-(E.gdT||-1e9)>150&&rem>2000){E.gdT=T;E.mdT=T;cRadio(dsF('bien_place'))}}
+ if(m==='pack'&&rk<=3&&w>.55&&T-(E.gdT||-1e9)>150&&rem>2000){E.gdT=T;E.mdT=T;cRadio(dsF('bien_place'))}}
+
 function cmpFinalWords(mine,rows,ld0,isStg){const S=isStg?cmpLoad():null,L=S&&S.gc?Object.entries(S.gc).sort((a,b)=>a[1]-b[1]):[],ld1=L.length?+L[0][0]:null,myR=L.findIndex(x=>+x[0]===-1)+1,t=[];
  if(mine.pos===1)t.push(dsF('victoire'));
  else if(mine.pos<=3)t.push(dsF('podium',{n:mine.pos}));
@@ -7981,13 +8113,13 @@ function voxAnswer(t){const q=VXQ.find(x=>x[1].test(t));if(!q)return false;const
  const tg=CMP.coach&&CMP.coach.tg&&CMP.coach.ci!==-1?CMP.coach.tg:Math.round(me.fe*.8),wb=Math.round(100*me.wbal/me.wp);
  let a='';
  if(clm&&['echap','danger','mates','gc'].includes(k))a='Ça n\'existe pas en contre-la-montre : tu es seul sur la route. Ta réserve est de <b>'+cmpWb()+' %</b>, tiens <b>'+tg+' W</b>.';
- else if(k==='echap'){const b=CMP.bw;if(!b)a='Pas d\'échappée pour l\'instant : <b>tout le monde est ensemble</b>.';else if(b.meIn)a='Tu es <b>dans l\'échappée</b> : <b>'+cGapTxt(b.gap)+'</b> d\'avance sur le peloton, réserve <b>'+cmpWb()+' %</b>.';
+ else if(k==='echap'){const b=CMP.bw;if(!b)a='Pas d\'échappée pour l\'instant : <b>tout le monde est ensemble</b>.';else if(b.meIn)a=b.mode==='solo'?'Tu es <b>seul en tête</b> : <b>'+cGapTxt(b.gap)+'</b> d\'avance sur le peloton. Pas de relais possible : <b>tout donner</b>, tiens <b>'+cmpSoloW()+' W</b>, réserve <b>'+cmpWb()+' %</b>.':b.mode==='chase'?'Tu es dans le <b>groupe de poursuite</b> : la tête est à <b>'+cGapTxt(CMP.sit?CMP.sit.gapA:0)+'</b>, réserve <b>'+cmpWb()+' %</b>.':'Tu es <b>dans l\'échappée</b> : <b>'+cGapTxt(b.gap)+'</b> d\'avance sur le peloton, réserve <b>'+cmpWb()+' %</b>.';
   else{const tr=b.tr;a='L\'échappée a <b>'+cGapTxt(b.gap)+'</b> d\'avance ('+(Math.abs(tr)<3?'stable':tr>0?'<b>elle prend du temps</b>':'<b>on revient</b>')+'). '+b.near.map(cmpGcTxt).join(' ; ')+'. '+cmpAdvice(b.R,b.gap,Math.max(60,Math.min(240,b.gap*3)))}}
- else if(k==='reserve')a='Ta réserve est de <b>'+cmpWb()+' %</b> : '+(wb>65?'<b>tu as de la marge</b>, tu peux relancer si besoin.':wb>30?'<b>gère</b>, ne gaspille rien, reste dans les roues.':'<b>tu es dans le rouge</b>, abrite-toi et récupère.');
- else if(k==='watts')a='Tiens <b>'+tg+' W</b> pour l\'instant'+(clm?' (cible du coach)':'')+'. Réserve <b>'+cmpWb()+' %</b>.';
+ else if(k==='reserve')a='Ta réserve est de <b>'+cmpWb()+' %</b> : '+cmpResAdvice(wb);
+ else if(k==='watts')a='Tiens <b>'+(CMP.sit&&CMP.sit.mode==='solo'?cmpSoloW():tg)+' W</b> pour l\'instant'+(clm?' (cible du coach)':'')+'. Réserve <b>'+cmpWb()+' %</b>.';
  else if(k==='reste'||k==='next'){const nx=[...(CMP.sprints||[]).filter(x=>x.d>me.d).map(x=>({d:x.d,t:'sprint intermédiaire'})),...(CMP.climbs||[]).filter(c=>c.d1>me.d).map(c=>({d:c.d1,t:'sommet'}))].sort((x,y)=>x.d-y.d)[0];
   a=k==='next'?(nx?'Prochain '+nx.t+' dans <b>'+cKm(nx.d-me.d)+'</b>.':'Plus de sprint ni de sommet avant l\'arrivée.'):'Il reste <b>'+cKm(rem)+'</b>.'+(nx?' Prochain '+nx.t+' dans <b>'+cKm(nx.d-me.d)+'</b>.':'')}
- else if(k==='place'){if(clm)return cmpDsNow(),voxMsg('🎤 Compris : <b>ta place</b>',2000),true;const vp=Math.max(5,lead.v||8);a=rk===1?'Tu es <b>en tête</b> de la course.':'Tu es <b>'+rk+'<sup>e</sup></b>, la tête est à <b>'+cGapTxt((lead.d-me.d)/vp)+'</b>.'}
+ else if(k==='place'){if(clm)return cmpDsNow(),voxMsg('🎤 Compris : <b>ta place</b>',2000),true;const vp=Math.max(5,lead.v||8);a=rk===1?(CMP.sit&&CMP.sit.mode==='solo'?'Tu es <b>seul en tête</b>, <b>'+cGapTxt(CMP.sit.gapB)+'</b> d\'avance.':'Tu es <b>en tête</b> de la course.'):'Tu es <b>'+rk+'<sup>e</sup></b>, la tête est à <b>'+cGapTxt((lead.d-me.d)/vp)+'</b>.'}
  else if(k==='gc'){const G=cmpGcVirt();if(!G)a='Pas de classement général en direct sur cette course (course par étapes, à partir de l\'étape 2).';else a=G.my===1?'Au <b>général virtuel</b> tu portes le <b>jaune</b>'+(G.behind?', avance de <b>'+cGapTxt(G.behind.t-G.y.t)+'</b> sur '+esc(G.behind.r.name)+' ('+cTeamName(G.behind.r.team)+').':'.'):'Au <b>général virtuel</b> tu es <b>'+G.my+'<sup>e</sup></b>, à <b>'+cGapTxt(G.gy)+'</b> du jaune ('+esc(G.y.r.name)+', '+cTeamName(G.y.r.team)+')'+(G.behind&&G.behind.t-G.L[G.my-1].t<25?'. '+esc(G.behind.r.name)+' est à '+cGapTxt(G.behind.t-G.L[G.my-1].t)+' derrière toi.':'.')}
  else if(k==='danger'){const d=CMP.R.filter(r=>CMP.dg&&CMP.dg.has(r.id)&&r.fin==null).sort((x,y)=>Math.abs(x.d-me.d)-Math.abs(y.d-me.d)).slice(0,3);
   a=d.length?'Surveille '+d.map(r=>{const gs=(r.d-me.d)/Math.max(me.v,5);return '<b>'+r.name+'</b> ('+cTeamName(r.team)+'), '+(Math.abs(gs)<2?'dans ta roue':'à '+cGapTxt(Math.abs(gs))+(gs>0?' devant':' derrière'))}).join(' ; ')+'.':'<b>Aucun danger</b> au général pour l\'instant.'}
@@ -8018,7 +8150,7 @@ function cmpGcVirt(){if(!CMP.on||CMP.kind!=='race'||!CMP.stageK)return null;cons
 function cmpGcDS(rem){const E=CMP.ev,T=CMP.T,g=cmpGcVirt();if(!g||rem<1500||T-(E.gvT||-1e9)<60||T-(E.mdT||-1e9)<12||T-(E.gT||-1e9)<12)return;
  const me=CMP.me,yid=g.y.r.id,first=E.gvR==null,chY=!first&&yid!==E.gvY,chR=!first&&g.my!==E.gvR,per=T-(E.gvT||-1e9)>240;
  let t='';
- if(chY&&yid===-1)t=dsP(['<b>Tu es maillot jaune virtuel</b> ! Tu prends la tête du général : défends-le, reste dans les roues.','<b>Jaune virtuel pour toi</b> ! Avance sur '+(g.behind?esc(g.behind.r.name)+' : <b>'+cGapTxt(g.behind.t-g.y.t)+'</b>':'tous')+'. Ne te découvre pas.']);
+ if(chY&&yid===-1)t=dsP(['<b>Tu es maillot jaune virtuel</b> ! Tu prends la tête du général : défends-le, '+(CMP.sit&&CMP.sit.ahead?'ne faiblis pas, garde ton rythme':'reste dans les roues')+'.','<b>Jaune virtuel pour toi</b> ! Avance sur '+(g.behind?esc(g.behind.r.name)+' : <b>'+cGapTxt(g.behind.t-g.y.t)+'</b>':'tous')+'. Ne te découvre pas.']);
  else if(chY&&E.gvY===-1)t='<b>Tu perds le jaune virtuel</b> : '+esc(g.y.r.name)+' ('+cTeamName(g.y.r.team)+') passe devant au général, tu es <b>'+g.my+'<sup>e</sup></b> à <b>'+cGapTxt(g.gy)+'</b>. Il faut <b>réagir</b>.';
  else if(chR)t=(g.my<E.gvR?dsP(['Tu <b>remontes au général virtuel</b> : <b>'+g.my+'<sup>e</sup></b>','<b>Bien joué</b>, tu passes <b>'+g.my+'<sup>e</sup></b> au général virtuel']):dsP(['Tu <b>recules au général virtuel</b> : <b>'+g.my+'<sup>e</sup></b>','Attention, tu redescends <b>'+g.my+'<sup>e</sup></b> au général virtuel']))+(g.my>1?', à <b>'+cGapTxt(g.gy)+'</b> du jaune ('+esc(g.y.r.name)+').':'.');
  else if(first||per)t=g.my===1?'Au général virtuel <b>tu portes le jaune</b>'+(g.behind?', <b>'+cGapTxt(g.behind.t-g.y.t)+'</b> d\'avance sur '+esc(g.behind.r.name)+'.':'.'):'Général virtuel : tu es <b>'+g.my+'<sup>e</sup></b>, à <b>'+cGapTxt(g.gy)+'</b> du jaune ('+esc(g.y.r.name)+', '+cTeamName(g.y.r.team)+')'+(g.behind&&g.behind.t-g.L[g.my-1].t<25?'. <b>'+esc(g.behind.r.name)+'</b> n\'est qu\'à <b>'+cGapTxt(g.behind.t-g.L[g.my-1].t)+'</b> derrière toi.':'.');
@@ -8044,6 +8176,11 @@ function cmpDsNow(){const me=CMP.me;if(!me||CMP.kind==='clm'&&me.fin==null&&!CMP
  const vp=Math.max(5,lead.v||8),gh=lead===me?0:(lead.d-me.d)/vp,ahead=all.slice(0,rk-1).reverse().find(r=>r.d-me.d>25),gA=ahead?(ahead.d-me.d)/Math.max(6,me.v):0;
  const nxt=[...CMP.sprints.filter(x=>x.d>me.d).map(x=>({d:x.d,t:'sprint'})),...CMP.climbs.filter(c=>c.d1>me.d).map(c=>({d:c.d1,t:'sommet'}))].sort((a,b)=>a.d-b.d)[0];
  const tg=CMP.coach.tg&&CMP.coach.ci!==-1?CMP.coach.tg:Math.round(me.fe*.8);
+ {const S=CMP.sit,nx2=nxt?', prochain '+nxt.t+' dans <b>'+cKm(nxt.d-me.d)+'</b>':'';
+  if(S&&S.mode==='solo')return cRadio('Tu es <b>seul en tête</b>, <b>'+cGapTxt(S.gapB)+'</b> d\'avance'+(S.ch?' sur <b>'+S.ch.name+'</b> ('+cTeamName(S.ch.team)+')':'')+'. Reste <b>'+cKm(rem)+'</b>'+nx2+'. Réserve <b>'+cmpWb()+' %</b> : <b>tout donner</b>, tiens <b>'+cmpSoloW()+' W</b>, aucun relais possible.');
+  if(S&&(S.mode==='duo'||S.mode==='break'))return cRadio('Tu es <b>en tête à '+(S.mates.length+1)+'</b>, <b>'+cGapTxt(S.gapB)+'</b> d\'avance sur le peloton. Reste <b>'+cKm(rem)+'</b>'+nx2+'. Réserve <b>'+cmpWb()+' %</b> : relaie franchement, ne te grille pas.');
+  if(S&&S.mode==='chase')return cRadio('Tu es dans le <b>groupe de poursuite</b> : tête à <b>'+cGapTxt(S.gapA)+'</b>, peloton à '+cGapTxt(S.gapB)+' derrière. Reste <b>'+cKm(rem)+'</b>'+nx2+'. Réserve <b>'+cmpWb()+' %</b>.');
+  if(S&&S.mode==='drop')return cRadio('Tu es <b>lâché</b> : <b>'+rk+'<sup>e</sup></b>, la tête est à <b>'+cGapTxt(gh)+'</b>. Reste <b>'+cKm(rem)+'</b>'+nx2+'. Réserve <b>'+cmpWb()+' %</b> : roule à ton rythme, <b>'+tg+' W</b>.')}
  cRadio('Tu es <b>'+rk+'<sup>e</sup></b>'+(lead===me?', en tête':', tête à <b>'+cGapTxt(gh)+'</b>')+(ahead?' ; groupe devant à '+cGapTxt(gA):'')+'. Reste <b>'+cKm(rem)+'</b>'+(nxt?', prochain '+nxt.t+' dans <b>'+cKm(nxt.d-me.d)+'</b>':'')+'. Réserve <b>'+cmpWb()+' %</b> : tiens <b>'+tg+' W</b>'+(ahead&&gA<40&&me.wbal>.5*me.wp?', tu peux revenir à ~<b>'+Math.round(cmpPmax(Math.max(20,gA*2)))+' W</b>':'')+'.')}
 // ---- statistiques de l'étape et historique des courses ----
 function cmpStatTick(dt,P){const st=CMP.stat,me=CMP.me;if(!st||me.fin!=null)return;st.t+=dt;st.e+=P*dt;st.mx=Math.max(st.mx,P);if(RDRAFT>.04){st.dr+=dt;st.drs+=RDRAFT*dt}
@@ -8077,18 +8214,21 @@ function cmpAdvCalc(att,gapS,sec){const me=CMP.me,g=cGrade(me.d+30),pk=(CMP.R.fi
  const need=Math.round(powFor(vp+Math.max(.5,gapS*vp/sec),g,me.m,me.cda,0)),pm=Math.round(cmpPmax(sec)),ok=need<=pm*.97&&me.wbal>.35*me.wp,dg=cmpDangerous(att);
  const k=mates.length?'mate':dg&&ok?'go':dg?'wait':'let';CMP.advK=k;return{k,need,pm,ok,dg,sec:Math.round(sec),vp,g,mates}}
 function cmpBreakWin(){const e=cEl('cme');const b=CMP.bw;if(!CMP.on||CMP.kind!=='race'||!b){e.style.display='none';return}
- const tr=b.tr,arrow=Math.abs(tr)<3?'＝':tr>0?'▲':'▼',col=Math.abs(tr)<3?'#c9bfae':tr>0?'#ff7a6b':'#5cff8a';
- let h='<div class="t">🏃 ÉCHAPPÉE '+(b.meIn?'· tu es dedans':'')+'</div><div class="g">avance <b>'+cGapTxt(b.gap)+'</b> <span style="color:'+col+'">'+arrow+(Math.abs(tr)>=3?' '+Math.abs(Math.round(tr))+' s':'')+'</span></div>';
- for(const r of b.near){const g=cmpGcOf(r);h+='<div class="r"><span class="nm">'+(r.team===0?'🟡 ':'')+esc(r.name)+'</span><span>'+(g?'G'+g.rank+' '+(g.gap<0?'−':'+')+cGapTxt(Math.abs(g.gap)):(r.role==='lead'?'★':''))+'</span></div>'}
- if(b.R.length>b.near.length)h+='<div class="r"><small>+ '+(b.R.length-b.near.length)+' autres</small></div>';
- if(b.adv&&!b.meIn)h+='<div class="a '+b.adv.k+'">'+(b.adv.k==='go'?'✔ Y ALLER · '+b.adv.need+' W':b.adv.k==='wait'?'✋ TEMPORISER · il faudrait '+b.adv.need+' W':b.adv.k==='mate'?'🟡 un des nôtres devant':'… laisse-les partir')+'</div>';
+ const tr=b.tr,S=b.sit,md=b.mode||'pack',good=b.meIn?tr>0:tr<0,arrow=Math.abs(tr)<3?'＝':tr>0?'▲':'▼',col=Math.abs(tr)<3?'#c9bfae':good?'#5cff8a':'#ff7a6b';
+ const tt=md==='solo'?'🏁 SEUL EN TÊTE':md==='duo'?'🏃 À DEUX EN TÊTE':md==='break'?'🏃 ÉCHAPPÉE · tu es dedans':md==='chase'?'🏃 GROUPE DE POURSUITE':'🏃 ÉCHAPPÉE';
+ const tx=Math.abs(tr)>=3?' '+Math.abs(Math.round(tr))+' s':'';
+ let h='<div class="t">'+tt+'</div><div class="g">'+(md==='chase'&&S?'tête à <b>'+cGapTxt(S.gapA)+'</b> <span style="color:'+col+'">'+arrow+tx+'</span><br><small>peloton à '+cGapTxt(S.gapB)+' derrière</small>':'avance <b>'+cGapTxt(b.gap)+'</b> <span style="color:'+col+'">'+arrow+tx+'</span>')+'</div>';
+ if(md==='solo'&&S){if(S.ch)h+='<div class="r"><span class="nm">poursuite : '+esc(S.ch.name)+'</span><span>'+esc(cTeamName(S.ch.team))+'</span></div>';h+='<div class="a go">🔥 TOUT DONNER · '+cmpSoloW()+' W</div>'}
+ else{for(const r of b.near){const g=cmpGcOf(r);h+='<div class="r"><span class="nm">'+(r.team===0?'🟡 ':'')+esc(r.name)+'</span><span>'+(g?'G'+g.rank+' '+(g.gap<0?'−':'+')+cGapTxt(Math.abs(g.gap)):(r.role==='lead'?'★':''))+'</span></div>'}
+  if(b.R.length>b.near.length)h+='<div class="r"><small>+ '+(b.R.length-b.near.length)+' autres</small></div>';
+  if(b.adv&&!b.meIn)h+='<div class="a '+b.adv.k+'">'+(b.adv.k==='go'?'✔ Y ALLER · '+b.adv.need+' W':b.adv.k==='wait'?'✋ TEMPORISER · il faudrait '+b.adv.need+' W':b.adv.k==='mate'?'🟡 un des nôtres devant':'… laisse-les partir')+'</div>'}
  e.innerHTML=h;e.style.display='block'}
 function cmpHud(force){const e=$('cmh');if(!e||!CMP.me)return;const now=performance.now();if(!force&&now-(cmpHud.t||0)<350)return;cmpHud.t=now;const me=CMP.me,rem=CMP.L-me.d;
  let l1='',l2='';if(CMP.kind==='clm'){const best=CMP.R.filter(r=>r.fin!=null).map(r=>r.fin-r.t0);l1='⏱️ '+fmt(CMP.T)+' · reste '+cKm(rem);
   const ahead=CMP.R.filter(r=>r.fin==null&&r.d>me.d&&r.t0<=CMP.T).sort((a,b)=>a.d-b.d)[0];l2=(ahead?'Devant : '+ahead.name+' à '+Math.round(ahead.d-me.d)+' m':'Personne devant')+(best.length?' · meilleur '+fmt(Math.min(...best)):'')}
  else{const all=[me,...CMP.R].filter(r=>r.fin==null||r===me).sort((a,b)=>b.d-a.d),rk=all.indexOf(me)+1,lead=all[0];
   l1='🚴 '+(CMP.stageK?'Étape '+(CMP.stageK.i+1)+' · ':'')+rk+'<sup>e</sup> / '+(CMP.R.length+1)+' · reste '+cKm(rem);
-  const gp=lead!==me?(lead.d-me.d)/Math.max(me.v,5):0;l2=lead===me?'Tu es en tête !':'Tête de course : '+lead.name+' à '+cGapTxt(gp);
+  const gp=lead!==me?(lead.d-me.d)/Math.max(me.v,5):0;l2=lead===me?cmpLeadTxt():'Tête de course : '+lead.name+' à '+cGapTxt(gp);
   if(CMP.neu&&CMP.neu.on){const nf0=Math.max(CMP.R.length?CMP.R.map(r=>r.d).sort((a,b)=>a-b)[CMP.R.length>>1]:0,me.d);l1='🏳️ Neutralisé · drapeau dans '+Math.max(0,Math.round(CMP.neu.len-nf0))+' m';l2='Reste dans le peloton, 28 km/h'}}
  const wb=Math.round(100*clamp(me.wbal/me.wp,0,1));
  const ob='';

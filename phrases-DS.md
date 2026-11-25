@@ -467,3 +467,494 @@ Banque de phrases (jargon cycliste) : 54 situations, 292 phrases. Chaque situati
 - **Drapeau baissé !** C'est le départ réel, la course est lancée, **chrono parti** ! Allez, reste dans les roues.
 - Le **drapeau est baissé** ! C'est parti pour de vrai, garde ton calme et ta place au chaud.
 - **C'est lancé !** Départ réel, le chrono tourne. On reste groupés au début, on ne gaspille rien.
+
+
+# Version x : phrases selon la situation de course (seul, à deux, échappée, poursuite, lâché)
+
+Le DS choisit la banque selon la situation du joueur (`dsM`, `cmpSitu`) : suffixes `_solo`, `_break` (à deux ou plus), `_chase`, `_drop` ; le peloton garde les phrases d'origine. Valeurs : {gap} avance sur le peloton, {gapA} retard sur la tête, {w} watts à tenir, {wb} réserve, {rem} distance restante, {tend} tendance, {names} coéquipiers derrière.
+
+## solo_start  (8)
+
+- **Tu es seul en tête** ! {gap} d'avance sur le peloton. Pas de relais à prendre : **tout seul face au vent**, tiens {w} W et ne regarde pas derrière.
+- Tu viens de **sortir seul** ! {gap} d'avance. **Fais le trou** maintenant : position basse, {w} W, aucune roue où te cacher.
+- **Seul devant** ! Plus personne avec toi : **tout donner**, c'est {w} W jusqu'à l'arrivée. Écart : {gap}.
+- Ça y est, **tu es parti en solitaire** ! {gap} sur le peloton. **Cadre bas, cadence ronde**, {w} W, et tu creuses.
+- **Solo !** {gap} d'avance, {rem} à parcourir. **Il n'y a que toi et la route** : {w} W, aéro à fond.
+- Tu es **seul à l'avant**, {gap} d'avance. Les autres vont rouler derrière : **à toi de ne pas les laisser revenir**, {w} W.
+- **Tu as fait le trou** : {gap}. Seul, **pas question de lever le pied** : {w} W, tu t'accroches à ton avance.
+- Tu passes **seul en tête**. {gap} sur le peloton : **donne tout ce que tu as**, {w} W, et ne te retourne pas.
+
+## solo_from_break  (4)
+
+- Tu **restes seul devant** : tes compagnons d'échappée ont lâché. {gap} d'avance, plus personne pour relayer : {w} W, **tu y vas seul**.
+- **Plus personne avec toi** ! Tu es seul à l'avant, {gap} sur le peloton. Le travail est pour toi : {w} W, position basse.
+- Tes compagnons sont **décrochés** : tu es **seul en tête**, {gap} d'avance. Maintenant c'est un contre-la-montre jusqu'à l'arrivée : {w} W.
+- L'échappée s'est **réduite à toi** : {gap} d'avance. Plus de relais possible, **tout donner** à {w} W.
+
+## solo_suivi_up  (5)
+
+- Tu **creuses l'écart** : {gap} ({tend}). Continue à {w} W, **ne relâche rien**, tu es seul à décider.
+- {gap} d'avance et ça **augmente** ! Tiens {w} W, **les jambes répondent**, garde la position aéro.
+- Le peloton **perd du terrain** : {gap} ({tend}). {w} W, tu gères ton effort sans lever le pied.
+- **Ça passe** : {gap} d'avance ({tend}). Seul devant, {w} W, **pas de cadeau** jusqu'à la ligne. Réserve {wb} %.
+- L'écart monte à **{gap}**. Tu es sur le bon rythme, {w} W. **Reste lucide**, il reste {rem}.
+
+## solo_suivi_flat  (5)
+
+- {gap} d'avance, **stable**. Tu tiens {w} W : **continue comme ça**, ne regarde pas derrière. Réserve {wb} %.
+- L'écart ne bouge pas : **{gap}**. Seul devant, {w} W, **cadence ronde**, concentre-toi sur ta position.
+- Toujours **{gap}** d'avance. Il reste {rem} : **ne te relève pas**, {w} W. Réserve {wb} %.
+- Le peloton roule mais ne revient pas : {gap}. **Tiens ton rythme**, {w} W, aucune faute.
+- **{gap}**, c'est stable. Tu es **seul au vent**, **baisse la tête** et roule : {w} W.
+
+## solo_suivi_down  (5)
+
+- **Attention, l'écart fond** : {gap} ({tend}). Ils roulent fort derrière : monte à {w} W, **tu es seul, il faut tout donner**.
+- Le peloton **revient** : {gap} d'avance ({tend}). **Serre les dents**, {w} W, position la plus aéro possible. Réserve {wb} %.
+- Ça **baisse** : {gap} ({tend}). Les {team} chassent derrière. **Relance**, {w} W, ne te laisse pas reprendre sans te battre.
+- L'écart **diminue** ({gap}). **Ne panique pas** : cadence ronde, {w} W, **reste dans ta bulle**. Il reste {rem}.
+- **{gap}** seulement ({tend}) ! **Il faut y aller** : {w} W, tout ce que tu as, ils sont lancés à ta poursuite.
+
+## solo_danger  (4)
+
+- **Ils sont à {gap}** ! Tu es seul : **donne tout**, {w} W et plus si tu peux. Ils te voient !
+- Le peloton **est sur toi** : {gap} ! **Dernier effort**, accroche ta cadence, ne te retourne pas.
+- **{gap}** : **ça se joue maintenant** ! Tu es seul, relance de toutes tes forces, {w} W !
+- Ils **reviennent à toute vitesse** ({gap}) ! **Tout, tout, tout** : il te reste {rem}, ne lâche rien.
+
+## solo_safe  (3)
+
+- Tu as **{gap}** d'avance pour {rem} : **c'est bon si tu ne faiblis pas**. Reste régulier, {w} W, sans te griller.
+- {gap} d'écart, il reste {rem} : **tu peux gérer**, mais tant que la ligne n'est pas franchie, **tu roules**.
+- Avance confortable ({gap}) : **continue à ton rythme**, {w} W, **pas de défaillance**. Plus que {rem}.
+
+## solo_craque  (5)
+
+- Tu es **au bout**, je le vois. Seul devant, **personne pour te remplacer** : {w} W, cadence souple, **respire profond**. Avance : {gap}.
+- Là tu es dans le rouge, **seul au vent**. **Ne baisse pas la tête, mais baisse l'intensité** : {w} W, tu gardes {gap} d'avance.
+- La réserve est vide. **Pas de roue où se cacher** : détends les épaules, **cherche l'aéro**, {w} W et tiens ce que tu peux. {gap} d'avance.
+- Ça brûle ? **C'est normal, tu es seul devant**. Respire, **un coup de pédale après l'autre**, {w} W : l'écart est de {gap}.
+- **Accroche-toi**, l'avance est là ({gap}). **Allège le braquet**, pédale rond, {w} W.
+
+## solo_recup  (3)
+
+- Tu **reprends du jus** : réserve {wb} %. Toujours seul devant, tu peux **remettre un peu** : {w} W.
+- **Bien** : tu as récupéré, réserve {wb} %. Seul en tête, **relance doucement** à {w} W.
+- Les jambes reviennent ({wb} %). **Continue seul** : {w} W, régulier.
+
+## solo_repris_pack  (4)
+
+- **Tu es repris**… pas de panique : tu étais seul, c'est normal. **Mets-toi dans les roues**, récupère, on repart plus tard.
+- Le peloton **t'a avalé**. Tu as tout donné : **profite maintenant de l'abri**, bois, respire, replace-toi dans les premiers.
+- **Jonction** : ta fugue s'arrête là. **Reste dans les roues**, ne roule pas, on joue autre chose.
+- Tu es **rattrapé** après ton raid solitaire. **Pas de regret** : abrite-toi, récupère et attends le final.
+
+## solo_repris_drop  (3)
+
+- **Tu es repris puis lâché** : tu as tout laissé devant. Roule à ton rythme, **tes coéquipiers t'attendent**.
+- Le peloton te passe et **tu n'as plus de jambes**. Pas de drame : **gère** et finis proprement.
+- Après ton effort solitaire, **tu paies la note** : fais ton train, laisse revenir tes équipiers.
+
+## solo_mates  (3)
+
+- Tes coéquipiers {names} sont dans le peloton : **ils ne roulent pas**, ils bloquent la chasse. Ça joue pour toi.
+- {names} (ton équipe) sont derrière : **ils ne collaborent pas**, ils te font gagner du temps.
+- Dans le groupe de chasse, {names} **cassent le rythme** pour toi : continue à ton rythme.
+
+## plat_solo  (5)
+
+- **Seul sur le plat** : tout est dans la position. **Coudes pliés, dos plat, tête basse** : chaque watt compte contre le vent.
+- Longue ligne droite, **seul face au vent**. **Regarde loin devant**, relâche les mains, garde ta cadence autour de 90.
+- Pas de roue où s'abriter : **reste aéro**, régulier, **pas d'à-coups**. C'est ta course, ton rythme.
+- Section plate : **c'est ton terrain** pour garder l'écart. **Cadence ronde**, respire par le ventre.
+- Ça roule à plat, tu es **seul au vent**. **Bois une gorgée** si tu peux, sans perdre ta position.
+
+## descente_solo  (5)
+
+- **Descente** : tu es seul, **profite de la gravité** mais ne prends aucun risque : trajectoire propre, freine avant le virage.
+- Ça plonge : **reste aéro** sur le cadre, mains en bas, **pas de folie dans les épingles**. Tu récupères en même temps.
+- On bascule ! **Seul devant, aucun risque inutile** : l'écart se gagne aussi en descendant proprement.
+- Descente : **regarde loin**, corde puis sortie extérieure. **Ne crame pas tes freins**, et profite pour boire.
+- Ça descend : **tu peux creuser un peu** en relançant à la sortie des virages. **Prudence**, tu es seul.
+
+## montee_mid_solo  (5)
+
+- **Seul dans la pente** : cadence souple, **ne force pas le braquet**. Ton rythme, c'est ton allié.
+- Dans la montée tu es **seul à gérer** : régulier, **pas de grosse accélération**. Regarde ton avance, pas la pente.
+- Ça grimpe : **assis, souple**, respire. **Si tu te lèves, fais-le court**. L'écart se défend dans la régularité.
+- **Courage**, seul dans la côte : un coup de pédale après l'autre. **Les poursuivants souffrent aussi**.
+- Montée : **tiens le rythme du coach**, pas plus. Tu es seul : **si tu explose ici, tu es repris**.
+
+## montee_pied_solo  (4)
+
+- La côte arrive et **tu es seul** : **pas de démarrage**, entre régulier, c'est là qu'on se fait reprendre si on part trop fort.
+- Au pied de la montée : **braquet souple dès maintenant**. Tu es seul devant, **garde ta fraîcheur** pour le haut.
+- Une côte devant toi. **Seul, tu dois la monter à ton rythme**, pas à celui des grimpeurs derrière.
+- Ça va monter : **reste régulier**, sans à-coup. **Les grimpeurs vont chasser** : la montée sera décisive.
+
+## tempo_solo  (3)
+
+- Tu roules **très vite** seul en tête ! Attention à ne pas **brûler tes cartouches** : surveille la réserve.
+- Belle allure ! Seul devant, tu fais un gros boulot : **garde une cadence régulière**.
+- Ça file ! **Seul et lancé**, ne t'emballe pas : la ligne est encore loin.
+
+## calme_solo  (3)
+
+- **Régularité** : tu es seul devant, tu roules sur ton rythme. **Rien à changer**.
+- Tout va bien. **Concentre-toi sur ta position** et ne regarde pas derrière, **l'écart est là**.
+- Tu mènes seul : **ne te fais pas endormir**, garde une puissance constante.
+
+## danger_solo  (3)
+
+- Seul devant : **personne pour t'ouvrir la route**. Regarde bien devant, virages, gravillons, **reste propre**.
+- Attention à **ne pas te mettre en danger** : seul en tête, **une chute ici et tout est perdu**.
+- Virage devant : **freine avant, pas dedans**. Tu es seul, **aucune raison de prendre un risque**.
+
+## encourage_solo  (5)
+
+- **Tu es en train de faire une course énorme** : seul devant, **continue** !
+- **Du cran** ! Seul en tête, tu fais peur au peloton. **On y croit** !
+- **Le peloton te regarde** s'éloigner. **Reste concentré**, tout se joue à la régularité.
+- **Tu fais la course** ! **Un effort après l'autre**, c'est comme ça qu'on gagne seul.
+- Seul devant, **tu mènes la danse** : respire, aéro, et **ne regarde pas derrière**.
+
+## conseil_eco_solo  (3)
+
+- Seul devant : **bois une gorgée** quand c'est plat, **sans perdre ta position**.
+- **Ne gaspille rien** : une cadence ronde, un dos plat, **pas de relance inutile**.
+- Relâche les épaules et la nuque, **souffle longuement**. **Économise-toi** pour le final.
+
+## km10_solo  (3)
+
+- **10 km de l'arrivée**, seul en tête.
+- Plus que **10 bornes** et tu es toujours seul devant.
+- **Dix kilomètres** : **tu es seul à l'avant**.
+
+## km5_solo  (3)
+
+- **5 km** à parcourir, seul devant.
+- Plus que **5 bornes** : **tu es seul en tête**.
+- **Cinq kilomètres** ! Toujours seul à l'avant.
+
+## km3_solo  (3)
+
+- **3 km** : tu es toujours seul en tête.
+- Plus que **3 bornes**, seul devant.
+- **Trois kilomètres** à parcourir, tu mènes seul.
+
+## km1_solo  (3)
+
+- **Flamme rouge** et toujours seul ! Dernier kilomètre.
+- **Dernier kilomètre**, tu es seul devant.
+- **Un kilomètre** ! Seul en tête, la ligne est là.
+
+## fin_solo_safe  (3)
+
+- {gap} d'avance : **tu peux gérer**, mais ne te relève pas avant la ligne.
+- L'avance est **confortable** ({gap}) : continue à ton rythme, **sans te griller**.
+- Avec {gap} d'écart, **c'est bon** : roule régulier jusqu'au bout.
+
+## fin_solo_tight  (3)
+
+- Seulement {gap} d'avance : **ça va être serré**, tout donner, {w} W !
+- {gap} d'écart, il faut **tout donner** : {w} W jusqu'à la ligne, **aucun relâchement**.
+- L'avance fond : {gap}. **Mets tout**, {w} W, **aéro à fond**.
+
+## fin_solo_lost  (3)
+
+- **Ils sont à {gap}** : ils vont te reprendre si tu ne **donnes pas tout** ! {w} W, à fond !
+- {gap} seulement : **c'est maintenant ou jamais**, relance de toutes tes forces !
+- Le peloton est **sur toi** ({gap}) : **tout, tout, tout** jusqu'à la ligne !
+
+## m300_solo_safe  (3)
+
+- **300 mètres**, seul en tête ! **La victoire est là**, savoure et finis fort !
+- **Dernière ligne droite**, personne ne te reprendra : **donne tout** et lève les bras !
+- C'est bon, **tu y es** ! 300 m seul devant, **profite** !
+
+## m300_solo_tight  (3)
+
+- **300 mètres** ! Seul devant mais ils reviennent : **sprint ! tout, tout, tout** !
+- **Lance ton sprint**, ils sont sur toi ! **Tout dans le braquet** !
+- Dernière ligne droite : **pas de regard derrière**, **sprint à fond** !
+
+## duo_start  (3)
+
+- **Vous êtes deux devant**{avec} ! {gap} d'avance. **Relais courts, nets et réguliers** : à deux, on va deux fois plus vite.
+- Tu es **échappé à deux**{avec}, {gap} sur le peloton. **Relais à tour de rôle**, ne laisse pas l'autre rouler seul.
+- **Duo en tête**{avec} ! {gap} d'avance. **Collabore**, mais garde de quoi te battre à l'arrivée.
+
+## duo_suivi  (4)
+
+- À deux devant : **{gap}** d'avance ({tend}). Tiens {w} W en tête, **relais toutes les minutes**. Réserve {wb} %.
+- {gap} sur le peloton ({tend}). **Relaie franchement**, {w} W quand tu es devant, et **repose-toi dans la roue**.
+- L'écart est de **{gap}** ({tend}). Ton compagnon fait sa part : **fais la tienne**, {w} W en tête. Réserve {wb} %.
+- **{gap}** d'avance ({tend}). À deux, **on s'entend** : relais, relais, relais. {w} W en tête. Réserve {wb} %.
+
+## echappe_repris  (3)
+
+- **Vous êtes repris** : l'échappée est finie. **Mets-toi dans les roues**, récupère, on joue la suite.
+- Le peloton **fait la jonction** avec l'échappée. Pas de regret : **abrite-toi** et surveille les contre-attaques.
+- **Fin de l'aventure** pour les échappés. Dans les roues, bois, respire, replace-toi.
+
+## echappe_recup  (2)
+
+- Tu **reprends du jus** (réserve {wb} %) : tu peux **reprendre ta part de relais**.
+- Les jambes reviennent ({wb} %) : **reprends tes relais**, ton groupe a besoin de toi.
+
+## plat_break  (3)
+
+- Sur le plat, **relayez-vous franchement** : un relais de 30 secondes, puis tu te replaces dans la roue.
+- Ça roule à plat : **changez de rythme sans à-coup**, passage de relais fluide, **pas de trou**.
+- Ligne droite : **à tour de rôle**, chacun sa part, **l'écart se gagne ensemble**.
+
+## descente_break  (3)
+
+- Descente : **gardez vos distances**, ne roulez pas roue dans roue dans les virages.
+- Ça plonge : **relais courts**, trajectoires propres, **pas de risque inutile** avec tes compagnons.
+- On descend : **profite pour récupérer**, laisse l'autre mener, mais **reste attentif aux freinages**.
+
+## montee_mid_break  (3)
+
+- Dans la pente, **chacun son rythme** : ne t'épuise pas à suivre l'autre si tu es moins bon, **gère**.
+- Ça grimpe : **reste régulier**, méfie-toi des attaques de tes compagnons d'échappée.
+- La montée **peut casser le groupe** : garde ton rythme, tu rattraperas peut-être en haut.
+
+## montee_pied_break  (3)
+
+- La côte arrive : **méfie-toi des attaques** dans ton groupe d'échappée, reste dans la roue des meilleurs.
+- Au pied de la montée : **garde de la fraîcheur**, les autres échappés vont tester tes jambes.
+- Une côte devant : **ne roule pas trop fort** en bas, **reste dans la roue** du plus fort.
+
+## tempo_break  (2)
+
+- Ça roule **très fort** devant : relais appuyés, **garde un peu de marge** pour la fin.
+- Belle allure dans l'échappée ! **Ne te cramer pas** à rouler trop longtemps en tête.
+
+## calme_break  (3)
+
+- L'échappée **tourne bien** : relais réguliers, **économise-toi** pendant que tu es dans la roue.
+- Ça roule **sans à-coup** : ton groupe s'entend, **continue à relayer**.
+- Tout va bien devant : **reste concentré**, on est loin du final.
+
+## danger_break  (2)
+
+- Attention **aux trajectoires** dans le groupe : ne te laisse pas serrer, garde ta ligne.
+- Virage devant : **laisse de la place** entre vous, un accrochage serait fatal à l'échappée.
+
+## encourage_break  (3)
+
+- **Belle échappée** ! Vous creusez l'écart ensemble, **continuez** !
+- **Du caractère** : l'échappée tient bon, **reste dans la combine**.
+- Le peloton vous regarde partir : **relais, relais, relais** !
+
+## conseil_eco_break  (2)
+
+- Quand tu es dans la roue, **détends-toi** et bois : tu en auras besoin pour le final.
+- **Garde un peu de jus** : l'échappée se joue à l'arrivée, **pas dans les relais**.
+
+## km10_brk  (3)
+
+- **10 km** : vous avez {gap} d'avance. **Collabore** jusqu'à 3 km, puis surveille les attaques.
+- Plus que **10 bornes**, {gap} d'avance : **relais**, mais pas de gaspillage.
+- **Dix kilomètres** : vous êtes devant ({gap}). **Garde de quoi sprinter**.
+
+## km5_brk  (3)
+
+- **5 km** : {gap} d'avance. **Attention aux attaques** de tes compagnons d'échappée.
+- Plus que **5 bornes**, {gap} d'avance : **ne mène pas trop**, surveille les roues.
+- **Cinq kilomètres** ! Vous avez {gap} : **le jeu du chat et de la souris commence**.
+
+## km3_brk  (3)
+
+- **3 km** : {gap} d'avance. **Ne laisse partir personne**, reste dans la bonne roue.
+- Plus que **3 bornes** ! Si le peloton est loin, **c'est la bataille entre échappés** : reste placé.
+- **Trois kilomètres** : **ne mène pas le sprint trop tôt**, mais ne laisse pas d'espace.
+
+## km1_brk  (3)
+
+- **Flamme rouge** ! Vous êtes devant : **place-toi dans la roue du plus fort**, lance au bon moment.
+- **Dernier kilomètre** : **ne te fais pas enfermer** par tes compagnons d'échappée.
+- **Un kilomètre** ! **Attends ton heure**, puis lance-toi sur les 250 derniers mètres.
+
+## m300_brk  (3)
+
+- **300 mètres !** Lance ton sprint, **tout, tout, tout** !
+- **C'est maintenant** ! Sors de la roue et **envoie tout** !
+- **Sprint** ! Vous êtes devant, **donne tout** pour la victoire !
+
+## prime_solo  (3)
+
+- **{titre}** dans {dist} m : prime **{prime}**. **Tu es seul devant**, elle est pour toi : passe à ton rythme, **pas besoin de sprinter**.
+- **{titre}** dans {dist} m, prime **{prime}**. Personne ne te dispute : **prends-la sans te cramer**, tiens ton allure.
+- **{titre}** dans {dist} m : {prime} pour toi, **seul devant**. Garde le rythme, **ne gaspille rien**.
+
+## prime_brk  (2)
+
+- **{titre}** dans {dist} m : prime **{prime}**. Tu es {rk}e dans l'échappée : **reste dans la roue** et **lance-toi à {w} W** sur les 200 derniers mètres.
+- **{titre}** dans {dist} m, prime **{prime}**. Vous êtes devant : **surveille tes compagnons**, balance {w} W à 200 m.
+
+## chase_start  (3)
+
+- Tu es dans un **groupe de poursuite**{avec} : l'échappée est à {gapA} devant, le peloton à {gap} derrière. **Roulez ensemble** pour revenir.
+- **Contre-attaque**{avec} ! Tu es entre l'échappée ({gapA} devant) et le peloton. **Relais réguliers**, on va chercher la tête.
+- Vous formez un **groupe de chasse**{avec} : {gapA} à combler sur la tête. **Collaborez**, chaque seconde compte.
+
+## chase_suivi  (3)
+
+- Groupe de poursuite : **{gapA}** à combler sur la tête ({tend}), {gap} d'avance sur le peloton. Relais à {w} W. Réserve {wb} %.
+- Tu es à **{gapA}** de la tête ({tend}). **Relais fluides**, {w} W en tête. Réserve {wb} %.
+- L'échappée est à **{gapA}** ({tend}), le peloton à {gap} derrière. **Tout le monde relaie**, {w} W. Réserve {wb} %.
+
+## chase_craque  (3)
+
+- Tu es **dans le rouge** dans le groupe de chasse : **laisse les autres relayer**, roule à {w} W dans la roue.
+- **Réserve vide** : ne prends plus de relais, **reste dans le dernier** pour ne pas perdre le contact.
+- Ça pique : **abrite-toi** dans le groupe, {w} W, **un relais court si tu peux**.
+
+## chase_repris  (2)
+
+- Le peloton **vous reprend** : la contre-attaque s'arrête. **Dans les roues**, récupère.
+- **Jonction avec le peloton** : fin de la poursuite. **Abrite-toi** et attends le final.
+
+## plat_chase  (3)
+
+- Plat : **roulez fort et fluide**, chaque relais compte pour revenir sur la tête.
+- Ligne droite : **relais courts**, enchaînez, **l'écart avec la tête doit fondre**.
+- Ça roule à plat dans le groupe de chasse : **ne laisse pas de trou**, passe-relais net.
+
+## descente_chase  (2)
+
+- Descente : **gardez vos distances**, ne prenez pas de risque pour revenir : la tête n'est pas loin.
+- On descend : **relance à la sortie des virages**, mais **sans prendre de risque**.
+
+## montee_mid_chase  (2)
+
+- Dans la pente, **chacun son rythme** : ne te grille pas pour suivre, tu peux recoller au sommet.
+- Ça grimpe : **reste régulier**, la tête peut revenir si elle faiblit.
+
+## montee_pied_chase  (2)
+
+- La côte arrive : **reste groupé**, relance ensuite pour boucher le trou avec la tête.
+- Au pied de la montée : **garde un rythme régulier**, ne démarre pas trop fort.
+
+## tempo_chase  (2)
+
+- Ça roule **très fort** dans la poursuite : **ne te laisse pas décrocher**, le trou se réduit.
+- Belle allure du groupe de chasse ! **Garde le contact**.
+
+## calme_chase  (2)
+
+- La poursuite **tourne bien** : **relais réguliers**, on rapproche la tête.
+- Tout va bien : **reste concentré**, la tête n'est pas hors de portée.
+
+## danger_chase  (2)
+
+- Attention aux **trajectoires** dans le groupe : ne te fais pas serrer.
+- Virage devant : **garde ta ligne**, la poursuite ne doit pas finir au sol.
+
+## encourage_chase  (2)
+
+- **Belle poursuite** ! **Continuez**, la jonction est possible.
+- **Du caractère** : on revient, **relais, relais** !
+
+## conseil_eco_chase  (2)
+
+- Dans la roue, **détends-toi** : tu as besoin de jambes pour la jonction.
+- **Ne te cramer pas** trop tôt : si tu reviens, il faudra encore lutter.
+
+## km10_chase  (2)
+
+- **10 km** : la tête est à {gapA}. **Il faut revenir** ou jouer la place.
+- Plus que **10 bornes**, tête à {gapA} : **relayez** pour recoller.
+
+## km5_chase  (2)
+
+- **5 km** : tête à {gapA}. **Dernière chance** de revenir, relais maximum.
+- Plus que **5 bornes** : si la tête est trop loin, **assure ta place**.
+
+## km3_chase  (2)
+
+- **3 km** : tête à {gapA}. **Soit on revient maintenant**, soit on joue la place.
+- Plus que **3 bornes**, tête à {gapA} : **tout donner** ou assurer.
+
+## km1_chase  (2)
+
+- **Flamme rouge** : **sprint pour la place**, reste placé dans le groupe.
+- **Dernier kilomètre** : plus de retour possible sur la tête, **joue ta place**.
+
+## m300_chase  (2)
+
+- **300 mètres** : **sprint pour la place**, tout, tout, tout !
+- **Lance-toi**, gagne une place !
+
+## plat_drop  (3)
+
+- Section plate : **roule à ton rythme**, tes équipiers te ramènent, **ne te cramer pas pour revenir seul**.
+- Ça roule à plat : **reste en aéro**, régulier, **le peloton n'est pas inaccessible**.
+- Ligne droite : **cadence ronde**, tu peux revenir à ton rythme si les copains t'aident.
+
+## descente_drop  (2)
+
+- Descente : **ne prends pas de risque pour revenir**, relance à la sortie des virages.
+- On descend : **tu peux recoller** sans te mettre dans le rouge, prudence dans les virages.
+
+## montee_mid_drop  (2)
+
+- Dans la côte, **fais ton rythme** : inutile de suivre les costauds, **tu limites les dégâts**.
+- Ça grimpe : **reste régulier**, l'écart ne doit pas exploser.
+
+## montee_pied_drop  (2)
+
+- Au pied de la côte, **pas de panique** : monte à ton rythme, **tu récupères en haut**.
+- La montée arrive : **cadence souple**, **ne te cramer pas** à courir derrière.
+
+## tempo_drop  (2)
+
+- Le peloton roule vite : **ne cherche pas à revenir seul**, vise le groupe suivant.
+- Ça file devant : **gère ton effort**, tu n'as pas à te griller.
+
+## calme_drop  (2)
+
+- Tu es à ton rythme : **respire**, bois, reprends des forces.
+- **Concentre-toi sur ta régularité** : les copains arrivent.
+
+## danger_drop  (2)
+
+- Seul derrière : **personne pour t'ouvrir**, prudence dans les virages.
+- Attention : **un coup de frein inutile** et tu perds encore du temps.
+
+## encourage_drop  (2)
+
+- **Accroche-toi**, la course n'est pas finie.
+- Tu as **encore des ressources** : **un coup de pédale après l'autre**.
+
+## conseil_eco_drop  (2)
+
+- **Mange et bois** pendant que tu roules seul : tu récupères.
+- Ne te cramer pas pour rien : **gère** jusqu'à l'arrivée.
+
+## km10_drop  (2)
+
+- **10 km** : tu es à {gap} du peloton. **Assure ta place**, ne te cramer pas.
+- Plus que **10 bornes** : **finis proprement**, {gap} de retard.
+
+## km5_drop  (2)
+
+- **5 km** : **finis à ton rythme**, {gap} de retard.
+- Plus que **5 bornes** : assure ta place, pas de risque.
+
+## km3_drop  (2)
+
+- **3 km** : tiens ton rythme, **finis proprement**.
+- Plus que **3 bornes** : **garde un peu de jus** pour finir.
+
+## km1_drop  (2)
+
+- **Dernier kilomètre** : **finis fort** pour la dignité.
+- **Flamme rouge** : donne ce qu'il te reste.
+
+## m300_drop  (2)
+
+- **300 mètres** : sprint pour finir, **donne tout** !
+- C'est **la dernière ligne droite**, **allez** !
