@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='25/11/2026 · u';const ERRL=[];
+const VCT_VER='25/11/2026 · v';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7519,6 +7519,7 @@ function cEl(id,css){let e=$(id);if(!e){e=document.createElement('div');e.id=id;
 '#cmr b{color:#f0cf73}#cmr.co{border-color:#5cff8a}#cmr.co b{color:#5cff8a}'+
 '#cmcd{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.8)}#cmcd .n{font:800 22vmin "Barlow Condensed",Arial;color:#f0cf73}#cmcd .t{font:700 4vmin Arial}'+
 '.cmp{position:fixed;inset:0;z-index:60;background:#0f0e0d;color:#f4efe6;overflow:auto;font:14px Arial;padding:14px 16px 30px;display:none}.cmp h2{font:700 22px "Space Grotesk",Arial;margin:4px 0 10px;color:#f0cf73}.cmp h3{font:700 15px Arial;margin:14px 0 6px;color:#e9a178}'+
+'#cmk div.ob{grid-template-columns:repeat(6,1fr);gap:4px}#cmk div.ob>button{grid-column:span 2;min-height:32px;padding:4px 2px;font:700 12px Arial}#cmk div.ob>button.ds{grid-column:span 3;min-height:38px;font:800 15px Arial}#cmk div.ob>button.ds[data-up]{grid-column:1/7;min-height:32px;font:700 12px Arial}'+
 '.cer{position:fixed;inset:0;z-index:70;background:radial-gradient(ellipse at 50% 25%,#3a2f18,#0f0e0d 72%);color:#f4efe6;display:flex;flex-direction:column;align-items:center;justify-content:center;font:14px Arial;text-align:center;overflow:hidden;padding:10px}.cer h1{font:700 clamp(20px,5vmin,40px) "Space Grotesk",Arial;color:#f0cf73;margin:0 0 6px;animation:cerIn .8s both}.cer .sb{color:#e9a178;margin-bottom:10px;animation:cerIn 1s .2s both}'+
 '.cer .pod{display:flex;align-items:flex-end;justify-content:center;gap:10px}.cer .pd{width:clamp(88px,24vmin,180px);border-radius:12px 12px 0 0;padding:8px 4px;transform-origin:bottom;animation:cerUp .9s both;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;box-shadow:0 0 22px #f0cf7333}.cer .pd b{font:700 clamp(12px,2.6vmin,17px) Arial}.cer .pd small{opacity:.85}.cer .pd .pl{font:700 clamp(26px,7vmin,54px) "Space Grotesk",Arial;color:#0f0e0d99}'+
 '.cer .jrs{display:flex;gap:clamp(8px,3vmin,30px);justify-content:center;flex-wrap:wrap}.cer .jr{width:clamp(110px,26vmin,210px);animation:cerDrop 1.1s both}.cer .jr svg{width:100%;filter:drop-shadow(0 8px 14px #000a)}.cer .jr b{display:block;font:700 clamp(13px,2.8vmin,18px) Arial;margin-top:4px}.cer .jr small{display:block;opacity:.85}.cer .jr.me b{color:#f0cf73}'+
@@ -8018,6 +8019,18 @@ function cmpGcDS(rem){const E=CMP.ev,T=CMP.T,g=cmpGcVirt();if(!g||rem<1500||T-(E
  else if(chR)t=(g.my<E.gvR?dsP(['Tu <b>remontes au général virtuel</b> : <b>'+g.my+'<sup>e</sup></b>','<b>Bien joué</b>, tu passes <b>'+g.my+'<sup>e</sup></b> au général virtuel']):dsP(['Tu <b>recules au général virtuel</b> : <b>'+g.my+'<sup>e</sup></b>','Attention, tu redescends <b>'+g.my+'<sup>e</sup></b> au général virtuel']))+(g.my>1?', à <b>'+cGapTxt(g.gy)+'</b> du jaune ('+esc(g.y.r.name)+').':'.');
  else if(first||per)t=g.my===1?'Au général virtuel <b>tu portes le jaune</b>'+(g.behind?', <b>'+cGapTxt(g.behind.t-g.y.t)+'</b> d\'avance sur '+esc(g.behind.r.name)+'.':'.'):'Général virtuel : tu es <b>'+g.my+'<sup>e</sup></b>, à <b>'+cGapTxt(g.gy)+'</b> du jaune ('+esc(g.y.r.name)+', '+cTeamName(g.y.r.team)+')'+(g.behind&&g.behind.t-g.L[g.my-1].t<25?'. <b>'+esc(g.behind.r.name)+'</b> n\'est qu\'à <b>'+cGapTxt(g.behind.t-g.L[g.my-1].t)+'</b> derrière toi.':'.');
  E.gvR=g.my;E.gvY=yid;if(!t)return;E.gvT=T;E.mdT=T;cRadio(t)}
+// ---- disposition des fenêtres de course : rien ne se chevauche (version v) ----
+function uiLayout(){const ids=['dg','cmh','cmr','cme','cmk','att'];
+ if(typeof CMP==='undefined'||!CMP.on){if(uiLayout.act){uiLayout.act=false;ids.forEach(i=>{const e=$(i);if(e){e.style.left=e.style.top=e.style.right=e.style.bottom=e.style.transform=e.style.maxWidth=e.style.maxHeight=e.style.overflowY=''}})}return}
+ uiLayout.act=true;const W=innerWidth,vis=id=>{const e=$(id);return e&&e.style.display!=='none'&&e.getClientRects().length?e:null},R=e=>e.getBoundingClientRect();
+ const hud=$('hud'),hr=hud&&hud.getClientRects().length?R(hud):{right:0,bottom:0},gm=vis('gm');let lb=Math.max(hr.bottom,gm?R(gm).bottom:0)+6;
+ const xL=hr.right+10,avail=W-110-xL,wide=avail>=250,mw=wide?Math.min(avail,420):Math.min(W-16,460);let y=wide?6:lb;
+ ['dg','cmh','cmr'].map(vis).filter(Boolean).forEach(e=>{e.style.transform='none';e.style.left=(wide?xL:8)+'px';e.style.top=y+'px';e.style.maxWidth=mw+'px';y+=R(e).height+6});
+ if(!wide)lb=y;const ce=vis('cme');if(ce){ce.style.left='8px';ce.style.top=lb+'px'}
+ const bot=$('bot'),bt=bot&&bot.getClientRects().length?R(bot).top:innerHeight-70,mp=$('map'),mb=mp&&mp.getClientRects().length?R(mp).bottom:120,ck=vis('cmk');
+ if(ck){ck.style.top=(mb+6)+'px';ck.style.maxHeight=Math.max(120,bt-mb-14)+'px';ck.style.overflowY='auto'}
+ const at=$('att');if(at){const cl=ck?R(ck).left:W;at.style.left='8px';at.style.right='auto';at.style.bottom=(innerHeight-bt+2)+'px';at.style.maxWidth=Math.max(160,cl-24)+'px'}}
+uiLayout.t=0;
 function cmpBtn(e){e.querySelectorAll('[data-o]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpOrder(b.dataset.o)});e.querySelectorAll('[data-ds]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpDsNow()});e.querySelectorAll('[data-vox]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();voxTalk()});e.querySelectorAll('[data-up]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpUp(1)})}
 // force des adversaires : on peut seulement la monter, 1 % à la fois, pendant la course (CMP.upP, en %)
 function cmpUp(n){if(!CMP.on)return;n=Math.max(1,Math.min(10,Math.round(n)||1));CMP.upP=Math.min(60,(CMP.upP||0)+n);cmpBoard(true);cRadio('Adversaires <b>+'+CMP.upP+' %</b> : <b>'+dsP(['ils vont plus vite, accroche-toi','ça va durcir','le peloton monte en puissance'])+'</b>. On ne redescend pas.')}
@@ -13704,7 +13717,7 @@ function glReload(){try{recSave&&recSave()}catch(e){}try{sessionStorage.v3skip='
 ren.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();GLL.lost=true;GLL.n++;console.warn('WebGL perdu');
  try{say('Affichage 3D interrompu par la tablette : reprise…')}catch(e){}const n=GLL.n;setTimeout(()=>{if(GLL.lost&&GLL.n===n&&!MR.on)glReload()},5000)},false);
 ren.domElement.addEventListener('webglcontextrestored',()=>{GLL.lost=false;console.warn('WebGL rendu');try{if(typeof homeRender==='function'&&mode==='home')homeRender()}catch(e){}},false);
-function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;if(!N)return;
+function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;if(!N)return;if(now-uiLayout.t>400){uiLayout.t=now;try{uiLayout()}catch(e){}}
  // carte de traçage ouverte ou affichage perdu : la 3D ne se dessine pas (mémoire et batterie pour la carte)
  if(GLL.lost||(MR.on&&!IN.on)){loop.p=now;return}fA+=((now-(loop.p||now))-fA)*.05;loop.p=now;
  const hm=mode==='home',riding=mode==='ride'||mode==='wk';RM.visible=TR.visible=hm;WORLD.visible=!hm;sky.visible=!hm;clouds.visible=!hm&&!!QP.clouds&&SHW('clouds');stars.visible=!hm&&DAYF<.6;moon.visible=!hm&&MD.y>-.04;sc.background=hm?BGC:null;sc.fog.density=hm?0:1/42000;
