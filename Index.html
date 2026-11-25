@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='25/11/2026 · r';const ERRL=[];
+const VCT_VER='25/11/2026 · s';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7397,11 +7397,11 @@ const cTeamCol=t=>(CTM[t]||CTM[1])[0];
 // effectif : mêmes coureurs pour toute une course par étapes (graine gardée)
 const CROLES=['lead','grim','roul','spr','eq','eq','roul','grim'],CMROLES=['eq','grim','roul','spr','eq','roul','grim'];
 function cmpOptsN(o){o=o||{};const opp=clamp(Math.round(o.opp||5),1,10),per=clamp(Math.round(o.per||5),2,8),mine=clamp(Math.round(o.mine||5),2,8);let tot=mine+opp*per;
- if(tot>CMPN-6){const per2=Math.max(2,Math.floor((CMPN-6-mine)/opp));return{opp,per:per2,mine}}return{opp,per,mine}}
+ const gab=o.gab==='real'?'real':'me';if(tot>CMPN-6){const per2=Math.max(2,Math.floor((CMPN-6-mine)/opp));return{opp,per:per2,mine,gab}}return{opp,per,mine,gab}}
 const cmpTotal=o=>{o=cmpOptsN(o);return o.mine+o.opp*o.per};
 function cmpShuf(n,r){const a=[...Array(n).keys()];for(let i=n-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 // effectif : mêmes coureurs pour toute une course par étapes (graine gardée) ; équipes et noms inventés
-function cmpRoster(seed,diff,o){o=cmpOptsN(o);const r=rng(seed),kg=Math.max(45,+$('kg').value||75),wkg0=FTP/kg,L=[];let id=0;const sk=clamp(kg/75,.8,1.3);/* gabarit des adversaires proportionnel au tien (version r) */const pf=cmpShuf(CFN.length,rng(seed*3+1)),ps=cmpShuf(CSN.length,rng(seed*5+2));
+function cmpRoster(seed,diff,o){o=cmpOptsN(o);const r=rng(seed),kg=Math.max(45,+$('kg').value||75),wkg0=FTP/kg,L=[];let id=0;const sk=o.gab==='real'?1:clamp(kg/75,.8,1.3);/* gabarit des adversaires proportionnel au tien (version r) */const pf=cmpShuf(CFN.length,rng(seed*3+1)),ps=cmpShuf(CSN.length,rng(seed*5+2));
  for(let t=0;t<=o.opp;t++){const roles=t===0?CMROLES.slice(0,o.mine-1):CROLES.slice(0,o.per);
   for(const ro of roles){const m=(ro==='grim'?57+r()*7:ro==='spr'||ro==='roul'?71+r()*9:63+r()*10)*sk;
    let f=t===0?.9+r()*.08:ro==='lead'?1.02+r()*.08:.86+r()*.16;f*=diff;// coéquipiers un peu sous ton niveau, leaders adverses au-dessus
@@ -7598,7 +7598,7 @@ function cmpAutoLoad(){try{return JSON.parse(localStorage.v3cmpa||'null')}catch(
 function cmpDiffAuto(){const A=cmpAutoLoad();return A&&A.e?clamp(A.e/.95,.9,1.2):1}
 const cmpDiffVal=d=>d==='auto'?cmpDiffAuto():(+d||1);
 function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';const S=cmpLoad();const c=CRS.cur;
- const sel=cmpOpen.s||(cmpOpen.s={k:'race',diff:1,laps:1,ns:4,len:'m',src:'gen',pick:[]});if(!sel.opts)sel.opts={opp:5,per:5,mine:5};if(sel.neu==null)sel.neu=1000;const nT=cmpTotal(sel.opts);
+ const sel=cmpOpen.s||(cmpOpen.s={k:'race',diff:1,laps:1,ns:4,len:'m',src:'gen',pick:[]});if(!sel.opts)sel.opts={opp:5,per:5,mine:5,gab:'me'};if(sel.neu==null)sel.neu=1000;const nT=cmpTotal(sel.opts);
  const lp=COURSE&&COURSE.loop;
  let h='<button class="x" id="cmx">✕</button><h2>🏆 Compétition</h2><small>Coureurs calculés sur ta FTP ('+FTP+' W, '+nf(FTP/Math.max(45,+$('kg').value||75),2)+' W/kg) · '+(sel.opts.opp+1)+' équipes · '+nT+' coureurs<br>⏳ '+cmpFatTxt(cmpFatLoad())+'</small>';
  if(S&&!S.over)h+='<h3>Course par étapes en cours</h3><div class="cd on"><b>'+esc(S.name)+'</b>Étape '+(S.i+1)+' / '+S.list.length+' : '+esc(S.list[S.i].name)+'<br>'+cmpGCLine(S)+'<div class="chips" style="margin-top:8px"><button id="cmrs">▶ Rouler l\'étape '+(S.i+1)+'</button><button id="cmgc">📋 Classements</button><button id="cmab">🗑 Abandonner</button></div></div>';
@@ -7609,6 +7609,7 @@ function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';
   h+='<h3>Équipes et coureurs</h3><div class="cd">'+famSlider('cmo1','Équipes adverses',1,10,1,o.opp,'équipes')+famSlider('cmo2','Coureurs par équipe adverse',2,8,1,o.per,'coureurs')+famSlider('cmo3','Ton équipe (toi compris)',2,8,1,o.mine,'coureurs')+'<div id="cmtot" style="margin-top:6px"></div></div>';
   h+='<h3>Lueur des coureurs dangereux au général</h3><div class="chips" id="cmgl">'+[[0,'Aucune'],[1,'Discrète'],[2,'Marquée']].map(([v,t])=>'<button data-v="'+v+'"'+((SET.glow==null?1:SET.glow)===v?' class="on"':'')+'>'+t+'</button>').join('')+'<button data-p="1"'+(SET.glowP===0?'':' class="on"')+'>Pulsation '+(SET.glowP===0?'non':'oui')+'</button></div><small>Contour rouge fin et reflet rouge sur la route, visibles à moins de 150 m. Mêmes coureurs que le ⚠️ du classement.</small>';
   if(sel.k!=='clm')h+='<h3>Départ</h3><div class="chips" id="cmnu">'+[[1000,'🏳️ Neutralisé 1 km (drapeau baissé ensuite)'],[0,'Départ lancé']].map(([v,t])=>'<button data-v="'+v+'"'+(sel.neu===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div><small>Neutralisé : le peloton roule groupé à 28 km/h sur le premier kilomètre ; le chrono et la course démarrent au drapeau.</small>'}
+ h+='<h3>Gabarit des adversaires</h3><div class="chips" id="cmgb">'+[['me','⚖️ Comme moi (même poids, armes égales)'],['real','🚴 Réaliste (60–80 kg)']].map(([v,t])=>'<button data-v="'+v+'"'+((sel.opts.gab||'me')===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div><small>« Comme moi » : même rapport watts/kg que toi et même poids que toi. « Réaliste » : poids de peloton, donc moins de watts que toi sur le plat.</small>';
  h+='<h3>Monde de la course</h3><div class="chips" id="cmwd">'+[['space','🚀 Space (le plus léger)'],['mont','🏔️ Montagne légère (vrai relief, neige, sans maisons)']].map(([v,t])=>'<button data-v="'+v+'"'+((sel.world||'space')===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div>'+((sel.world==='mont'&&CRS.cur&&CRS.cur.gen&&sel.k!=='stage')?'<small>⚠️ Le parcours actuel est imaginaire : il se roulera en Space. Génère un vrai parcours ci-dessous pour la Montagne.</small>':'');
  if(sel.k!=='stage'){h+='<h3>Parcours</h3>'+(c?'<div class="cd"><b>'+esc(c.name)+'</b>'+nf(c.km,1)+' km · '+nf(c.dp||0)+' m D+'+(lp?' · boucle':'')+'<div class="chips" style="margin-top:8px"><button id="cmch">⇄ Changer de parcours</button></div></div>':'<div class="cd">Aucun parcours : importe un GPX ou crée un parcours (Mes parcours).</div>')+(c?cmpPrevHtml(c):'');
   if(lp&&sel.k==='race')h+='<h3>Nombre de tours</h3><div class="chips" id="cmlp">'+[1,2,3].map(n=>'<button data-v="'+n+'"'+(sel.laps===n?' class="on"':'')+'>'+n+' tour'+(n>1?'s':'')+(c?' ('+nf(c.km*n,0)+' km)':'')+'</button>').join('')+'</div>';h+=famSingleHTML(sel)}
@@ -7621,6 +7622,7 @@ function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';
  h+='<button class="go" id="cmgo">▶ '+(sel.k==='stage'?(S&&!S.over?'Nouvelle course par étapes':'Créer la course par étapes'):'Prendre le départ')+'</button>';
  e.innerHTML=h;cmpPrevBind(e);const on=(id,f)=>{const x=$(id);if(x)x.onclick=f};cmpVoiceUI(e);famBind(e,sel);
  on('cmx',()=>e.style.display='none');
+ e.querySelectorAll('#cmgb [data-v]').forEach(b=>b.onclick=()=>{sel.opts.gab=b.dataset.v;cmpOpen()});
  {const o=sel.opts,upd=()=>{const t=cmpTotal(o),ld=t<=40?['🟢','confortable']:t<=60?['🟠','possible, un peu plus lourd pour la tablette']:['🔴','lourd : la tablette risque de ramer'],x=$('cmtot');if(x)x.innerHTML='<b>'+t+' coureurs</b> ('+(o.opp+1)+' équipes) · '+ld[0]+' '+ld[1]+(o.opp*o.per+o.mine>CMPN-6?' · limité à '+(CMPN-6):'');
    const x1=$('cmo1v');if(x1)x1.textContent=o.opp+' équipes';const x2=$('cmo2v');if(x2)x2.textContent=o.per+' coureurs';const x3=$('cmo3v');if(x3)x3.textContent=o.mine+' coureurs'};
   [['cmo1','opp'],['cmo2','per'],['cmo3','mine']].forEach(([id,k])=>{const el=$(id);if(el)el.oninput=()=>{o[k]=+el.value;upd()}});upd();
