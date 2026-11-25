@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='24/11/2026 · n';const ERRL=[];
+const VCT_VER='24/11/2026 · o';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -2080,6 +2080,13 @@ function roadTexK(mode){const W=128,H=512,k=mkCanvas(W,H),g=k.getContext('2d'),m
  const r=rng(77);for(let k2=0;k2<5;k2++){g.fillStyle=`rgba(36,37,40,${.08+r()*.1})`;const x=(.9+r()*5.6)*mx,y=r()*H,w=(.8+r()*2)*mx,h=(1+r()*2.5)*my;g.fillRect(Math.min(x,W-1.2*mx-w),y,w,h)}
  // marquages (ligne médiane T1 3/10 m, rives T'2 3/3.5 m)
  g.fillStyle='rgba(236,234,224,.9)';const paint=(u0,wm,v0,lm)=>g.fillRect(u0*mx,v0*my,Math.max(1.2,wm*mx),lm*my);
+ if(mode<2)for(const v0 of[0,13])paint(4.1-.075,.15,v0,3);
+ if(mode===0)for(const v0 of[0,6.5,13,19.5]){paint(.8,.15,v0,3);paint(7.25,.15,v0,3)}
+ return k}
+// route unie (version o, monde Montagne) : couleur plate, bords plats, seulement les traits blancs
+function roadTexU(mode){const W=64,H=512,k=mkCanvas(W,H),g=k.getContext('2d'),mx=W/8.2,my=H/26;
+ g.fillStyle='#807a6c';g.fillRect(0,0,W,H);g.fillStyle='#4e5054';g.fillRect(.55*mx,0,(7.65-.55)*mx,H);
+ g.fillStyle='#ecebe2';const paint=(u0,wm,v0,lm)=>g.fillRect(u0*mx,v0*my,Math.max(1.5,wm*mx),lm*my);
  if(mode<2)for(const v0 of[0,13])paint(4.1-.075,.15,v0,3);
  if(mode===0)for(const v0 of[0,6.5,13,19.5]){paint(.8,.15,v0,3);paint(7.25,.15,v0,3)}
  return k}
@@ -3274,7 +3281,7 @@ function roadDetail(m){if(m.userData.rd)return;m.userData.rd=1;const lite=QK==='
  m.needsUpdate=true}
 for(const m of ROADMATS)roadDetail(m);
 // route de la Montagne (24 nov. 2026) : texture 128 × 512, aucun grain ni relief calculé par pixel (≈ −75 % de travail sur la route)
-let _ROADL=null;function roadMatsL(){if(!_ROADL)_ROADL=[0,1,2].map(m=>{const t=texOf(roadTexK(m),true,true);t.anisotropy=2;return new T.MeshLambertMaterial({map:t,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2})});return _ROADL}
+let _ROADL=null;function roadMatsL(){if(!_ROADL)_ROADL=[0,1,2].map(m=>{const t=texOf(roadTexU(m),true,true);t.anisotropy=1;return new T.MeshLambertMaterial({map:t,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2})});return _ROADL}
 // RDW : largeur de chaussée (m) par échantillon, RMK : marquage (0 complet, 1 médiane, 2 aucun), 0 / 255 = inconnu (route standard 7 m)
 let RDW=null,RMK=null,CHK_OF=null;const RDIRTY=new Set(),CRLV={v:0};// CRLV : version des largeurs (trajectoire idéale à recalculer)
 function roadAttr(i,w,mk){if(!RDW){RDW=new Float32Array(N);RMK=new Uint8Array(N).fill(255);CHK_OF=new Int32Array(N).fill(-1);CHUNKS.forEach((c,k)=>{for(let j=c.i0;j<=c.i1;j++)CHK_OF[j]=k})}
@@ -3359,14 +3366,14 @@ function* buildFurniture(c){let t0=performance.now();const ch=CHUNKS[c],Ed=NET.E
    // borne kilométrique (côté droit)
    if(Math.round(sd)%1000<SEG&&sd>100){const p=P(i,5.6,null),r=ry(i);gb.box(p[0],p[1]-.2,p[2],.36,.82,.18,r,W,4);gb.box(p[0],p[1]+.55,p[2],.37,.2,.19,r,Ye,6)}
    // glissières là où ça tombe
-   for(const s2 of[-1,1]){const drop=H[i]-Math.min(hT(X[i]-TZ[i]*s2*9,Z[i]+TX[i]*s2*9),hT(X[i]-TZ[i]*s2*14,Z[i]+TX[i]*s2*14));
+   if(!MONT)for(const s2 of[-1,1]){const drop=H[i]-Math.min(hT(X[i]-TZ[i]*s2*9,Z[i]+TX[i]*s2*9),hT(X[i]-TZ[i]*s2*14,Z[i]+TX[i]*s2*14));
     const drop2=H[i+1]-Math.min(hT(X[i+1]-TZ[i+1]*s2*9,Z[i+1]+TX[i+1]*s2*9),hT(X[i+1]-TZ[i+1]*s2*14,Z[i+1]+TX[i+1]*s2*14));
     if(drop>2.6&&drop2>2.6&&!nearOther(X[i]-TZ[i]*s2*5,Z[i]+TX[i]*s2*5)){const o=s2*4.95,a0=P(i,o,.42),b0=P(i+1,o,.42),a1=P(i,o,.74),b1=P(i+1,o,.74);
      if(s2>0)gb.quad(a1,b1,b0,a0,Gv,[sd/2,0,SD[i+1]/2,.3],5);else gb.quad(b1,a1,a0,b0,Gv,[sd/2,0,SD[i+1]/2,.3],5);
      const t0=P(i,o-s2*.05,.75),t1=P(i+1,o-s2*.05,.75);gb.quad(a1,b1,t1,t0,Gv,[0,0,1,1],5);
      if(i%1===0&&Math.round(sd)%4<SEG){const q=P(i,o+s2*.12,null);gb.box(q[0],q[1]-.3,q[2],.1,1.05,.08,ry(i),CA(0x8f9499),6)}}}
    // clôtures des prés (bois à deux lisses ou piquets et fils), par tronçons de 140 m d'un côté ou de l'autre
-   for(const s2 of[-1,1]){const blk=Math.floor(sd/140),hh=ih(Ed.id*13+blk,s2>0?3:9);if(hh>.3)continue;const o=s2*(6.6+ih(Ed.id,blk)*1.6),wood=hh<.18;
+   if(!MONT)for(const s2 of[-1,1]){const blk=Math.floor(sd/140),hh=ih(Ed.id*13+blk,s2>0?3:9);if(hh>.3)continue;const o=s2*(6.6+ih(Ed.id,blk)*1.6),wood=hh<.18;
     const a=P(i,o,null),b=P(i+1,o,null);if(Math.abs(a[1]-H[i])>2.2||nearOther(a[0],a[2])||nearOther(b[0],b[2]))continue;const mk=maskAt(a[0],a[2]);if(mk>=253||(mk>=1&&mk<=3)||seaAt(a[0],a[2]))continue;
     const r2=Math.atan2(b[0]-a[0],b[2]-a[2]),L=Math.hypot(b[0]-a[0],b[2]-a[2]),mx2=(a[0]+b[0])/2,mz2=(a[2]+b[2])/2,my2=(a[1]+b[1])/2;
     if(wood){gb.box(a[0],a[1]-.3,a[2],.11,1.42,.11,r2,FW,6);for(const y of[.45,.9])gb.box(mx2,my2+y,mz2,.045,.11,L+.06,r2,FW2,6)}
