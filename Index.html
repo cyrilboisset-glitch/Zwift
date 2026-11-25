@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='24/11/2026 · o';const ERRL=[];
+const VCT_VER='25/11/2026 · p';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -5864,7 +5864,7 @@ function regRender(){const box=document.querySelector('#s-reg .cards');box.inner
  hcard(box,'🩺 Diagnostic des blocages','Mesure ce qui ralentit l\'appli pendant une sortie, puis rapport à copier',diagPanel);
  hcard(box,'🎛️ Préférences','Sprints, voix, musique, météo, nuit, affichage, FC max',()=>{prefRender();showScr('s-pref')});
  hcard(box,'🖥️ Graphismes','Qualité actuelle : '+QPRE[QK].n+(SET.autoQ===0?'':' · automatique'),()=>mod('Qualité graphique<br><small>Actuelle : '+QPRE[QK].n+'. Changement immédiat, sans recharger.</small>',
-  ['tab','low','med','high','ultra'].map(k=>[QPRE[k].n,()=>{qualitySet(k);regRender()}]).concat([['🎚️ Qualité automatique : '+(SET.autoQ===0?'non':'oui (≥ 20 img/s)'),()=>{autoQSet(SET.autoQ===0);regRender()}],['🌳 Éléments affichés (arbres, animaux, passants…)',showMenu],['✨ Effets visuels : '+['aucun','doux','max'][fxLevel()],()=>mod('Effets visuels<br><small>Halo lumineux autour des lumières, rayons du soleil, couleurs plus riches, vignette. Coûte un peu de fluidité : déconseillé sur la tablette.</small>',[['Automatique (selon la qualité)',()=>{fxSet(-1);regRender()}],['Aucun',()=>{fxSet(0);regRender()}],['Doux',()=>{fxSet(1);regRender()}],['Max',()=>{fxSet(2);regRender()}],['Annuler',()=>{}]])],['Annuler',()=>{}]])))}
+  ['tab','low','med','high','ultra'].map(k=>[QPRE[k].n,()=>{qualitySet(k);regRender()}]).concat([['🎚️ Qualité automatique : '+(SET.autoQ===0?'non':'oui (≥ 20 img/s)'),()=>{autoQSet(SET.autoQ===0);regRender()}],['🌑 Ombres : '+(shadowOn()?'oui':'non'),()=>{shadowSet(!shadowOn());regRender()}],['🌳 Éléments affichés (arbres, animaux, passants…)',showMenu],['✨ Effets visuels : '+['aucun','doux','max'][fxLevel()],()=>mod('Effets visuels<br><small>Halo lumineux autour des lumières, rayons du soleil, couleurs plus riches, vignette. Coûte un peu de fluidité : déconseillé sur la tablette.</small>',[['Automatique (selon la qualité)',()=>{fxSet(-1);regRender()}],['Aucun',()=>{fxSet(0);regRender()}],['Doux',()=>{fxSet(1);regRender()}],['Max',()=>{fxSet(2);regRender()}],['Annuler',()=>{}]])],['Annuler',()=>{}]])))}
 // ---- éléments affichés (19 nov. 2026, demande de Cyril) : arbres, herbe, animaux, passants, autres cyclistes, nuages ; gardé dans SET.show ----
 const SHOWK=[['trees','🌳 Arbres'],['grass','🌱 Herbe'],['farm','🐄 Animaux de la ferme (vaches, moutons, chiens, chats, écureuils)'],['wild','🦌 Animaux sauvages et oiseaux (chevaux, cerfs, renards, dinosaures)'],['peds','🚶 Passants et spectateurs'],['npc','🚴 Autres cyclistes'],['clouds','☁️ Nuages']];
 var CMPLT=null;// éléments coupés pendant une course en Montagne (ferme, sauvages, passants, herbe)
@@ -6001,7 +6001,7 @@ function ldgTick(now){const el=$('ldg');if(!el)return ldgHide();const el2=(now-L
  el.querySelector('.st').innerHTML=(ADV?[[dem,'Altitudes du parcours'],[ph,'Volcan'],[dat,'Dinosaures et décors'],[job>.9?1:0,'Route']]:SPACE.on?[[dem,'Altitudes du parcours'],[ph,'Nébuleuse'],[dat,'Astéroïdes'],[job>.9?1:0,'Route néon']]:[[dem,'Relief'],[ph,'Photos aériennes'],[dat,'Bâtiments et routes'],[job>.9?1:0,'Paysage']]).map(([v,t])=>'<span class="'+(v>=1?'ok':'')+'">'+(v>=1?'✓ ':'⏳ ')+t+'</span>').join('');
  if(now-LDG.tt>4500){LDG.tt=now;LDG.tip=(LDG.tip+1)%TIPS.length;el.querySelector('.tip').textContent='💡 '+TIPS[LDG.tip]}
  if(pr>.97){if(!LDG.done)LDG.done=now;else if(now-LDG.done>600)ldgHide()}else LDG.done=0;if(el2>30)ldgHide()}
-function ldgHide(){LDG.on=false;const el=$('ldg');if(!el)return;el.classList.remove('on');setTimeout(()=>{if(!LDG.on)el.style.display='none'},460)}
+function ldgHide(){setTimeout(shaderWarm,200);LDG.on=false;const el=$('ldg');if(!el)return;el.classList.remove('on');setTimeout(()=>{if(!LDG.on)el.style.display='none'},460)}
 // changer de monde : sans recharger (worldSwitch)
 function worldSet(w){if(w===WORLDK)return;if(CRS.cur&&CRS.cur.gen&&(w==='real'||w==='mont'))return say('✨ Parcours imaginaire : il n\'existe pas sur une vraie carte. Choisis Aventure, Space ou Néon.');worldSwitch(w);say({real:'🌍 Mode réaliste',mont:'🏔️ Montagne stylisée',adv:'🦖 Monde Aventure',space:'🚀 Mode Space',tron:'🟦 Mode Néon'}[w]+' : monde en préparation…');homeRender()}
 function homeRender(){homeHeader();const sm=$('s-main'),c=CRS.cur,w=weekStats(),wp=Math.min(100,w.km/(GS.goal.km||1)*100);
@@ -7658,7 +7658,7 @@ function cmpStart(o){if(!COURSE)return say('Choisis d\'abord un parcours.');
   for(const r of R){let t=r.t0;while(t<0){const dt2=Math.min(1,-t);CMP.T=t+dt2;cmpRider(r,dt2,true);t+=dt2}}CMP.T=0}
  {const nl=o.kind==='race'?Math.min(o.neu||0,CMP.L*.15):0;CMP.neu=nl>=300?{on:true,len:nl,v:7.8,a:0}:null}
  cmpBuildMeshes();if(!CMP.M.G.parent)WORLD.add(CMP.M.G);cmpHiBuild();
- cmpArches();
+ cmpArches();try{shaderWarm()}catch(e){}
  cEl('cmh').style.display='block';cmpHud(true);voxOn();
  const hd=o.kind==='clm'?'Contre-la-montre':o.kind==='race'?'Course en ligne':'Étape';
  setTimeout(()=>cRadio(cmpFatNote()+(o.kind==='clm'?dsF('depart_clm',{km:cKm(CMP.L)}):(CMP.neu?dsF('neu_dep',{m:Math.round(CMP.neu.len)}):dsF('depart'))+' '+hd+' de '+cKm(CMP.L)+(CMP.climbs.length?', '+CMP.climbs.length+' montée'+(CMP.climbs.length>1?'s':'')+' au programme':'')+'.')),1500)}
@@ -8682,6 +8682,12 @@ function onDataTile(a,b){dataDirty=1;const x0=a*DT-64,x1=(a+1)*DT+64,z0=b*DT-64,
 const ATT0=($('att')?$('att').textContent:'')+' · Animaux 3D : three.js (mirada), Quaternius, renard © PixelMannen / @tomkranis (CC BY 4.0)';
 // qualité graphique changée sans recharger : réglages, résolution, ombres, PNJ, piétons, puis monde reconstruit avec les nouvelles distances
 // (l'anticrénelage et la finesse du vélo, de l'avatar, des arbres et du vélodrome ne changent qu'au prochain lancement)
+// ombres (version p) : coupées par défaut en Tablette / Basse ; réglage Réglages → Graphismes (SET.shad : 1 oui, 0 non)
+function shadowOn(){return SET.shad==null?!(QK==='tab'||QK==='low'):!!SET.shad}
+function shadowApply(){const on=shadowOn();if(ren.shadowMap.enabled===on&&SUNL.castShadow===on)return;ren.shadowMap.enabled=on;SUNL.castShadow=on;if(SUNL.shadow.map){SUNL.shadow.map.dispose();SUNL.shadow.map=null}
+ try{sc.traverse(o=>{if(o.material)[].concat(o.material).forEach(m=>m.needsUpdate=true)})}catch(e){}}
+function shadowSet(v){SET.shad=v?1:0;ssave();shadowApply();say('Ombres : '+(v?'oui':'non'))}
+function shaderWarm(){try{const hid=[];sc.traverse(o=>{if(o.userData&&o.userData.keep&&!o.visible&&o.isObject3D&&o.parent){hid.push(o);o.visible=true}});ren.compile(sc,cam);for(const o of hid)o.visible=false}catch(e){}}
 function qualitySet(k,auto){if(!QPRE[k]||k===QK)return;QK=k;if(!auto){AQ.max=k;AQ.fail={};try{localStorage.v3q2=k}catch(e){}}AQ.t=performance.now();AQ.lo=AQ.hi=0;
  for(const key of Object.keys(QP))delete QP[key];Object.assign(QP,QPRE[k]);
  BCAP={tab:[220,110],low:[360,180],med:[600,320],high:[900,480],ultra:[1300,700]}[k]||[600,320];BDET=k==='tab'?40:k==='low'?55:80;
@@ -8691,6 +8697,7 @@ function qualitySet(k,auto){if(!QPRE[k]||k===QK)return;QK=k;if(!auto){AQ.max=k;A
  {const z=Math.min(QP.shadow,MAXTEX),c=SUNL.shadow.camera;SUNL.shadow.mapSize.set(z,z);if(SUNL.shadow.map){SUNL.shadow.map.dispose();SUNL.shadow.map=null}
   c.left=c.bottom=-QP.sh;c.right=c.top=QP.sh;c.updateProjectionMatrix();const ty=QP.soft===0?T.PCFShadowMap:T.PCFSoftShadowMap;
   if(ren.shadowMap.type!==ty){ren.shadowMap.type=ty;sc.traverse(o=>{if(o.material)[].concat(o.material).forEach(m=>m.needsUpdate=true)})}}
+ shadowApply();
  // photo proche
  CLIP.z=QP.photoZ;CLIP.imgs.clear();CLIP.on=false;
  // PNJ : on en ajoute ou on en retire
@@ -8698,7 +8705,7 @@ function qualitySet(k,auto){if(!QPRE[k]||k===QK)return;QK=k;if(!auto){AQ.max=k;A
  // piétons : maillages refaits au nombre voulu
  PEDN=QP.ped||18;if(PED.meshes){for(const m of Object.values(PED.meshes))if(m.parent)m.parent.remove(m);PED.meshes=null;PED.list=[]}
  say((auto?'Qualité automatique : « ':'Qualité « ')+QPRE[k].n+' »'+(auto?' ('+Math.round(AQ.fps)+' img/s avant)':''));if(COURSE)startWorld()}
-async function startWorld(){const id=++WID;resetWorld();if(!NOVEG&&!TREEG.b)initTreeGeos();if(!NET.ready)initNetwork();
+async function startWorld(){try{shadowApply()}catch(e){}const id=++WID;resetWorld();if(!NOVEG&&!TREEG.b)initTreeGeos();if(!NET.ready)initNetwork();
  {const sb=document.querySelector('#hh .sub');if(sb)sb.textContent=CRS.cur?CRS.cur.name+' · '+nf(CRS.cur.km,1)+' km':'Importe un GPX pour rouler'}
  setupRegions();if(!CLIP.k)clipInit();computeNearCoverage();initGrass();CAM.snap=true;
  if(!RID.init){const st=nearestNet(0,0);RID.e=st.e;RID.u=st.u;RID.dir=1;RID.init=true}
@@ -13735,6 +13742,7 @@ function drawMap(){const c=$('map');if(!c||!N)return;const W=c.width,g=c.getCont
  for(const k of['ultra','high','med','low','tab']){const o=document.createElement('option');o.value=k;o.textContent=QPRE[k].n+(k==='tab'?' (Redmi Pad)':'')+(k===QK?' (actuelle)':'');if(k===QK)o.selected=true;sel.appendChild(o)}
  const lab=document.createElement('label');lab.textContent='Qualité ';lab.appendChild(sel);t.appendChild(lab);
  {const ab=document.createElement('button');const al=()=>{ab.textContent='🎚️ Qualité automatique : '+(SET.autoQ===0?'non':'oui')};al();ab.onclick=()=>{autoQSet(SET.autoQ===0);al()};t.appendChild(ab)}
+ {const sb=document.createElement('button');const sl=()=>{sb.textContent='🌑 Ombres : '+(shadowOn()?'oui':'non')};sl();sb.onclick=()=>{shadowSet(!shadowOn());sl()};t.appendChild(sb)}
  {const fs=document.createElement('select');[[-1,'Auto'],[0,'Aucun'],[1,'Doux'],[2,'Max']].forEach(([v,n])=>{const o=document.createElement('option');o.value=v;o.textContent=n;if((SET.fx==null?-1:SET.fx)===v)o.selected=true;fs.appendChild(o)});fs.onchange=()=>fxSet(+fs.value);const l2=document.createElement('label');l2.textContent='Effets ';l2.appendChild(fs);t.appendChild(l2)}sel.onchange=()=>{qualitySet(sel.value);for(const o of sel.options)o.textContent=QPRE[o.value].n+(o.value==='tab'?' (Redmi Pad)':'')+(o.value===QK?' (actuelle)':'')};
  {const eb=document.createElement('button');eb.textContent='🌳 Éléments affichés';eb.onclick=()=>{topShow(false);showMenu()};t.appendChild(eb)}
  const vb2=document.createElement('button');vb2.textContent='🎥 Changer de vue';vb2.onclick=nextView;t.appendChild(vb2);
