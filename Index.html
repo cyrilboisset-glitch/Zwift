@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='25/11/2026 · y';const ERRL=[];
+const VCT_VER='25/11/2026 · z';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7680,20 +7680,20 @@ function dsBed(on){try{if(!DSV.on||!AC||AC.state!=='running'||MUTE){return}
  if(on){if(DSV.bed)return;const s0=AC.createBufferSource();s0.buffer=dsNoise();s0.loop=true;const f=AC.createBiquadFilter();f.type='bandpass';f.frequency.value=2200;f.Q.value=.6;const g=AC.createGain();g.gain.value=.0001;s0.connect(f);f.connect(g);g.connect(AC.destination);s0.start();g.gain.setTargetAtTime(.028,AC.currentTime,.05);
   const lf=AC.createOscillator(),lg=AC.createGain();lf.frequency.value=7;lg.gain.value=.012;lf.connect(lg);lg.connect(g.gain);lf.start();DSV.bed={s:s0,g,lf};clearTimeout(DSV.bt);DSV.bt=setTimeout(()=>dsBed(false),25000)}
  else if(DSV.bed){const b=DSV.bed;DSV.bed=null;clearTimeout(DSV.bt);b.g.gain.setTargetAtTime(.0001,AC.currentTime,.04);setTimeout(()=>{try{b.s.stop();b.lf.stop()}catch(e){}},300)}}catch(e){}}
-function dsSpeak(txt,co,force){try{if(!self.speechSynthesis)return;DSV.q=DSV.q||[];if(!co&&DSV.busy&&!force){DSV.q.push({txt,t:performance.now()});if(DSV.q.length>2)DSV.q.shift();return}speechSynthesis.cancel();clearInterval(dsSpeak.iv);dsBed(false);const ds=!co,T0=DST[DSV.tone]||DST.s,fv=dsVoice(),urg=DSURG.test(dsClean(txt));
-  if(!ds){const u=new SpeechSynthesisUtterance(dsClean(txt));u.lang='fr-FR';u.rate=1.06;if(fv)u.voice=fv;speechSynthesis.speak(u);return}
-  const segs=dsSegs(txt);if(!segs.length)return;dsFx('open');
-  const tok=DSV.tk=(DSV.tk||0)+1,t0=performance.now(),maxMs=Math.min(22000,2500+segs.reduce((n,g)=>n+g.t.length,0)*95/T0.r);let done=0;
+function dsSpeak(txt,co,cb){let fin=false;const done=()=>{if(fin)return;fin=true;try{cb&&cb()}catch(e){}};
+ try{if(!self.speechSynthesis)return done();speechSynthesis.cancel();clearInterval(dsSpeak.iv);dsBed(false);const ds=!co,T0=DST[DSV.tone]||DST.s,fv=dsVoice(),urg=DSURG.test(dsClean(txt));
+  if(!ds){const u=new SpeechSynthesisUtterance(dsClean(txt));u.lang='fr-FR';u.rate=1.06;if(fv)u.voice=fv;u.onend=done;u.onerror=done;speechSynthesis.speak(u);setTimeout(done,2500+dsClean(txt).length*90);return}
+  const segs=dsSegs(txt);if(!segs.length)return done();dsFx('open');
+  const tok=DSV.tk=(DSV.tk||0)+1,t0=performance.now(),maxMs=Math.min(22000,2500+segs.reduce((n,g)=>n+g.t.length,0)*95/T0.r);let ended=false;
   // fin garantie : l'événement « fin de parole » n'arrive pas toujours sur Android, donc minuteur de sécurité + test « la voix parle-t-elle encore ? »
-  DSV.busy=true;const end=()=>{if(done||DSV.tk!==tok)return;done=1;DSV.busy=false;clearInterval(dsSpeak.iv);dsBed(false);dsFx('close');// message suivant en attente (pas plus vieux que 12 s)
-   let nx=null;while(DSV.q.length){const q=DSV.q.shift();if(performance.now()-q.t<12000){nx=q;break}}if(nx)setTimeout(()=>dsSpeak(nx.txt,false,true),350)};
+  const end=()=>{if(ended||DSV.tk!==tok)return;ended=true;clearInterval(dsSpeak.iv);dsBed(false);dsFx('close');done()};
   dsBed(true);dsSpeak.iv=setInterval(()=>{const el=performance.now()-t0;if(DSV.tk!==tok){clearInterval(dsSpeak.iv);return}if(el>maxMs||(el>2200&&!speechSynthesis.speaking&&!speechSynthesis.pending)){end();return}if(Math.random()<.75)dsFx('crack')},210);
   const us=[];segs.forEach((g,i)=>{const u=new SpeechSynthesisUtterance(g.t);u.lang='fr-FR';let p=T0.p,r=T0.r;const last=/[.!?:;]$/.test(g.t)?g.t.slice(-1):'';
    if(g.em){p*=1.1;r*=.93}if(last==='!'){p*=1.1;r*=1.07}if(last==='?')p*=1.15;if(last===':')r*=.96;if(urg){p*=1.04;r*=1.06}if(i===segs.length-1&&last!=='!'){p*=.93;r*=.97}
    u.pitch=clamp(p,.1,2);u.rate=clamp(r,.5,2);u.volume=1;if(fv)u.voice=fv;
    if(i===segs.length-1)u.onend=end;u.onerror=end;us.push(u)});
   // tous les morceaux sont mis en file ensemble, dans l'ordre (avant : le premier partait 230 ms après les autres, donc dit en dernier)
-  setTimeout(()=>{if(DSV.tk!==tok)return;for(const u of us)speechSynthesis.speak(u)},230)}catch(e){}}
+  setTimeout(()=>{if(DSV.tk!==tok)return;for(const u of us)speechSynthesis.speak(u)},230)}catch(e){done()}}
 try{if(self.speechSynthesis)speechSynthesis.onvoiceschanged=()=>{const e=$('cmp');if(e&&e.style.display==='block'&&e.querySelector('#cmvc'))cmpVoiceUI(e)}}catch(x){}
 function cmpVoiceUI(e){const vs=dsVoices(),all=dsAllVoices();const box=e.querySelector('#cmvc');if(!box)return;
  const lab=v=>esc(v.name.replace(/Google |français|French/gi,'').trim()||v.name)+(v.localService===false?' ☁':'');
@@ -7706,8 +7706,22 @@ function cmpVoiceUI(e){const vs=dsVoices(),all=dsAllVoices();const box=e.querySe
  box.querySelectorAll('[data-rf]').forEach(b=>b.onclick=()=>{try{speechSynthesis.cancel();speechSynthesis.getVoices()}catch(x){}setTimeout(()=>cmpVoiceUI(e),400)});
  box.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{const t=all.map(v=>v.name+' | '+v.lang+' | '+(v.localService?'local':'en ligne')).join('\n')||'(aucune voix)';try{navigator.clipboard.writeText(t);say('Liste des voix copiée.')}catch(x){mod('<small style="white-space:pre-wrap">'+esc(t)+'</small>',[['Fermer',()=>{}]])}})}
 
-function cRadio(txt,co){const e=cEl('cmr');e.className=co?'co':'';e.innerHTML=(co?'<b>🎧 Coach</b> · ':'<b>📻 Directeur sportif</b> · ')+txt;e.style.display='block';clearTimeout(cRadio.t);cRadio.t=setTimeout(()=>e.style.display='none',co?7000:9000);
- if(SET.voice)dsSpeak(txt,co)}
+// une seule file pour le directeur sportif et le coach : un message n'est dit (et affiché) que quand le précédent est fini ;
+// un message du coach passe devant ceux du DS qui attendent, jamais devant celui qui parle (version z)
+const CRQ={q:[],busy:false,tk:0,t1:0,th:0};
+function cRadio(txt,co){const it={txt,co:!!co,t:performance.now()};
+ if(co){let i=0;while(i<CRQ.q.length&&CRQ.q[i].co)i++;CRQ.q.splice(i,0,it)}else CRQ.q.push(it);
+ while(CRQ.q.length>3){const k=CRQ.q.findIndex(x=>!x.co);CRQ.q.splice(k<0?0:k,1)}
+ crPump()}
+function crStop(){CRQ.q=[];CRQ.tk++;CRQ.busy=false;clearTimeout(CRQ.t1);clearTimeout(CRQ.th);CRQ.t0=0}
+function crPump(){if(CRQ.busy)return;if(typeof VXO!=='undefined'&&VXO.busy){clearTimeout(CRQ.t1);CRQ.t1=setTimeout(crPump,900);return}
+ let it=null;while(CRQ.q.length){const x=CRQ.q.shift();if(performance.now()-x.t<(x.co?9000:14000)){it=x;break}}if(!it)return;
+ CRQ.busy=true;const tk=++CRQ.tk,e=cEl('cmr'),clean=it.txt.replace(/<[^>]+>/g,'');clearTimeout(CRQ.th);
+ e.className=it.co?'co':'';e.innerHTML=(it.co?'<b>🎧 Coach</b> · ':'<b>📻 Directeur sportif</b> · ')+it.txt;e.style.display='block';
+ let ended=false;const end=()=>{if(ended||CRQ.tk!==tk)return;ended=true;clearTimeout(CRQ.t0);clearTimeout(CRQ.t1);
+  CRQ.t1=setTimeout(()=>{if(CRQ.tk!==tk)return;CRQ.busy=false;if(CRQ.q.length)crPump();else CRQ.th=setTimeout(()=>{if(!CRQ.busy)e.style.display='none'},it.co?3500:4500)},400)};
+ const est=Math.max(3500,Math.min(16000,clean.length*80));
+ if(SET.voice)dsSpeak(it.txt,it.co,end);CRQ.t0=setTimeout(end,SET.voice?est*1.8+4000:est)}
 const cGapTxt=s=>{s=Math.max(0,Math.round(s));return s<60?s+' s':Math.floor(s/60)+' min '+String(s%60).padStart(2,'0')};
 const cKm=m=>nf(Math.max(0,m)/1000,1)+' km';
 
@@ -7801,7 +7815,7 @@ function cmpArches(){if(CMP.G){disposeGroup(CMP.G);CMP.G=null}const G=new T.Grou
 function cmpFatNote(){const F=CMP.fat;if(!F)return '';const h=(Date.now()-F.t)/3600000,me=CMP.me,op=CMP.R.reduce((a,r)=>a+r.fk,0)/CMP.R.length;
  if(h>=60||(me.fk>.995&&op>.995&&me.wbal>.97*me.wp))return 'Tout le monde a récupéré. ';
  return 'Course enchaînée '+(h<1?Math.round(h*60)+' min':nf(h,1)+' h')+' après la précédente : '+(op<.995?'les adversaires sont à '+Math.round(op*100)+' % de leur forme':'les adversaires ont récupéré leur fond')+', toi à '+Math.round(me.fk*100)+' %'+(me.wbal<.9*me.wp?', réserve à '+Math.round(100*me.wbal/me.wp)+' %':'')+'. '}
-function cmpStop(){if(!CMP.on)return;if(!CMP.fsaved&&CMP.T>60)cmpFatSave();{const S0=CMP.stageK?cmpLoad():null;if(S0&&!S0.over&&CMP.upP){S0.upP=CMP.upP;cmpSave(S0)}}CMP.on=false;CMP.hold=false;voxOff();CMPLT=null;cmpHiFree();['cmh','cmr','cmcd','cmk','cme'].forEach(i=>{const e=$(i);if(e)e.style.display='none'});
+function cmpStop(){if(!CMP.on)return;if(!CMP.fsaved&&CMP.T>60)cmpFatSave();{const S0=CMP.stageK?cmpLoad():null;if(S0&&!S0.over&&CMP.upP){S0.upP=CMP.upP;cmpSave(S0)}}CMP.on=false;CMP.hold=false;voxOff();crStop();CMPLT=null;cmpHiFree();['cmh','cmr','cmcd','cmk','cme'].forEach(i=>{const e=$(i);if(e)e.style.display='none'});
  if(CMP.M&&CMP.M.G.parent)CMP.M.G.parent.remove(CMP.M.G);if(CMP.G){disposeGroup(CMP.G);CMP.G=null}CMP.R=[];
  const p=CMP.prev;CMP.prev=null;if(CMP.next){CMP.next=false;CMP.prevKeep=p;return}if(p){setTimeout(()=>{try{if(p.crs&&CRS.cur&&p.crs!==CRS.cur.id&&CRS.list.some(q=>q.id===p.crs))crsSwitch(p.crs);
    const gen=CRS.cur&&CRS.cur.gen;if(p.w!==WORLDK&&!(gen&&(p.w==='real'||p.w==='mont'))){SET.spAmb=p.a;worldSwitch(p.w)}else if(WORLDK==='space'&&p.a&&p.a!==SET.spAmb)spAmbSet(p.a);homeRender()}catch(e){console.warn('cmpStop',e)}},400)}}
@@ -8152,7 +8166,7 @@ function voxDo(alts){const n=alts.map(a=>a.toLowerCase().normalize('NFD').replac
 function voxTalk(){if(!CMP.on||!CMP.me)return;
  if(VXO.busy){try{VXO.rec.stop()}catch(e){}return}
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){voxMsg('🎤 Reconnaissance vocale indisponible sur ce navigateur',4000);return}
- try{if(window.speechSynthesis)speechSynthesis.cancel()}catch(e){}
+ try{crStop();if(window.speechSynthesis)speechSynthesis.cancel()}catch(e){}
  const r=new SR();r.lang='fr-FR';r.interimResults=false;r.maxAlternatives=4;r.continuous=false;let got=false,err='';VXO.rec=r;VXO.busy=true;
  r.onresult=ev=>{got=true;voxDo([...ev.results[0]].map(a=>a.transcript))};
  r.onerror=ev=>{err=ev.error||'?'};
