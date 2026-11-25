@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='25/11/2026 · p';const ERRL=[];
+const VCT_VER='25/11/2026 · q';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7543,6 +7543,8 @@ function dsFx(kind){if(!DSV.on||!AC||AC.state!=='running'||MUTE)return;try{const
 Object.assign(DSB,{"neu_dep":["Les gars, on est <b>neutralisés</b> sur le premier kilomètre, <b>{m} mètres</b> à vingt-huit à l'heure. On reste groupés, on regarde la voiture, <b>personne ne bouge</b>.","Départ fictif ! <b>Pas de bêtise</b> : on roule au train derrière la voiture, le drapeau sera baissé dans {m} mètres.","Neutralisé jusqu'à <b>{m} mètres</b>, tout le monde sage dans le peloton. On se met en jambes, on boit un coup, et au drapeau on y va."],
  "neu_300":["Le <b>drapeau</b> sera baissé dans trois cents mètres ! Place-toi dans les premiers, <b>reste attentif</b>, ça va partir vite.","Trois cents mètres avant le départ réel : <b>on se replace</b>, on se met bien dans les roues, ne reste pas au fond du peloton.","Attention, le départ réel arrive, <b>trois cents mètres</b> ! Tiens ta place, ça va frotter."],
  "neu_flag":["<b>Drapeau baissé !</b> C'est le départ réel, la course est lancée, <b>chrono parti</b> ! Allez, reste dans les roues.","Le <b>drapeau est baissé</b> ! C'est parti pour de vrai, garde ton calme et ta place au chaud.","<b>C'est lancé !</b> Départ réel, le chrono tourne. On reste groupés au début, on ne gaspille rien."]});
+Object.assign(DSB,{"jour_sans":["Petit bruit dans le peloton : <b>{name}</b> ({team}) n'a pas ses jambes aujourd'hui, il grimace déjà. À surveiller.","On me dit que <b>{name}</b> ({team}) a mal dormi : il est <b>dans le dur</b> dès le départ.","<b>{name}</b> ({team}) a l'air en méforme, il n'est pas dans son assiette aujourd'hui."],
+ "jour_bon":["Attention, <b>{name}</b> ({team}) a l'air <b>en grande forme</b> aujourd'hui, les jambes sont bonnes.","<b>{name}</b> ({team}) est <b>affûté</b> ce matin : méfie-toi, il peut faire mal.","Info du peloton : <b>{name}</b> ({team}) a de <b>super sensations</b> aujourd'hui."]});
 const DSBAD=/female|femme|amélie|amelie|marie|julie|hortense|audrey|léa|denise|eloise|céline|celine|sylvie|brigitte|chantal/i;
 function dsAllVoices(){try{return self.speechSynthesis?speechSynthesis.getVoices():[]}catch(e){return[]}}
 function dsVoices(){return dsAllVoices().filter(x=>/^fr|^fra/i.test(x.lang)||/fran|french|\bfr[-_]/i.test(x.name))}
@@ -7591,6 +7593,10 @@ const cGapTxt=s=>{s=Math.max(0,Math.round(s));return s<60?s+' s':Math.floor(s/60
 const cKm=m=>nf(Math.max(0,m)/1000,1)+' km';
 
 // ---- écran de choix ----
+// niveau automatique : ton effort réel (puissance moyenne / FTP) sur tes dernières courses, mémorisé par compte (version q)
+function cmpAutoLoad(){try{return JSON.parse(localStorage.v3cmpa||'null')}catch(e){return null}}
+function cmpDiffAuto(){const A=cmpAutoLoad();return A&&A.e?clamp(A.e/.95,.9,1.2):1}
+const cmpDiffVal=d=>d==='auto'?cmpDiffAuto():(+d||1);
 function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';const S=cmpLoad();const c=CRS.cur;
  const sel=cmpOpen.s||(cmpOpen.s={k:'race',diff:1,laps:1,ns:4,len:'m',src:'gen',pick:[]});if(!sel.opts)sel.opts={opp:5,per:5,mine:5};if(sel.neu==null)sel.neu=1000;const nT=cmpTotal(sel.opts);
  const lp=COURSE&&COURSE.loop;
@@ -7598,13 +7604,13 @@ function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';
  if(S&&!S.over)h+='<h3>Course par étapes en cours</h3><div class="cd on"><b>'+esc(S.name)+'</b>Étape '+(S.i+1)+' / '+S.list.length+' : '+esc(S.list[S.i].name)+'<br>'+cmpGCLine(S)+'<div class="chips" style="margin-top:8px"><button id="cmrs">▶ Rouler l\'étape '+(S.i+1)+'</button><button id="cmgc">📋 Classements</button><button id="cmab">🗑 Abandonner</button></div></div>';
  h+='<div class="chips" style="margin-top:8px"><button id="cmhi">📜 Historique des courses</button></div>';
  h+='<h3>Format</h3><div class="cards">'+[['clm','⏱️ Contre-la-montre','Seul contre le chrono. '+(nT-1)+' adversaires partis avant toi. Le directeur sportif te donne ton avance ou ton retard tous les kilomètres, et les watts pour les battre.'],['race','🚴 Course en ligne','Peloton de '+nT+', échappées, attaques, sprint final. Le directeur sportif te dit d\'y aller ou non, avec les watts. Tes '+(sel.opts.mine-1)+' coéquipiers roulent pour toi.'],['stage','🗓️ Course par étapes','Commence par un contre-la-montre, puis 2 à 4 courses en ligne : classement général au temps, maillots jaune, vert et à pois.']].map(([k,t,d])=>'<button class="cd'+(sel.k===k?' on':'')+'" data-k="'+k+'"><b>'+t+'</b>'+d+'</button>').join('')+'</div>';
- h+='<h3>Niveau des adversaires</h3><div class="chips" id="cmdf">'+[[.95,'Plus faibles (−5 %)'],[1,'Comme toi'],[1.05,'Plus forts (+5 %)']].map(([v,t])=>'<button data-v="'+v+'"'+(sel.diff===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
+ h+='<h3>Niveau des adversaires</h3><div class="chips" id="cmdf">'+[[.95,'Plus faibles (−5 %)'],[1,'Comme toi'],[1.05,'Plus forts (+5 %)'],['auto','🎯 Auto : '+(cmpAutoLoad()?'d\'après ta dernière course (×'+nf(cmpDiffAuto(),2)+')':'pas encore de course (×1)')]].map(([v,t])=>'<button data-v="'+v+'"'+(sel.diff===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
  {const o=sel.opts,ld=nT<=40?['🟢','confortable']:nT<=60?['🟠','possible, un peu plus lourd pour la tablette']:['🔴','lourd : la tablette risque de ramer'];
   h+='<h3>Équipes et coureurs</h3><div class="cd">'+famSlider('cmo1','Équipes adverses',1,10,1,o.opp,'équipes')+famSlider('cmo2','Coureurs par équipe adverse',2,8,1,o.per,'coureurs')+famSlider('cmo3','Ton équipe (toi compris)',2,8,1,o.mine,'coureurs')+'<div id="cmtot" style="margin-top:6px"></div></div>';
   h+='<h3>Lueur des coureurs dangereux au général</h3><div class="chips" id="cmgl">'+[[0,'Aucune'],[1,'Discrète'],[2,'Marquée']].map(([v,t])=>'<button data-v="'+v+'"'+((SET.glow==null?1:SET.glow)===v?' class="on"':'')+'>'+t+'</button>').join('')+'<button data-p="1"'+(SET.glowP===0?'':' class="on"')+'>Pulsation '+(SET.glowP===0?'non':'oui')+'</button></div><small>Contour rouge fin et reflet rouge sur la route, visibles à moins de 150 m. Mêmes coureurs que le ⚠️ du classement.</small>';
   if(sel.k!=='clm')h+='<h3>Départ</h3><div class="chips" id="cmnu">'+[[1000,'🏳️ Neutralisé 1 km (drapeau baissé ensuite)'],[0,'Départ lancé']].map(([v,t])=>'<button data-v="'+v+'"'+(sel.neu===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div><small>Neutralisé : le peloton roule groupé à 28 km/h sur le premier kilomètre ; le chrono et la course démarrent au drapeau.</small>'}
  h+='<h3>Monde de la course</h3><div class="chips" id="cmwd">'+[['space','🚀 Space (le plus léger)'],['mont','🏔️ Montagne légère (vrai relief, neige, sans maisons)']].map(([v,t])=>'<button data-v="'+v+'"'+((sel.world||'space')===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div>'+((sel.world==='mont'&&CRS.cur&&CRS.cur.gen&&sel.k!=='stage')?'<small>⚠️ Le parcours actuel est imaginaire : il se roulera en Space. Génère un vrai parcours ci-dessous pour la Montagne.</small>':'');
- if(sel.k!=='stage'){h+='<h3>Parcours</h3>'+(c?'<div class="cd"><b>'+esc(c.name)+'</b>'+nf(c.km,1)+' km · '+nf(c.dp||0)+' m D+'+(lp?' · boucle':'')+'<div class="chips" style="margin-top:8px"><button id="cmch">⇄ Changer de parcours</button></div></div>':'<div class="cd">Aucun parcours : importe un GPX ou crée un parcours (Mes parcours).</div>');
+ if(sel.k!=='stage'){h+='<h3>Parcours</h3>'+(c?'<div class="cd"><b>'+esc(c.name)+'</b>'+nf(c.km,1)+' km · '+nf(c.dp||0)+' m D+'+(lp?' · boucle':'')+'<div class="chips" style="margin-top:8px"><button id="cmch">⇄ Changer de parcours</button></div></div>':'<div class="cd">Aucun parcours : importe un GPX ou crée un parcours (Mes parcours).</div>')+(c?cmpPrevHtml(c):'');
   if(lp&&sel.k==='race')h+='<h3>Nombre de tours</h3><div class="chips" id="cmlp">'+[1,2,3].map(n=>'<button data-v="'+n+'"'+(sel.laps===n?' class="on"':'')+'>'+n+' tour'+(n>1?'s':'')+(c?' ('+nf(c.km*n,0)+' km)':'')+'</button>').join('')+'</div>';h+=famSingleHTML(sel)}
  else{h+='<h3>Nombre d\'étapes</h3><div class="chips" id="cmns">'+[3,4,5,6,7,8].map(n=>'<button data-v="'+n+'"'+(sel.ns===n?' class="on"':'')+'>'+n+' étapes</button>').join('')+'</div>';
   h+='<h3>Étapes</h3><div class="chips" id="cmsrc"><button data-v="gen"'+(sel.src==='gen'?' class="on"':'')+'>✨ Créées par l\'appli</button><button data-v="real"'+(sel.src==='real'?' class="on"':'')+'>🌍 Lieux célèbres (vrai GPX)</button><button data-v="mine"'+(sel.src==='mine'?' class="on"':'')+'>📚 Mes parcours</button></div>';
@@ -7613,7 +7619,7 @@ function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';
   else h+='<div class="lst">'+(CRS.list.length?CRS.list.map(q=>'<label><input type="checkbox" data-id="'+q.id+'"'+(sel.pick.includes(q.id)?' checked':'')+'> '+esc(q.name)+' <small>'+nf(q.km,1)+' km · '+nf(q.dp||0)+' m D+</small></label>').join(''):'<small>Aucun parcours enregistré.</small>')+'</div><small>Coche de 3 à 8 parcours, dans l\'ordre des étapes. La première étape cochée est un contre-la-montre, les suivantes sont des courses en ligne.</small>'}
  h+='<h3>📻 Voix du directeur sportif</h3><div class="chips" id="cmvc"></div>';
  h+='<button class="go" id="cmgo">▶ '+(sel.k==='stage'?(S&&!S.over?'Nouvelle course par étapes':'Créer la course par étapes'):'Prendre le départ')+'</button>';
- e.innerHTML=h;const on=(id,f)=>{const x=$(id);if(x)x.onclick=f};cmpVoiceUI(e);famBind(e,sel);
+ e.innerHTML=h;cmpPrevBind(e);const on=(id,f)=>{const x=$(id);if(x)x.onclick=f};cmpVoiceUI(e);famBind(e,sel);
  on('cmx',()=>e.style.display='none');
  {const o=sel.opts,upd=()=>{const t=cmpTotal(o),ld=t<=40?['🟢','confortable']:t<=60?['🟠','possible, un peu plus lourd pour la tablette']:['🔴','lourd : la tablette risque de ramer'],x=$('cmtot');if(x)x.innerHTML='<b>'+t+' coureurs</b> ('+(o.opp+1)+' équipes) · '+ld[0]+' '+ld[1]+(o.opp*o.per+o.mine>CMPN-6?' · limité à '+(CMPN-6):'');
    const x1=$('cmo1v');if(x1)x1.textContent=o.opp+' équipes';const x2=$('cmo2v');if(x2)x2.textContent=o.per+' coureurs';const x3=$('cmo3v');if(x3)x3.textContent=o.mine+' coureurs'};
@@ -7621,13 +7627,13 @@ function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';
   e.querySelectorAll('#cmgl [data-v]').forEach(b=>b.onclick=()=>{SET.glow=+b.dataset.v;ssave();cmpOpen()});e.querySelectorAll('#cmgl [data-p]').forEach(b=>b.onclick=()=>{SET.glowP=SET.glowP===0?1:0;ssave();cmpOpen()});
   e.querySelectorAll('#cmnu [data-v]').forEach(b=>b.onclick=()=>{sel.neu=+b.dataset.v;cmpOpen()})}
 e.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{sel.k=b.dataset.k;cmpOpen()});
- e.querySelectorAll('#cmdf [data-v]').forEach(b=>b.onclick=()=>{sel.diff=+b.dataset.v;cmpOpen()});e.querySelectorAll('#cmlp [data-v]').forEach(b=>b.onclick=()=>{sel.laps=+b.dataset.v;cmpOpen()});
+ e.querySelectorAll('#cmdf [data-v]').forEach(b=>b.onclick=()=>{sel.diff=b.dataset.v==='auto'?'auto':+b.dataset.v;cmpOpen()});e.querySelectorAll('#cmlp [data-v]').forEach(b=>b.onclick=()=>{sel.laps=+b.dataset.v;cmpOpen()});
  e.querySelectorAll('#cmns [data-v]').forEach(b=>b.onclick=()=>{sel.ns=+b.dataset.v;cmpOpen()});e.querySelectorAll('#cmsrc [data-v]').forEach(b=>b.onclick=()=>{sel.src=b.dataset.v;cmpOpen()});
  e.querySelectorAll('#cmln [data-v]').forEach(b=>b.onclick=()=>{sel.len=b.dataset.v;cmpOpen()});
  e.querySelectorAll('.lst input').forEach(b=>b.onchange=()=>{const id=b.dataset.id;sel.pick=sel.pick.filter(x=>x!==id);if(b.checked)sel.pick.push(id)});
  on('cmch',()=>{e.style.display='none';crsMenu()});on('cmrs',()=>cmpResShow(null,'start'));on('cmgc',()=>cmpResShow(null,true));
  on('cmhi',cmpHistShow);on('cmab',()=>mod('Abandonner la course par étapes ?<br><small>Les classements seront effacés.</small>',[['Abandonner',()=>{try{localStorage.removeItem('v3comp')}catch(x){}cmpOpen()}],['Annuler',()=>{}]]));
- on('cmgo',()=>{if(sel.k==='stage')return cmpStageNew(sel);if(!COURSE)return say('Choisis d\'abord un parcours.');e.style.display='none';cmpStart({kind:sel.k,diff:sel.diff,world:sel.world||'space',opts:sel.opts,neu:sel.neu==null?1000:sel.neu,laps:sel.k==='race'&&lp?sel.laps:1,seed:(Date.now()%100000)+7})})}
+ on('cmgo',()=>{if(sel.k==='stage')return cmpStageNew(sel);if(!COURSE)return say('Choisis d\'abord un parcours.');e.style.display='none';cmpStart({kind:sel.k,diff:cmpDiffVal(sel.diff),world:sel.world||'space',opts:sel.opts,neu:sel.neu==null?1000:sel.neu,laps:sel.k==='race'&&lp?sel.laps:1,seed:(Date.now()%100000)+7})})}
 
 // ---- départ / arrêt ----
 function cmpStart(o){if(!COURSE)return say('Choisis d\'abord un parcours.');
@@ -7644,7 +7650,9 @@ function cmpStart(o){if(!COURSE)return say('Choisis d\'abord un parcours.');
  R.forEach((r,i)=>Object.assign(r,{d:0,v:0,P:0,fe:r.ftp,fk:1,st:'pack',fin:null,lat:CLANES[r.lane],tlat:CLANES[r.lane],x:0,z:0,y:0,tx:0,tz:1,g:0,ok:true,alive:true,kom:{},sp:{},t0:0,ph:Math.random()*6,jer:null}));
  // grille de départ : 6 rangées derrière la ligne (toi en tête avec tes coéquipiers)
  if(o.kind==='race'){R.forEach((r,i)=>{r.d=-2-Math.floor((i+1)/5)*2.2;r.tlat=r.lat=CLANES[(i+1)%5]})}
- CMP.R=R;{const F=cmpFatLoad();CMP.fat=F;cmpFatRestore(CMP.me,F,FTP);for(const r of R){cmpFatRestore(r,F,r.ftp);r.fk=cmpFk(r.kj0);r.fe=r.ftp*r.fk}CMP.me.fk=cmpFk(CMP.me.kj0);CMP.me.fe=FTP*CMP.me.fk}
+ CMP.R=R;// jours sans / grands jours (version q) : forme du jour de chaque adversaire, tirée avec la graine et le numéro d'étape
+ {const rr=rng(((CMP.seed*31+((o.stageK&&o.stageK.i)||0)*7919+13)|0)>>>0);for(const r of R){const u=rr();r.day=u<.09?.88+rr()*.06:u>.9?1.03+rr()*.03:1+(rr()-.5)*.03;r.dayTag=r.day<.95?'sans':r.day>1.025?'bon':''}}
+ {const F=cmpFatLoad();CMP.fat=F;cmpFatRestore(CMP.me,F,FTP);for(const r of R){cmpFatRestore(r,F,r.ftp);r.fk=cmpFk(r.kj0);r.fe=r.ftp*r.fk*(r.day||1)}CMP.me.fk=cmpFk(CMP.me.kj0);CMP.me.fe=FTP*CMP.me.fk}
  cmpProfile();CMP.sprints=[];if(o.kind==='race'&&CMP.L>=6000){CMP.sprints.push({d:Math.round(CMP.L*.38/100)*100,i:0});if(CMP.L>=12000)CMP.sprints.push({d:Math.round(CMP.L*.68/100)*100,i:1})}
  // montées du parcours (distance le long des routes du parcours)
  const k=ROUTE&&ROUTE.len?CMP.Llap/ROUTE.len:1;CMP.climbs=(COURSE.climbs||[]).map((c,i)=>({i,d0:c.s0*k,d1:c.s1*k,len:c.len,dp:c.dp,avg:c.avg,name:typeof climbName==='function'?climbName(c):'la côte'}));
@@ -7657,6 +7665,7 @@ function cmpStart(o){if(!COURSE)return say('Choisis d\'abord un parcours.');
  const cgap=clamp(Math.floor(1800/Math.max(1,R.length)),20,60);if(o.kind==='clm'){R.forEach((r,i)=>{r.t0=-(R.length-i)*cgap;r.lat=r.tlat=1.3;const pc=cPacing(0,CMP.L,r.fe*r.form,r.wp,r.m,r.cda,true,r.fe);r.tP=pc.P;r.tEst=pc.t;r.split=[];r.cp=[]});
   for(const r of R){let t=r.t0;while(t<0){const dt2=Math.min(1,-t);CMP.T=t+dt2;cmpRider(r,dt2,true);t+=dt2}}CMP.T=0}
  {const nl=o.kind==='race'?Math.min(o.neu||0,CMP.L*.15):0;CMP.neu=nl>=300?{on:true,len:nl,v:7.8,a:0}:null}
+ {const lst=R.filter(r=>r.dayTag&&(r.role==='lead'||r.role==='grim')).slice(0,2);lst.forEach((r,i)=>setTimeout(()=>{if(CMP.on)cRadio(dsF(r.dayTag==='sans'?'jour_sans':'jour_bon',{name:r.full,team:cTeamName(r.team)}))},(o.kind==='clm'?9000:16000)+i*14000))}
  cmpBuildMeshes();if(!CMP.M.G.parent)WORLD.add(CMP.M.G);cmpHiBuild();
  cmpArches();try{shaderWarm()}catch(e){}
  cEl('cmh').style.display='block';cmpHud(true);voxOn();
@@ -7716,7 +7725,7 @@ function cmpRider(r,dt,solo,list,idx,ctx){if(r.fin!=null&&CMP.kind!=='clm'){r.v=
    r.tlat=pass?CLANES[li>0?li-1:li+1]:lane;let vt=me.v+.8*dd;if(pass)vt=Math.max(vt,me.v+1.4);P=clamp(powFor(Math.max(0,vt),g,r.m,r.cda,i?red:0),0,cap);if(i===0)P=Math.min(cap,Math.max(P,1.45*fe))}
   else if(r.sw){// relais : le coureur de tête se décale et se laisse glisser jusqu'au bout du groupe
    const g2=ctx.grpOf.get(r);if(!g2||g2.n<3||r.d<=g2.tail+1.5||r.st==='spr'||r.wbal<.1*r.wp){r.sw=0;r.tlat=CLANES[r.lane]}else{r.tlat=CLANES[r.lane<2?r.lane+2:r.lane-2];P=Math.min(cap,.5*fe);r.pull=0}}
-  else if(r.st==='spr'){P=r.wbal>-.25*r.wp?r.spw*r.fk*(1+(CMP.upP||0)/100):fe*.9}
+  else if(r.st==='spr'){P=r.wbal>-.25*r.wp?r.spw*r.fk*(r.day||1)*(1+(CMP.upP||0)/100):fe*.9}
   else if(r.st==='att'){P=Math.min(cap,1.28*fe);r.at=(r.at||0)+dt;if(r.wbal<.45*r.wp||r.at>45){r.st='brk';r.at=0}}
   else if(mate&&CMP.ord!=='free'&&r.wbal>.08*r.wp&&Math.abs(r.d-me.d)<60){const o2=CMP.ord;
    if(o2==='prot'||o2==='lead'){const k=ctx.mates.indexOf(r),dd=me.d+1.7*(k+1)-r.d,lane=CLANES.reduce((b,x)=>Math.abs(x-me.lat)<Math.abs(b-me.lat)?x:b,CLANES[0]),li=CLANES.indexOf(lane),pass=r.d<me.d+.8;
@@ -7737,7 +7746,7 @@ function cmpRider(r,dt,solo,list,idx,ctx){if(r.fin!=null&&CMP.kind!=='clm'){r.v=
  if(dt>0){const a=Math.atan(g),cda=r.cda*(1-red),F=.975*P*(1+(g>.02?red*clamp((g-.02)/.04,0,1)*.45:0))/Math.max(r.v,1.2)-r.m*9.81*Math.sin(a)-.004*r.m*9.81*Math.cos(a)-.6*cda*r.v*r.v;
   r.v=clamp(r.v+F/(r.m+1.5)*dt,0,CMP.neu&&CMP.neu.on&&r.fin==null?CMP.neu.v:24);if(r.tr===1&&r.ti===0&&CMP.ord==='train'&&r.d>CMP.me.d+1.8*(CMP.trN||1)+3&&r.v>CMP.me.v)r.v=Math.max(CMP.me.v,r.v-3*dt);if(r.v>vmx){r.v=Math.max(vmx,r.v-5.5*dt);r.cb=1}else r.cb=0
   if(!solo&&list){const L2=cmpLead(r,list,idx);if(L2&&L2.gap<.8&&r.v>L2.o.v)r.v=L2.o.v}
-  r.P=P;r.kjr+=P*dt/1000;r.fk=cmpFk(r.kj0+r.kjr);r.fe=r.ftp*r.fk*(1+(CMP.upP||0)/100);wbalStep(r,P,r.fe*cmpTerr(r,g),dt);const d0=r.d;r.d+=r.v*dt;
+  r.P=P;r.kjr+=P*dt/1000;r.fk=cmpFk(r.kj0+r.kjr);r.fe=r.ftp*r.fk*(r.day||1)*(1+(CMP.upP||0)/100);wbalStep(r,P,r.fe*cmpTerr(r,g),dt);const d0=r.d;r.d+=r.v*dt;
   if(r.fin==null&&r.d>=CMP.L&&d0<CMP.L)r.fin=CMP.T-(r.d-CMP.L)/Math.max(r.v,.5);
   // temps intermédiaires (contre-la-montre) et sommets (classement de la montagne)
   if(CMP.kind==='clm'&&r.cp){const k=Math.floor(r.d/CMP.cps),k0=Math.floor(d0/CMP.cps);if(k>k0&&k>=1)r.cp[k-1]=CMP.T-r.t0-(r.d-k*CMP.cps)/Math.max(r.v,.5)}
@@ -8017,6 +8026,7 @@ function cmpStatTick(dt,P){const st=CMP.stat,me=CMP.me;if(!st||me.fin!=null)retu
 const cHK='v3cmph';
 function cmpHistLoad(){try{return JSON.parse(localStorage[cHK]||'[]')}catch(e){return[]}}
 function cmpHistAdd(res){const me=res.rows.find(r=>r.me),w=res.rows[0],st=CMP.stat||{},h=cmpHistLoad();
+ if(st.t>600){const e=Math.round(st.e/st.t)/Math.max(50,FTP),A=cmpAutoLoad();try{localStorage.v3cmpa=JSON.stringify({e:+(A&&A.e?(A.e+e)/2:e).toFixed(3),t:Date.now()})}catch(x){}}
  h.unshift({d:Date.now(),n:(CMP.stageK&&CMP.stageK.name)||(CRS.cur&&CRS.cur.name)||'Course',k:res.kind,km:+(CMP.L/1000).toFixed(1),p:me.pos,t:Math.round(me.t),g:Math.round(me.gap),w:w.name,aw:st.t>5?Math.round(st.e/st.t):0,mx:Math.round(st.mx||0),sp:CMP.spt[-1]||0,kp:CMP.kpt[-1]||0,bn:CMP.bon[-1]||0,tm:CMP.me.team});
  try{localStorage[cHK]=JSON.stringify(h.slice(0,80))}catch(e){}}
 function cmpStatHtml(res){const st=CMP.stat||{},t=Math.max(1,st.t),me=res.rows.find(r=>r.me),km=CMP.L/1000,pct=x=>Math.round(100*x/t)+' %',c=(a,b)=>'<div class="cd"><b>'+a+'</b>'+b+'</div>';
@@ -8083,7 +8093,7 @@ function cmpResults(){const me=CMP.me,clm=CMP.kind==='clm';cmpFatSave();CMP.fsav
  cmpFinalWords(mine,rows,ld0,!!CMP.stageK0);
  setTimeout(()=>cmpResShow(CMP.res),1800)}
 function cmpResShow(res,gcOnly){const e=cEl('cmp');e.className='cmp';e.style.display='block';const S=cmpLoad();const st0=gcOnly==='start';let tab=cmpResShow.tab||'st';if(!res&&!['gc','pt','km','eq','ld','pr'].includes(tab))tab=st0?'pr':'gc';if(!res&&st0&&S&&cmpResShow.t0!==S.i){cmpResShow.t0=S.i;tab=S.gc&&Object.keys(S.gc).length?'gc':'pr'}
- const RO=cmpRoster(S?S.seed:CMP.seed,S?S.diff:CMP.diff),nm=id=>{if(id==-1)return 'Toi';const r=RO.find(q=>q.id==id);return r?r.full:'?'},tm=id=>{if(id==-1)return 0;const r=RO.find(q=>q.id==id);return r?r.team:0};
+ const RO=cmpRoster(S?S.seed:CMP.seed,S?S.diff:CMP.diff,S?S.opts:CMP.opts),nm=id=>{if(id==-1)return 'Toi';const r=RO.find(q=>q.id==id);return r?r.full:'?'},tm=id=>{if(id==-1)return 0;const r=RO.find(q=>q.id==id);return r?r.team:0};
  const row=(i,id,val,me)=>'<tr'+(me?' class="me"':'')+'><td>'+i+'</td><td><span class="dot" style="background:'+cTeamCol(tm(id))+'"></span>'+esc(nm(id))+'</td><td><small>'+esc(cTeamName(tm(id)))+'</small></td><td>'+val+'</td></tr>';
  let h='<button class="x" id="cmx">✕</button><h2>'+(res?(res.kind==='clm'?'⏱️ Contre-la-montre':'🏁 Arrivée'):'📋 Classements')+'</h2>';
  const tabs=[];if(res)tabs.push(['st','Étape']);if(res&&res.kind==='race')tabs.push(['qe','Équipes (étape)']);if(res&&res.kind==='race'&&CMP.stat)tabs.push(['sx','📊 Stats']);if(S&&!res)tabs.push(['pr','🗓️ Programme']);if(S)tabs.push(['gc','💛 Général'],['pt','💚 Points'],['km','🔴 Montagne'],['eq','Équipes']);if(S&&S.last)tabs.push(['ld','Dernière étape']);
@@ -8101,14 +8111,56 @@ function cmpResShow(res,gcOnly){const e=cEl('cmp');e.className='cmp';e.style.dis
   L.forEach(([k,t],i)=>h+='<tr'+(k==0?' class="me"':'')+'><td>'+(i+1)+'</td><td><span class="dot" style="background:'+cTeamCol(+k)+'"></span>'+esc(cTeamName(+k))+'</td><td><small>3 meilleurs</small></td><td>'+(i?'+'+fmtH(t-L[0][1]):fmtH(t))+'</td></tr>')}
  if(!res&&!(S&&tab==='pr')&&S&&['gc','pt','km'].includes(tab)&&!Object.keys(tab==='gc'?S.gc:tab==='pt'?S.pts:S.kom).length)h+='<tr><td colspan="4"><small>Pas encore de classement : il se remplit après la première étape.</small></td></tr>';
  h+='</table>'}
+ if(!res&&S&&!S.over){const cc=CRS.list.find(q=>q.id===S.list[S.i].id);if(cc)h+='<h3>Prochaine étape : '+(S.i+1)+' / '+S.list.length+'</h3>'+cmpPrevHtml(cc)}
  if(gcOnly==='start'&&S&&!S.over&&!res)h+='<button class="go" id="cmgo2">▶ Prendre le départ : étape '+(S.i+1)+' — '+esc(S.list[S.i].name)+'</button>';
  if(S&&!S.over&&res)h+='<button class="go" id="cmnx">▶ Étape suivante : '+esc(S.list[S.i].name)+'</button>';
  if(S&&S.over&&res)h+='<h3>🏆 Course par étapes terminée</h3><small>'+cmpGCLine(S)+'</small>';
  h+='<button class="go" id="cmhm" style="background:#27241f;color:#f4efe6">'+(CMP.on?'🏁 Terminer (enregistrer la sortie)':'Fermer')+'</button>';
- e.innerHTML=h;const on=(id,f)=>{const x=$(id);if(x)x.onclick=f};
+ e.innerHTML=h;cmpPrevBind(e);const on=(id,f)=>{const x=$(id);if(x)x.onclick=f};
  e.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{cmpResShow.tab=b.dataset.t;cmpResShow(res,gcOnly)});
  on('cmgo2',()=>{e.style.display='none';cmpStageGo()});on('cmx',()=>e.style.display='none');on('cmhm',()=>{e.style.display='none';if(CMP.on)nav('home')});
  on('cmnx',()=>{e.style.display='none';if(CMP.on){CMP.next=true;nav('home');setTimeout(cmpStageGo,900)}else cmpStageGo()})}
+// ---- aperçu d'un parcours avant la course : carte (avec ou sans fond) + profil à côté (version q) ----
+function cmpPrevHtml(c){if(!c||!c.pts)return '';
+ return '<h3>🗺️ '+esc(c.name)+'</h3><div class="cprev" data-c="'+c.id+'" style="display:flex;gap:8px;flex-wrap:wrap"><div style="flex:1.5 1 300px;position:relative"><canvas class="cpm" width="640" height="400" style="width:100%;border-radius:12px;background:#1c1a17;display:block"></canvas><div class="cpt" style="position:absolute;left:8px;bottom:6px;font-size:10px;color:#fff;text-shadow:0 1px 2px #000"></div></div><div style="flex:1 1 220px"><canvas class="cpp" width="480" height="400" style="width:100%;border-radius:12px;background:#1c1a17;display:block"></canvas></div></div><div class="chips" style="margin-top:6px"><button data-cpb="1">'+(SET.cmpMap===0?'🗺️ Mettre le fond de carte':'⬜ Sans fond de carte')+'</button></div>'}
+function cmpPrevBind(root){root.querySelectorAll('.cprev').forEach(el=>{const c=CRS.list.find(q=>q.id===el.dataset.c);if(!c)return;const go=()=>cmpPrevDraw(el,c);go();
+  const b=el.nextElementSibling&&el.nextElementSibling.querySelector('[data-cpb]');if(b)b.onclick=()=>{SET.cmpMap=SET.cmpMap===0?1:0;ssave();b.textContent=SET.cmpMap===0?'🗺️ Mettre le fond de carte':'⬜ Sans fond de carte';go()}})}
+function cmpPrevDraw(el,c){const cv=el.querySelector('.cpm'),pv=el.querySelector('.cpp'),tx=el.querySelector('.cpt');if(!cv||!pv)return;const tok=cmpPrevDraw.tk=(cmpPrevDraw.tk||0)+1;
+ const P=c.pts.split(';').map(q=>q.split(',').map(Number)).filter(q=>q.length>=2&&isFinite(q[0])&&isFinite(q[1]));if(P.length<2)return;
+ // distances et pentes
+ const D=[0];for(let i=1;i<P.length;i++)D.push(D[i-1]+Math.hypot((P[i][0]-P[i-1][0])*110574,(P[i][1]-P[i-1][1])*111320*Math.cos(P[i][0]*Math.PI/180)));
+ const A=P.map((q,i)=>{let a=0,n=0;for(let j=Math.max(0,i-3);j<=Math.min(P.length-1,i+3);j++){a+=P[j][2]||0;n++}return a/n});
+ const gcol=g=>g<-.01?'#4aa3ff':g<.02?'#3ecf6a':g<.04?'#e8d84a':g<.06?'#f2a23a':g<.08?'#ee6a3a':'#b3243a';
+ const gAt=i=>{const j=Math.max(0,i-4),k=Math.min(P.length-1,i+4),dd=D[k]-D[j];return dd>10?(A[k]-A[j])/dd:0};
+ let dp=0;for(let i=1;i<A.length;i++)if(A[i]>A[i-1])dp+=A[i]-A[i-1];
+ // carte
+ const W=cv.width,H=cv.height,g=cv.getContext('2d');let la0=1e9,la1=-1e9,lo0=1e9,lo1=-1e9;for(const q of P){la0=Math.min(la0,q[0]);la1=Math.max(la1,q[0]);lo0=Math.min(lo0,q[1]);lo1=Math.max(lo1,q[1])}
+ const mx=lo=>(lo+180)/360,my=la=>{const r=la*Math.PI/180;return(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2};
+ const bw=Math.max(1e-9,mx(lo1)-mx(lo0)),bh=Math.max(1e-9,my(la0)-my(la1));let z=17;while(z>3&&(bw*256*2**z>W*.86||bh*256*2**z>H*.86))z--;
+ const sc=256*2**z,cx=(mx(lo0)+mx(lo1))/2*sc,cy=(my(la0)+my(la1))/2*sc,ox=cx-W/2,oy=cy-H/2,X=q=>mx(q[1])*sc-ox,Y=q=>my(q[0])*sc-oy;
+ const trace=()=>{g.lineJoin=g.lineCap='round';g.lineWidth=7;g.strokeStyle='rgba(255,255,255,.9)';g.beginPath();P.forEach((q,i)=>i?g.lineTo(X(q),Y(q)):g.moveTo(X(q),Y(q)));g.stroke();
+  g.lineWidth=4;for(let i=1;i<P.length;i++){g.strokeStyle=gcol(gAt(i));g.beginPath();g.moveTo(X(P[i-1]),Y(P[i-1]));g.lineTo(X(P[i]),Y(P[i]));g.stroke()}
+  const dot=(q,col,t)=>{g.fillStyle=col;g.strokeStyle='#fff';g.lineWidth=3;g.beginPath();g.arc(X(q),Y(q),9,0,6.283);g.fill();g.stroke();g.fillStyle='#fff';g.font='700 11px Arial';g.textAlign='center';g.textBaseline='middle';g.fillText(t,X(q),Y(q)+.5)};
+  dot(P[0],'#22a85a','D');dot(P[P.length-1],'#d7263d','A')};
+ const base=()=>{g.fillStyle='#1c1a17';g.fillRect(0,0,W,H)};
+ base();trace();
+ if(SET.cmpMap!==0){const b=MRBASE[(+(localStorage.v3mrb||0))|0]||MRBASE[0],t0x=Math.floor(ox/256),t1x=Math.floor((ox+W)/256),t0y=Math.floor(oy/256),t1y=Math.floor((oy+H)/256);let n=0,bad=0,okn=0;const tot=(t1x-t0x+1)*(t1y-t0y+1);
+  if(tx)tx.textContent='Chargement du fond de carte…';
+  const done=()=>{if(tok!==cmpPrevDraw.tk)return;if(tx)tx.textContent=okn?(b.o.attribution||''):'Fond de carte injoignable (Internet ?) : trace seule.'};
+  for(let tyy=t0y;tyy<=t1y;tyy++)for(let txx=t0x;txx<=t1x;txx++){if(txx<0||tyy<0||txx>=2**z||tyy>=2**z){n++;continue}const im=new Image(),url=b.u.replace('{z}',z).replace('{x}',txx).replace('{y}',tyy);
+   im.onload=()=>{if(tok!==cmpPrevDraw.tk)return;okn++;n++;g.drawImage(im,txx*256-ox,tyy*256-oy);if(n>=tot||okn===1){}trace();if(n+bad>=tot)done()};
+   im.onerror=()=>{bad++;if(n+bad>=tot)done()};im.src=url}}
+ else if(tx)tx.textContent='';
+ // profil
+ const pg=pv.getContext('2d'),w=pv.width,h=pv.height;pg.fillStyle='#1c1a17';pg.fillRect(0,0,w,h);
+ let a0=1e9,a1=-1e9;for(const a of A){a0=Math.min(a0,a);a1=Math.max(a1,a)}if(a1-a0<30){const m=(a0+a1)/2;a0=m-15;a1=m+15}a0-=5;a1+=5;
+ const L=D[D.length-1],pl=44,pr=10,pt=28,pb=34,PX=d=>pl+d/L*(w-pl-pr),PY=a=>h-pb-(a-a0)/(a1-a0)*(h-pt-pb);
+ pg.strokeStyle='rgba(255,255,255,.12)';pg.fillStyle='#978e7f';pg.font='11px Arial';pg.textAlign='right';pg.lineWidth=1;
+ for(let k=0;k<=3;k++){const a=a0+(a1-a0)*k/3,y=PY(a);pg.beginPath();pg.moveTo(pl,y);pg.lineTo(w-pr,y);pg.stroke();pg.fillText(Math.round(a)+' m',pl-4,y+4)}
+ pg.textAlign='center';const stepKm=L>60000?10:L>25000?5:L>10000?2:1;for(let km=0;km*1000<=L;km+=stepKm)pg.fillText(km+' km',PX(km*1000),h-pb+14);
+ for(let i=1;i<P.length;i++){pg.fillStyle=gcol(gAt(i));pg.beginPath();pg.moveTo(PX(D[i-1]),h-pb);pg.lineTo(PX(D[i-1]),PY(A[i-1]));pg.lineTo(PX(D[i]),PY(A[i]));pg.lineTo(PX(D[i]),h-pb);pg.fill()}
+ pg.strokeStyle='#fff';pg.lineWidth=1.5;pg.beginPath();A.forEach((a,i)=>i?pg.lineTo(PX(D[i]),PY(a)):pg.moveTo(PX(D[i]),PY(a)));pg.stroke();
+ pg.fillStyle='#f4efe6';pg.font='700 13px Arial';pg.textAlign='left';pg.fillText(nf(L/1000,1)+' km · '+Math.round(dp)+' m D+ · '+Math.round(Math.min(...A))+'–'+Math.round(Math.max(...A))+' m',pl,18)}
 const fmtH=t=>{t=Math.max(0,Math.round(t));const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s2=t%60;return(h?h+' h '+String(m).padStart(2,'0'):m)+':'+String(s2).padStart(2,'0')};
 
 // ---- course par étapes (gardée dans v3comp) ----
@@ -8205,7 +8257,7 @@ async function cmpStageNew(sel){let list=[];const n=sel.ns||4,st=famSt(sel);
    catch(x){CRS.list.splice(base);try{localStorage.v3crs=JSON.stringify(CRS.list)}catch(y){}if(go)go.disabled=false;return say('Étape '+(i+1)+' impossible : '+(x&&x.message||x)+(sel.src==='real'?' (Internet requis)':''))}
    if(!c){CRS.list.splice(base);if(go)go.disabled=false;return say('Création des étapes impossible.')}list.push({id:c.id,name:c.name,kind:s.t==='clm'?'clm':'race',km:c.km})}
   try{localStorage.v3crs=JSON.stringify(CRS.list)}catch(e){CRS.list.splice(base);if(go)go.disabled=false;return say('Stockage plein : supprime des parcours dans « Mes parcours ».')}}
- const S={name:'Tour VCT '+new Date().toLocaleDateString('fr-FR'),seed:(Date.now()%100000)+11,diff:sel.diff,world:sel.world||'space',opts:cmpOptsN(sel.opts),neu:sel.neu==null?1000:sel.neu,upP:0,list,i:0,gc:{},pts:{},kom:{},over:false,prevCrs:CRS.cur?CRS.cur.id:null};cmpSave(S);
+ const S={name:'Tour VCT '+new Date().toLocaleDateString('fr-FR'),seed:(Date.now()%100000)+11,diff:cmpDiffVal(sel.diff),world:sel.world||'space',opts:cmpOptsN(sel.opts),neu:sel.neu==null?1000:sel.neu,upP:0,list,i:0,gc:{},pts:{},kom:{},over:false,prevCrs:CRS.cur?CRS.cur.id:null};cmpSave(S);
  cmpResShow(null,'start')}
 function cmpStageNewOLD(sel){let list=[];
  if(sel.src==='mine'){const ids=sel.pick.filter(id=>CRS.list.some(q=>q.id===id));if(ids.length<3||ids.length>5)return say('Coche de 3 à 5 parcours.');
@@ -8560,20 +8612,19 @@ function rideMailText(R,S,A){const sea=R.mode==='wk',p=R.pts,kc=Math.round(p.red
  L.push('FTP : '+FTP+' W','','Envoyé depuis Virtual Cycling Training');return L.join('\n')}
 function dlBlob(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
 function mailRide(R,S){let A=null;try{A=analyzeRide(R.pts)}catch(e){}
- const base=fitName(R,R.wkn||R.n||'').replace(/\.fit$/,''),sub=(R.mode==='wk'?'Séance ':'Sortie ')+(R.wkn||R.n||'')+' · '+new Date(R.t0).toLocaleDateString('fr-FR')+' · '+nf(S.km,1)+' km',txt=rideMailText(R,S,A);
+ const base=fitName(R,R.wkn||R.n||'').replace(/\.fit$/,''),sub=(R.mode==='wk'?'Séance ':'Sortie ')+(R.wkn||R.n||'')+' · '+new Date(R.t0).toLocaleDateString('fr-FR')+' · '+nf(S.km,1)+' km';
  const png=()=>new Promise(ok=>{try{rideGraphCanvas(R,S,A).toBlob(ok,'image/png')}catch(e){console.warn(e);ok(null)}});
- mod('Envoyer par mail<br><small>'+esc(MAIL_TO)+'<br>'+(R.mode==='wk'?'Avec une image du graphique de la séance (blocs et puissance réelle).':'Avec une image du graphique de la sortie.')+'</small>',[
-  ['📎 Partager avec les pièces jointes',async()=>{const b=await png();if(!b)return say('Image du graphique impossible.');
-    const f1=new File([b],base+'-graphique.png',{type:'image/png'});let files=[f1];try{files.push(new File([fitEncode(R)],base+'.fit',{type:'application/octet-stream'}))}catch(e){}
-    try{if(navigator.canShare&&!navigator.canShare({files}))files=[f1];if(!navigator.share||!navigator.canShare||!navigator.canShare({files}))throw new Error('partage de fichiers indisponible');
-     await navigator.share({files,title:sub,text:'À : '+MAIL_TO+'\n\n'+txt})}
-    catch(e){if(e&&e.name==='AbortError')return;dlBlob(b,base+'-graphique.png');mod('Partage de fichiers indisponible ici<br><small>L\'image du graphique est enregistrée dans Téléchargements. Utilise « Ouvrir un mail » puis joins-la.</small>',[['Ouvrir un mail',()=>mailRide(R,S)],['Fermer',()=>{}]])}}],
-  ['✉️ Ouvrir un mail à '+MAIL_TO,async()=>{const b=await png();if(b)dlBlob(b,base+'-graphique.png');
-    const body=txt+(b?'\n\n(Image du graphique : '+base+'-graphique.png, enregistrée dans Téléchargements : à joindre au mail.)':'');
-    location.href='mailto:'+MAIL_TO+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body)}],
-  ['🖼️ Enregistrer l\'image seule',async()=>{const b=await png();if(b){dlBlob(b,base+'-graphique.png');say('Image enregistrée')}}],
-  ['Annuler',()=>{}]])}
-// ---- écran de fin de sortie (façon applis du commerce) : chiffres clés, records, trace, puissance et altitude ----
+ const fitBytes=()=>{try{return fitEncode(R)}catch(e){console.warn(e);return null}};
+ const mailto=()=>{location.href='mailto:'+MAIL_TO+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent('Fichier .fit de la sortie en pièce jointe : '+base+'.fit (enregistré dans Téléchargements : à joindre à ce mail).')};
+ mod('Envoyer le fichier .fit par mail<br><small>'+esc(MAIL_TO)+'<br>'+esc(base)+'.fit</small>',[
+  ['📎 Envoyer le .fit',async()=>{const by=fitBytes();if(!by)return say('Fichier .fit impossible.');
+    let sent=false;for(const ty of['application/octet-stream','application/vnd.ant.fit','application/fit']){const f=new File([by],base+'.fit',{type:ty});
+     try{if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:sub,text:'À : '+MAIL_TO});sent=true;break}}catch(e){if(e&&e.name==='AbortError')return}}
+    if(!sent){dlBlob(new Blob([by],{type:'application/octet-stream'}),base+'.fit');mod('Partage direct impossible ici<br><small>Le fichier .fit est enregistré dans Téléchargements. Ouvre le mail, puis joins-le (bouton trombone de ton application de mail).</small>',[['✉️ Ouvrir le mail',mailto],['Fermer',()=>{}]])}}],
+  ['⬇ Enregistrer le .fit seulement',()=>{const by=fitBytes();if(by){dlBlob(new Blob([by],{type:'application/octet-stream'}),base+'.fit');say('Fichier .fit enregistré')}}],
+  ['✉️ Ouvrir un mail (sans fichier)',mailto],
+  ['🖼️ Image du graphique (facultatif)',async()=>{const b=await png();if(b){dlBlob(b,base+'-graphique.png');say('Image enregistrée')}}],
+  ['Annuler',()=>{}]])}// ---- écran de fin de sortie (façon applis du commerce) : chiffres clés, records, trace, puissance et altitude ----
 function finShow(R,S,btn){let el=$('fin');if(!el){el=document.createElement('div');el.id='fin';document.body.appendChild(el)}
  const A=analyzeRide(R.pts),p=R.pts,h=R.ses,el2=S.el,spd=el2>0?S.km/(el2/3600):0,kc=h?h.kcal:Math.round(p.reduce((a,q)=>a+q.pw,0)/(.24*4184)),tl=(v,l,c)=>'<div'+(c?' class="big"':'')+'><b>'+v+'</b><small>'+l+'</small></div>';
  const prs=(LASTPR||[]).map(t=>'<div>📈 Record · '+esc(t)+'</div>').join('')+(h&&h.rew.length?h.rew.slice(0,6).map(t=>'<div>'+t+'</div>').join(''):'');
