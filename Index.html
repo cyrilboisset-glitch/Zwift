@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='25/11/2026 · v';const ERRL=[];
+const VCT_VER='25/11/2026 · w';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -5325,6 +5325,10 @@ function profCourse(x,w,h,now){cpfBuild(now);const ps=cpfPos();if(!ps||CPF.n<3)r
  x.beginPath();for(let c=0;c<=cols;c++){const yy=Y2(Y[c]);c?x.lineTo(c*cw,yy):x.moveTo(0,yy)}x.strokeStyle='rgba(255,255,255,.85)';x.lineWidth=1.2*dpr;x.stroke();
  // sprints et côtes du parcours
  for(const c of SPRA[1]){const a=X2(c-sprL()),b=X2(c);x.fillStyle='#22c55e';x.fillRect(Math.min(a,b),top-5*dpr,Math.max(3*dpr,Math.abs(b-a)),4*dpr);x.fillStyle='#fff';x.fillRect(b-dpr*.5,top-7*dpr,dpr,8*dpr)}
+ // position des autres coureurs pendant une course (version w)
+ if(typeof CMP!=='undefined'&&CMP.on&&CMP.me&&CMP.R&&CMP.R.length){const sg=ps.rev?-1:1,Ll=CMP.Llap||CPF.tot,me0=CMP.me.d,rs=dpr*(w/dpr<700?2.2:3);
+  for(const r of CMP.R){if(r.fin!=null&&r.d>=CMP.L)continue;let dd=r.d-me0;if(loop&&Ll>0)dd=((dd+Ll/2)%Ll+Ll)%Ll-Ll/2;let D=ps.d+sg*dd;if(all)D=wrap(D);const px2=X2(D);if(px2<-4||px2>w+4)continue;
+   const py2=Y2(CPF.y[cpfAt(wrap(D))]),mate=r.team===0;x.beginPath();x.arc(px2,py2,rs,0,6.283);x.fillStyle=cTeamCol(r.team);x.fill();x.lineWidth=(mate?1.8:1)*dpr;x.strokeStyle=mate?'#f0cf73':'rgba(0,0,0,.7)';x.stroke()}}
  // témoin de position
  const px=X2(ps.d),py=Y2(CPF.y[cpfAt(wrap(ps.d))]);x.fillStyle='rgba(255,255,255,.9)';x.fillRect(px-dpr,top-2*dpr,2*dpr,h-top+2*dpr);
  x.beginPath();x.arc(px,py,5*dpr,0,6.283);x.fillStyle='#fff';x.fill();x.lineWidth=2*dpr;x.strokeStyle='#d7263d';x.stroke();
