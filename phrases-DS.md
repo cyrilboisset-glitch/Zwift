@@ -958,3 +958,62 @@ Le DS choisit la banque selon la situation du joueur (`dsM`, `cmpSitu`) : suffix
 
 - **300 mètres** : sprint pour finir, **donne tout** !
 - C'est **la dernière ligne droite**, **allez** !
+
+
+# Version y : faux plats (montant / descendant) selon la situation
+
+## faux_plat_m  (4)
+
+- Faux plat montant : attention, ça use. Reste en souplesse, garde ta cadence autour de 90.
+- Ça monte doucement : le peloton s'étire, **reste dans les roues**, ne force pas.
+- Légère montée : on ne la voit pas mais **elle use**. Reste abrité et régulier.
+- Faux plat montant : les rouleurs tirent, **toi tu économises**, cadence souple.
+
+## faux_plat_d  (4)
+
+- Faux plat descendant, ça glisse tout seul : **profite pour récupérer et boire**.
+- Légère descente : la vitesse monte sans effort, reste dans les roues et **récupère**.
+- Ça descend doucement : **bois, mange**, et reste bien placé.
+- Faux plat descendant : le peloton accélère sans forcer, **ne te laisse pas surprendre à l'arrière**.
+
+## faux_plat_m_solo  (3)
+
+- Faux plat montant, seul : ça use sans qu'on le voie. **Cadence souple, puissance constante**, ne te relève pas.
+- Ça monte doucement : garde tes watts **réguliers**, regarde l'écart, pas la pente.
+- Légère montée, tu es seul : **reste assis et régulier**, pas d'à-coup.
+
+## faux_plat_d_solo  (3)
+
+- Faux plat descendant : tu vas vite sans forcer, **garde tes watts** : l'écart peut gonfler.
+- Légère descente, seul devant : profite-en pour boire, mais **ne coupe pas ton effort**.
+- Ça glisse : **garde ta cadence**, reste compact sur le vélo, regarde loin.
+
+## faux_plat_m_break  (2)
+
+- Faux plat montant : **relais plus courts**, ne t'épuise pas devant, ça use.
+- Ça monte doucement : relayez à la régulière, **pas d'accélération** dans le faux plat.
+
+## faux_plat_d_break  (2)
+
+- Faux plat descendant : relais courts à la vitesse, **profite de la roue** pour récupérer.
+- Ça descend doucement : changez de relais sans à-coup, **bois si tu es dans la roue**.
+
+## faux_plat_m_chase  (2)
+
+- Faux plat montant : **gardez le rythme de poursuite**, relais courts.
+- Ça use dans la poursuite : cadence souple, **ne cassez pas le groupe**.
+
+## faux_plat_d_chase  (2)
+
+- Faux plat descendant : **roulez fort**, ça glisse, la tête est à portée.
+- Ça descend doucement : relayez vite, **c'est le moment de reprendre du temps**.
+
+## faux_plat_m_drop  (2)
+
+- Faux plat montant : **fais ton rythme**, régulier, ne te crame pas à courir derrière.
+- Ça monte doucement : cadence souple, **tu limites l'écart**.
+
+## faux_plat_d_drop  (2)
+
+- Faux plat descendant : **profite pour récupérer**, tu reviens sans forcer.
+- Ça descend doucement : bois, reprends des forces, **garde ta cadence**.
