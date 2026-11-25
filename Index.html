@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='24/11/2026 · m';const ERRL=[];
+const VCT_VER='24/11/2026 · n';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7353,7 +7353,15 @@ function npcReset(){for(const n of NPCS){n.alive=false;n.R.visible=false}npcT=0}
 // 6 équipes de 5 (ton équipe VCT : toi + 4 coéquipiers), niveaux calculés sur ta FTP (en W/kg), coureurs légers dessinés en instanciation,
 // directeur sportif à la radio, coach des watts repris de l'appli Vélo Coach (W' 18 kJ, CP = FTP, P = CP + W'bal / durée(P), rappel 5 min, « lève le pied » à +5 %).
 // Monde par défaut : Space Astéroïdes (le plus léger pour la tablette), remis comme avant à la sortie.
-const CTEAM=[7,0,1,2,3,4];// équipes (indices de NPC_TEAMS) : la tienne en premier
+const CTEAM=[7,0,1,2,3,4];// (ancien) équipes (indices de NPC_TEAMS)
+// 24 nov. 2026 (version n) : équipes et noms de coureurs INVENTÉS (aucun vrai nom, sponsor ni logo), couleurs de maillot inspirées de vraies équipes
+const CTM=[NPC_TEAMS[7],
+ ['#f2c500','#111114','#ffffff',0xf2c500,'FRELON','RACING','Frelon Racing'],['#4fb3f0','#ffffff','#1e6fbf',0x4fb3f0,'CIEL D\'AZUR','CYCLING','Ciel d\'Azur'],['#d7263d','#ffffff','#111114',0xd7263d,'CARMIN','PRO TEAM','Carmin Pro'],
+ ['#1f9d55','#111114','#ffffff',0x1f9d55,'VERT SAUVAGE','CYCLING','Vert Sauvage'],['#ff8a1f','#111114','#ffffff',0xff8a1f,'MANDARINE','RACING','Mandarine'],['#16224a','#e0262f','#ffffff',0x16224a,'NUIT ROUGE','TEAM','Nuit Rouge'],
+ ['#7b3fb8','#ffffff','#e8d9ff',0x7b3fb8,'VIOLETTE','CYCLES','Violette Cycles'],['#f06ba8','#111114','#ffffff',0xf06ba8,'FLAMANT','RACING','Flamant'],['#6e1226','#e5b93c','#ffffff',0x6e1226,'BORDEAUX OR','TEAM','Bordeaux Or'],
+ ['#f1ece0','#d4b483','#111114',0xf1ece0,'DUNE','CYCLING','Dune']];
+const CFN=['Adrien','Baptiste','Corentin','Damien','Étienne','Fabien','Gaspard','Hadrien','Ilian','Jules','Killian','Loïc','Mathis','Noé','Octave','Paul','Quentin','Rémi','Sacha','Théo','Ulysse','Valentin','Wilfried','Xavier','Yann','Zacharie','Aurélien','Benoît','Clément','Dorian','Élie','Florian','Grégoire','Hugo','Ismaël','Joris','Kévin','Léo','Maël','Nils','Olivier','Pablo','Raphaël','Samuel','Tristan','Victor','Yoann','Alessio','Bruno','Carlos','Diego','Emil','Filip','Gianni','Henrik','Ivan','Jonas','Lars','Marek','Niko'];
+const CSN=['Valcourt','Ormeau','Brisset','Calvet','Dessaint','Estrada','Fauchet','Granier','Hautbois','Isnard','Jolivet','Kerlan','Lacombe','Marsaud','Nivelle','Oudard','Pelissier','Quenel','Rochas','Sabatier','Tanguy','Urvoy','Vasseur','Wagner','Yvert','Zambon','Arnoult','Bellec','Cordier','Dumas','Espinasse','Fabre','Gaillard','Hamel','Imbert','Jacquet','Koenig','Laborde','Mazet','Noguera','Olivier','Perrot','Ravel','Soulier','Thibault','Vidal','Alonso','Bertolini','Conti','Duarte','Esposito','Ferrari','Gallo','Hoffmann','Jansen','Kowal','Lindberg','Moretti','Novak','Pavlik','Rinaldi','Sandoval','Tomasi','Visser','Weber','Zielinski','Barrau','Chauvet','Delmas','Ferrand','Gimenez','Hureau','Joubert','Lemaire','Maurel','Navarro','Orsini','Pagès','Rebours','Sauvage','Trouillet','Vernet','Aubry','Brun','Cazeaux','Daix','Escoffier','Fouquet','Garrigue','Hennequin','Issartel','Jourdan','Lasserre','Marchetti','Nadal','Ortega','Pinson','Quillet','Roussel','Sicard','Tessier'];
 const CSUR=['Martin','Bernard','Dubois','Durand','Lefebvre','Moreau','Laurent','Simon','Michel','Garcia','Roux','Fournier','Girard','Bonnet','Dupont','Lambert','Fontaine','Rousseau','Vincent','Muller','Faure','Mercier','Blanc','Guérin','Boyer','Garnier','Chevalier','Perrin','Morin','Gauthier'];
 const CROLE={lead:'Leader',grim:'Grimpeur',roul:'Rouleur',spr:'Sprinteur',eq:'Équipier'};
 const CWP=18000;// W' (J) [Vélo Coach, ConfigWbal.wPrimeJ]
@@ -7376,15 +7384,22 @@ function cmpFatTxt(F){if(!F)return 'Tout le monde est frais (aucune course enreg
 const CLANES=[-1.6,-.65,.3,1.3,2.25];// files du peloton (décalage latéral, m ; positif = à droite)
 const CMP={on:false,kind:null,R:[],me:null,T:0,L:1,Llap:1,laps:1,hold:false,cd:0,fin:false,ord:'prot',diff:1,seed:1,G:null,M:null,
  gp:null,climbs:[],brk:new Set(),ev:{},evT:0,radio:[],res:null,stage:null,prev:null,coach:{t:-1e9,tg:0,ann:-1e9,over:-1e9,p30:0,ci:-1},ff:null};
-const cTeamName=t=>NPC_TEAMS[CTEAM[t]][4];
-const cTeamCol=t=>NPC_TEAMS[CTEAM[t]][0];
+const CMPN=96;// coureurs au plus (instanciation)
+const cTeamName=t=>(CTM[t]||CTM[1])[6]||(CTM[t]||CTM[1])[4];
+const cTeamCol=t=>(CTM[t]||CTM[1])[0];
 // effectif : mêmes coureurs pour toute une course par étapes (graine gardée)
-function cmpRoster(seed,diff){const r=rng(seed),kg=Math.max(45,+$('kg').value||75),wkg0=FTP/kg,L=[];let id=0;
- for(let t=0;t<6;t++){const roles=t===0?['eq','grim','roul','spr']:['lead','grim','roul','spr','eq'];
+const CROLES=['lead','grim','roul','spr','eq','eq','roul','grim'],CMROLES=['eq','grim','roul','spr','eq','roul','grim'];
+function cmpOptsN(o){o=o||{};const opp=clamp(Math.round(o.opp||5),1,10),per=clamp(Math.round(o.per||5),2,8),mine=clamp(Math.round(o.mine||5),2,8);let tot=mine+opp*per;
+ if(tot>CMPN-6){const per2=Math.max(2,Math.floor((CMPN-6-mine)/opp));return{opp,per:per2,mine}}return{opp,per,mine}}
+const cmpTotal=o=>{o=cmpOptsN(o);return o.mine+o.opp*o.per};
+function cmpShuf(n,r){const a=[...Array(n).keys()];for(let i=n-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+// effectif : mêmes coureurs pour toute une course par étapes (graine gardée) ; équipes et noms inventés
+function cmpRoster(seed,diff,o){o=cmpOptsN(o);const r=rng(seed),kg=Math.max(45,+$('kg').value||75),wkg0=FTP/kg,L=[];let id=0;const pf=cmpShuf(CFN.length,rng(seed*3+1)),ps=cmpShuf(CSN.length,rng(seed*5+2));
+ for(let t=0;t<=o.opp;t++){const roles=t===0?CMROLES.slice(0,o.mine-1):CROLES.slice(0,o.per);
   for(const ro of roles){const m=ro==='grim'?57+r()*7:ro==='spr'||ro==='roul'?71+r()*9:63+r()*10;
    let f=t===0?.9+r()*.08:ro==='lead'?1.02+r()*.08:.86+r()*.16;f*=diff;// coéquipiers un peu sous ton niveau, leaders adverses au-dessus
    const wkg=wkg0*f*(ro==='grim'?1.05:ro==='roul'?.99:ro==='spr'?.93:1),ftp=Math.round(wkg*m);
-   const nm=NPC_NAMES[(id*7+seed)%NPC_NAMES.length],sn=CSUR[(id*11+seed*3)%CSUR.length];
+   const nm=CFN[pf[id%pf.length]],sn=CSN[ps[id%ps.length]];
    L.push({id:id++,team:t,role:ro,name:nm.charAt(0)+'. '+sn,full:nm+' '+sn,ftp,m:m+8,cda:(ro==='roul'?.285:ro==='grim'?.305:.315)+r()*.02,
     spw:ftp*(ro==='spr'?4.3:ro==='lead'?3.3:2.9),wp:CWP*(ro==='spr'?1.3:ro==='grim'?1.05:1),lane:id%5,form:.97+r()*.06})}}
  return L}
@@ -7424,7 +7439,7 @@ function cGeo(parts){let n=0;for(const p of parts)n+=p.g.attributes.position.cou
  const G=new T.BufferGeometry();G.setAttribute('position',new T.BufferAttribute(P,3));G.setAttribute('normal',new T.BufferAttribute(N,3));G.setAttribute('color',new T.BufferAttribute(C,3));return G}
 function cSeg(a,b,w,h){const dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2],L=Math.hypot(dx,dy,dz),g=new T.BoxGeometry(w,h||w,L);const m=new T.Matrix4().lookAt(new T.Vector3(0,0,0),new T.Vector3(dx,dy,dz),new T.Vector3(0,1,0));
  g.applyMatrix4(m);g.translate((a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2);return g}
-function cmpBuildMeshes(){if(CMP.M)return CMP.M;const N=30,mat=new T.MeshLambertMaterial({vertexColors:true}),G=new T.Group();G.userData.keep=true;G.matrixAutoUpdate=false;
+function cmpBuildMeshes(){if(CMP.M)return CMP.M;const N=CMPN,mat=new T.MeshLambertMaterial({vertexColors:true}),G=new T.Group();G.userData.keep=true;G.matrixAutoUpdate=false;
  const wh=()=>{const t=new T.TorusGeometry(.335,.024,4,14);t.rotateY(Math.PI/2);return t};
  const dark=0x1b1d22,metal=0x5a5f68,skin=0xd9a27e,blk=0x111114;
  const tire=()=>{const t=new T.TorusGeometry(.352,.017,4,14);t.rotateY(Math.PI/2);return t},hub=(z)=>cSeg([-.02,.34,z],[.02,.34,z],.045);
@@ -7436,11 +7451,14 @@ function cmpBuildMeshes(){if(CMP.M)return CMP.M;const N=30,mat=new T.MeshLambert
  const leg=sd=>cGeo([{g:cSeg([0,0,0],[0,-.34,.3],.12),c:blk},{g:cSeg([0,-.34,.3],[0,-.56,.21],.085),c:skin},{g:cSeg([0,-.56,.21],[0,-.66,.17],.07),c:0xf4f4f4},{g:new T.BoxGeometry(.09,.06,.24).translate(0,-.69,.2),c:0xf0f0f0}]);
  const mk=(geo,col)=>{const m=new T.InstancedMesh(geo,mat,N);m.instanceMatrix.setUsage(T.DynamicDrawUsage);m.frustumCulled=false;m.castShadow=false;m.receiveShadow=false;m.count=0;if(col){for(let i=0;i<N;i++)m.setColorAt(i,new T.Color(1,1,1))}G.add(m);return m};
  const head=[{g:new T.SphereGeometry(.118,8,6).scale(1,.82,1.28).translate(0,1.435,.405),c:0xffffff},{g:cSeg([0,1.40,.30],[0,1.46,.2],.12),c:0xffffff}],band=[{g:cSeg([0,1.045,-.0015],[0,1.148,.12],.307,.274),c:0xffffff}];
- // halo : jaune = ton équipe, rouge = dangereux au général (ellipsoïde lumineux + disque au sol, mélange additif)
- const au=new T.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.45,blending:T.AdditiveBlending,depthWrite:false,fog:false});
- const ag=cGeo([{g:new T.SphereGeometry(1,10,7).scale(.8,1.12,1.5).translate(0,1.0,.05),c:0xffffff},{g:new T.CircleGeometry(1,14).rotateX(-Math.PI/2).scale(1.25,1,1.9).translate(0,.03,.0),c:0xffffff}]);
- const aura=new T.InstancedMesh(ag,au,N);aura.instanceMatrix.setUsage(T.DynamicDrawUsage);aura.frustumCulled=false;aura.count=0;aura.renderOrder=2;for(let i=0;i<N;i++)aura.setColorAt(i,new T.Color(1,1,1));G.add(aura);
- CMP.M={G,frame:mk(cGeo(frame),true),body:mk(cGeo(body),true),head:mk(cGeo(head),true),band:mk(cGeo(band),true),legL:mk(leg(1)),legR:mk(leg(-1)),aura,au,labels:[],dm:new T.Object3D(),q:new T.Object3D()};
+ // lueur des coureurs dangereux au général (version n) : contour rouge fin (coque inversée, mélange additif) + reflet rouge doux sur la route
+ const rg=cGeo(frame.concat(body,head));rg.translate(0,-.8,-.05);rg.scale(1.1,1.07,1.1);rg.translate(0,.8,-.05);
+ const rimM=new T.MeshBasicMaterial({color:0xffffff,side:T.BackSide,transparent:true,opacity:1,blending:T.AdditiveBlending,depthWrite:false,fog:false});
+ const rim=new T.InstancedMesh(rg,rimM,N);rim.instanceMatrix.setUsage(T.DynamicDrawUsage);rim.frustumCulled=false;rim.count=0;rim.renderOrder=2;for(let i=0;i<N;i++)rim.setColorAt(i,new T.Color(1,1,1));G.add(rim);
+ const gc=mkCanvas(64,64),gx=gc.getContext('2d'),gr=gx.createRadialGradient(32,32,2,32,32,31);gr.addColorStop(0,'rgba(255,255,255,.95)');gr.addColorStop(.45,'rgba(255,255,255,.4)');gr.addColorStop(1,'rgba(255,255,255,0)');gx.fillStyle=gr;gx.fillRect(0,0,64,64);
+ const refM=new T.MeshBasicMaterial({color:0xffffff,map:new T.CanvasTexture(gc),transparent:true,opacity:1,blending:T.AdditiveBlending,depthWrite:false,fog:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
+ const ref=new T.InstancedMesh(new T.PlaneGeometry(2.6,4.6).rotateX(-Math.PI/2).translate(0,.06,0),refM,N);ref.instanceMatrix.setUsage(T.DynamicDrawUsage);ref.frustumCulled=false;ref.count=0;ref.renderOrder=1;for(let i=0;i<N;i++)ref.setColorAt(i,new T.Color(1,1,1));G.add(ref);
+ CMP.M={G,frame:mk(cGeo(frame),true),body:mk(cGeo(body),true),head:mk(cGeo(head),true),band:mk(cGeo(band),true),legL:mk(leg(1)),legR:mk(leg(-1)),rim,ref,labels:[],dm:new T.Object3D(),q:new T.Object3D()};
  for(let i=0;i<4;i++){const cv=mkCanvas(256,64),tx=new T.CanvasTexture(cv),sp=new T.Sprite(new T.SpriteMaterial({map:tx,depthWrite:false,transparent:true,fog:true}));sp.scale.set(1.25,.31,1);sp.visible=false;sp.renderOrder=3;sp.userData={cv,tx,who:-1};G.add(sp);CMP.M.labels.push(sp)}
  return CMP.M}
 function cLabelDraw(sp,r){const cv=sp.userData.cv,g=cv.getContext('2d');g.clearRect(0,0,256,64);g.fillStyle='rgba(14,19,26,.75)';g.beginPath();g.roundRect?g.roundRect(8,6,240,52,14):g.rect(8,6,240,52);g.fill();
@@ -7450,24 +7468,29 @@ function cLabelDraw(sp,r){const cv=sp.userData.cv,g=cv.getContext('2d');g.clearR
 // ---- coureurs proches réalistes (24 nov. 2026) : les plus proches de la caméra sont de vrais cyclistes à squelette (comme les PNJ : corps, tête, casque,
 // maillot d'équipe, pédalage animé) ; les autres restent les petits maillages instanciés. Nombre selon la qualité : Tablette 3, Basse 4, Moyenne 6, Élevée+ 8.
 function cmpHiBuild(){cmpHiFree();const n=QK==='tab'?3:QK==='low'?4:QK==='med'?6:8,H=[];GSEG=QP.npcSeg||1;
- for(let i=0;i<n;i++){const tm=NPC_TEAMS[CTEAM[1]];try{const inst=makeRiderInst({simple:true,tex:cmpTeamTex(1),frame:0x15171b,helmet:0xf4f5f7});inst.R.visible=false;inst.R.userData.keep=true;WORLD.add(inst.R);H.push({inst,R:inst.R,team:1,sh:null,cad:86})}catch(e){console.warn('cmpHi',e);break}}
+ for(let i=0;i<n;i++){const tm=CTM[1];try{const inst=makeRiderInst({simple:true,tex:cmpTeamTex(1),frame:0x15171b,helmet:0xf4f5f7});inst.R.visible=false;inst.R.userData.keep=true;WORLD.add(inst.R);H.push({inst,R:inst.R,team:1,sh:null,cad:86})}catch(e){console.warn('cmpHi',e);break}}
  GSEG=1;CMP.hi=H}
-function cmpTeamTex(t){const c=cmpTeamTex.c||(cmpTeamTex.c={});if(!c[t]){const tm=NPC_TEAMS[CTEAM[t]];c[t]=texOf(jerseyCanvas(tm[0],tm[1],tm[4],tm[5],tm[2],true,{st:[0,2,1,3,0,4,2,6][t%8],sock:t%3?'#f2f2f0':tm[0],short:'#111114'}),true,false)}return c[t]}
+function cmpTeamTex(t){const c=cmpTeamTex.c||(cmpTeamTex.c={});if(!c[t]){const tm=CTM[t]||CTM[1];c[t]=texOf(jerseyCanvas(tm[0],tm[1],tm[4],tm[5],tm[2],true,{st:[0,2,1,3,0,4,2,6][t%8],sock:t%3?'#f2f2f0':tm[0],short:'#111114'}),true,false)}return c[t]}
 function cmpHiFree(){if(CMP.hi){for(const h of CMP.hi){try{WORLD.remove(h.R);h.R.traverse(o=>{if(o.geometry)o.geometry.dispose()})}catch(e){}}CMP.hi=null}}
-function cmpDraw(dt){const M=CMP.M;if(!M)return;const dm=M.dm,q=M.q;let k=0,ka=0;const near=[];
+function cmpDraw(dt){const M=CMP.M;if(!M)return;const dm=M.dm,q=M.q;let k=0,kr=0,kc=0;const near=[];
+ const gI=SET.glow==null?1:SET.glow,gBase=[0,.35,.7][gI]||0,gPul=SET.glowP===0?1:.78+.22*Math.sin(CMP.T*6.283/3.2);
+ const gG=WORLDK==='space'&&SET.spAmb==='ast'?[.5,.45]:[.12,.1];// monde rouge : rouge plus clair pour rester visible
+ const gl=(r,dc,hi)=>{if(!gBase||!CMP.dg||!CMP.dg.has(r.id))return;const f=dc<60?1:Math.max(0,1-(dc-60)/90);if(f<=.02)return;const I=gBase*f*gPul;
+  const cg=gG;_cc2.setRGB(I*(hi?1.5:1.2),I*cg[0],I*cg[1]);M.ref.setColorAt(kr,_cc2);M.ref.setMatrixAt(kr,dm.matrix);kr++;
+  if(!hi&&dc<110){_cc2.setRGB(I*1.1,I*cg[0],I*cg[1]);M.rim.setColorAt(kc,_cc2);M.rim.setMatrixAt(kc,dm.matrix);kc++}};
  const HI=CMP.hi;let hs=null;if(HI&&HI.length){hs=[];for(const r of CMP.R){if(r.fin!=null&&CMP.kind==='clm'&&CMP.T-r.fin>20||CMP.kind==='clm'&&r.t0>CMP.T)continue;const dc=Math.hypot(r.x-cam.position.x,r.z-cam.position.z);if(dc<(CMP.hiR||26))hs.push([dc,r])}
   hs.sort((a,b)=>a[0]-b[0]);hs.length=Math.min(hs.length,HI.length);for(const[,r]of hs)r._hi=1}
  for(const r of CMP.R){if(r.fin!=null&&CMP.kind==='clm'&&CMP.T-r.fin>20)continue;const dc=Math.hypot(r.x-cam.position.x,r.z-cam.position.z);if(dc>650||(CMP.kind==='clm'&&r.t0>CMP.T))continue;
   if(dc<60)near.push([dc,r]);
   dm.position.set(r.x,r.y+.03,r.z);dm.rotation.set(-Math.atan(r.g),Math.atan2(r.tx,r.tz),-clamp(Math.atan(r.v*r.v*(r.da||0)/9.81),-.45,.45),'YXZ');dm.updateMatrix();
-  if(r._hi){{const gl=r.team===0?0xffd21f:(CMP.dg&&CMP.dg.has(r.id)?0xff2323:0);if(gl){M.aura.setColorAt(ka,_cc2.set(gl));M.aura.setMatrixAt(ka,dm.matrix);ka++}}continue}
+  if(r._hi){gl(r,dc,true);continue}
   M.frame.setMatrixAt(k,dm.matrix);M.body.setMatrixAt(k,dm.matrix);
   const jc=r.jer||cTeamCol(r.team);M.body.setColorAt(k,_cc.set(jc));
   {const tc=cTeamCol(r.team);_cc.set(tc);const lum=.3*_cc.r+.59*_cc.g+.11*_cc.b;M.frame.setColorAt(k,_cc2.set(tc).lerp(_cWh,.4));M.head.setColorAt(k,_cc2.set(tc).lerp(_cWh,.25));M.band.setColorAt(k,_cc2.set(lum>.55?0x20232a:0xffffff));M.frame.setMatrixAt(k,dm.matrix);M.head.setMatrixAt(k,dm.matrix);M.band.setMatrixAt(k,dm.matrix)}
-  {const gl=r.team===0?0xffd21f:(CMP.dg&&CMP.dg.has(r.id)?0xff2323:0);if(gl){M.aura.setColorAt(ka,_cc2.set(gl));M.aura.setMatrixAt(ka,dm.matrix);ka++}}
+  gl(r,dc,false);
   r.ph=(r.ph||0)+dt*6.283*((r.P>15&&r.v>.5)?(r.st==='spr'?1.65:1.45):0);
   for(const[mesh,sd,off]of[[M.legL,1,0],[M.legR,-1,Math.PI]]){q.position.set(.1*sd,.92,-.13);q.rotation.set(.42*Math.sin(r.ph+off),0,0);q.updateMatrix();q.matrix.premultiply(dm.matrix);mesh.setMatrixAt(k,q.matrix)}
-  k++;if(k>=30)break}
+  k++;if(k>=CMPN)break}
  if(HI){let j=0;if(hs)for(const[dc,r]of hs){const h=HI[j++];if(h.team!==r.team){h.team=r.team;h.inst.body.material.map=cmpTeamTex(r.team);h.inst.body.material.needsUpdate=true}
   h.R.visible=true;h.R.position.set(r.x,r.y+.03,r.z);h.R.rotation.set(-Math.atan(r.g),Math.atan2(r.tx,r.tz),-clamp(Math.atan(r.v*r.v*(r.da||0)/9.81),-.45,.45));
   const sh=j<=2;if(h.sh!==sh){h.sh=sh;h.R.traverse(o=>{if(o.isMesh)o.castShadow=sh})}
@@ -7475,7 +7498,7 @@ function cmpDraw(dt){const M=CMP.M;if(!M)return;const dm=M.dm,q=M.q;let k=0,ka=0
   riderAnim(dt,{cad:pedal?h.cad:0,P:r.P,v:r.v,g:r.g,coast:!pedal,stand,tuck:r.v>13&&r.P<120&&r.g<-.02,steer:0},h.inst)}
   for(;j<HI.length;j++)HI[j].R.visible=false;if(hs)for(const[,r]of hs)r._hi=0}
  for(const m of[M.frame,M.body,M.head,M.band,M.legL,M.legR]){m.count=k;m.instanceMatrix.needsUpdate=true}for(const m of[M.frame,M.body,M.head,M.band])if(m.instanceColor)m.instanceColor.needsUpdate=true;
- M.aura.count=ka;M.aura.instanceMatrix.needsUpdate=true;if(M.aura.instanceColor)M.aura.instanceColor.needsUpdate=true;M.au.opacity=.4+.12*Math.sin(CMP.T*4.5);
+ for(const[m,c]of[[M.ref,kr],[M.rim,kc]]){m.count=c;m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true}
  near.sort((a,b)=>a[0]-b[0]);M.labels.forEach((sp,i)=>{const e=near[i];if(!e||e[0]<6){sp.visible=false;return}const r=e[1];if(sp.userData.who!==r.id)cLabelDraw(sp,r);sp.position.set(r.x,r.y+2.05,r.z);sp.visible=true})}
 const _cc=new T.Color(),_cc2=new T.Color(),_cWh=new T.Color(1,1,1);
 
@@ -7510,6 +7533,9 @@ function dsFx(kind){if(!DSV.on||!AC||AC.state!=='running'||MUTE)return;try{const
  if(kind==='open'){g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.2,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+.18);s0.start(t,Math.random(),.22);dsBeep(t+.19,1450,.05)}
  else if(kind==='close'){dsBeep(t,980,.07);g.gain.setValueAtTime(.0001,t+.08);g.gain.exponentialRampToValueAtTime(.17,t+.1);g.gain.exponentialRampToValueAtTime(.0001,t+.34);s0.start(t+.08,Math.random(),.3)}
  else{g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.04+Math.random()*.07,t+.004);g.gain.exponentialRampToValueAtTime(.0001,t+.03+Math.random()*.07);s0.start(t,Math.random(),.12)}}catch(e){}}
+Object.assign(DSB,{"neu_dep":["Les gars, on est <b>neutralisés</b> sur le premier kilomètre, <b>{m} mètres</b> à vingt-huit à l'heure. On reste groupés, on regarde la voiture, <b>personne ne bouge</b>.","Départ fictif ! <b>Pas de bêtise</b> : on roule au train derrière la voiture, le drapeau sera baissé dans {m} mètres.","Neutralisé jusqu'à <b>{m} mètres</b>, tout le monde sage dans le peloton. On se met en jambes, on boit un coup, et au drapeau on y va."],
+ "neu_300":["Le <b>drapeau</b> sera baissé dans trois cents mètres ! Place-toi dans les premiers, <b>reste attentif</b>, ça va partir vite.","Trois cents mètres avant le départ réel : <b>on se replace</b>, on se met bien dans les roues, ne reste pas au fond du peloton.","Attention, le départ réel arrive, <b>trois cents mètres</b> ! Tiens ta place, ça va frotter."],
+ "neu_flag":["<b>Drapeau baissé !</b> C'est le départ réel, la course est lancée, <b>chrono parti</b> ! Allez, reste dans les roues.","Le <b>drapeau est baissé</b> ! C'est parti pour de vrai, garde ton calme et ta place au chaud.","<b>C'est lancé !</b> Départ réel, le chrono tourne. On reste groupés au début, on ne gaspille rien."]});
 const DSBAD=/female|femme|amélie|amelie|marie|julie|hortense|audrey|léa|denise|eloise|céline|celine|sylvie|brigitte|chantal/i;
 function dsAllVoices(){try{return self.speechSynthesis?speechSynthesis.getVoices():[]}catch(e){return[]}}
 function dsVoices(){return dsAllVoices().filter(x=>/^fr|^fra/i.test(x.lang)||/fran|french|\bfr[-_]/i.test(x.name))}
@@ -7559,13 +7585,17 @@ const cKm=m=>nf(Math.max(0,m)/1000,1)+' km';
 
 // ---- écran de choix ----
 function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';const S=cmpLoad();const c=CRS.cur;
- const sel=cmpOpen.s||(cmpOpen.s={k:'race',diff:1,laps:1,ns:4,len:'m',src:'gen',pick:[]});
+ const sel=cmpOpen.s||(cmpOpen.s={k:'race',diff:1,laps:1,ns:4,len:'m',src:'gen',pick:[]});if(!sel.opts)sel.opts={opp:5,per:5,mine:5};if(sel.neu==null)sel.neu=1000;const nT=cmpTotal(sel.opts);
  const lp=COURSE&&COURSE.loop;
- let h='<button class="x" id="cmx">✕</button><h2>🏆 Compétition</h2><small>Coureurs calculés sur ta FTP ('+FTP+' W, '+nf(FTP/Math.max(45,+$('kg').value||75),2)+' W/kg) · 6 équipes de 5<br>⏳ '+cmpFatTxt(cmpFatLoad())+'</small>';
+ let h='<button class="x" id="cmx">✕</button><h2>🏆 Compétition</h2><small>Coureurs calculés sur ta FTP ('+FTP+' W, '+nf(FTP/Math.max(45,+$('kg').value||75),2)+' W/kg) · '+(sel.opts.opp+1)+' équipes · '+nT+' coureurs<br>⏳ '+cmpFatTxt(cmpFatLoad())+'</small>';
  if(S&&!S.over)h+='<h3>Course par étapes en cours</h3><div class="cd on"><b>'+esc(S.name)+'</b>Étape '+(S.i+1)+' / '+S.list.length+' : '+esc(S.list[S.i].name)+'<br>'+cmpGCLine(S)+'<div class="chips" style="margin-top:8px"><button id="cmrs">▶ Rouler l\'étape '+(S.i+1)+'</button><button id="cmgc">📋 Classements</button><button id="cmab">🗑 Abandonner</button></div></div>';
  h+='<div class="chips" style="margin-top:8px"><button id="cmhi">📜 Historique des courses</button></div>';
- h+='<h3>Format</h3><div class="cards">'+[['clm','⏱️ Contre-la-montre','Seul contre le chrono. 29 adversaires partis avant toi. Le directeur sportif te donne ton avance ou ton retard tous les kilomètres, et les watts pour les battre.'],['race','🚴 Course en ligne','Peloton de 30, échappées, attaques, sprint final. Le directeur sportif te dit d\'y aller ou non, avec les watts. Tes 4 coéquipiers roulent pour toi.'],['stage','🗓️ Course par étapes','Commence par un contre-la-montre, puis 2 à 4 courses en ligne : classement général au temps, maillots jaune, vert et à pois.']].map(([k,t,d])=>'<button class="cd'+(sel.k===k?' on':'')+'" data-k="'+k+'"><b>'+t+'</b>'+d+'</button>').join('')+'</div>';
+ h+='<h3>Format</h3><div class="cards">'+[['clm','⏱️ Contre-la-montre','Seul contre le chrono. '+(nT-1)+' adversaires partis avant toi. Le directeur sportif te donne ton avance ou ton retard tous les kilomètres, et les watts pour les battre.'],['race','🚴 Course en ligne','Peloton de '+nT+', échappées, attaques, sprint final. Le directeur sportif te dit d\'y aller ou non, avec les watts. Tes '+(sel.opts.mine-1)+' coéquipiers roulent pour toi.'],['stage','🗓️ Course par étapes','Commence par un contre-la-montre, puis 2 à 4 courses en ligne : classement général au temps, maillots jaune, vert et à pois.']].map(([k,t,d])=>'<button class="cd'+(sel.k===k?' on':'')+'" data-k="'+k+'"><b>'+t+'</b>'+d+'</button>').join('')+'</div>';
  h+='<h3>Niveau des adversaires</h3><div class="chips" id="cmdf">'+[[.95,'Plus faibles (−5 %)'],[1,'Comme toi'],[1.05,'Plus forts (+5 %)']].map(([v,t])=>'<button data-v="'+v+'"'+(sel.diff===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
+ {const o=sel.opts,ld=nT<=40?['🟢','confortable']:nT<=60?['🟠','possible, un peu plus lourd pour la tablette']:['🔴','lourd : la tablette risque de ramer'];
+  h+='<h3>Équipes et coureurs</h3><div class="cd">'+famSlider('cmo1','Équipes adverses',1,10,1,o.opp,'équipes')+famSlider('cmo2','Coureurs par équipe adverse',2,8,1,o.per,'coureurs')+famSlider('cmo3','Ton équipe (toi compris)',2,8,1,o.mine,'coureurs')+'<div id="cmtot" style="margin-top:6px"></div></div>';
+  h+='<h3>Lueur des coureurs dangereux au général</h3><div class="chips" id="cmgl">'+[[0,'Aucune'],[1,'Discrète'],[2,'Marquée']].map(([v,t])=>'<button data-v="'+v+'"'+((SET.glow==null?1:SET.glow)===v?' class="on"':'')+'>'+t+'</button>').join('')+'<button data-p="1"'+(SET.glowP===0?'':' class="on"')+'>Pulsation '+(SET.glowP===0?'non':'oui')+'</button></div><small>Contour rouge fin et reflet rouge sur la route, visibles à moins de 150 m. Mêmes coureurs que le ⚠️ du classement.</small>';
+  if(sel.k!=='clm')h+='<h3>Départ</h3><div class="chips" id="cmnu">'+[[1000,'🏳️ Neutralisé 1 km (drapeau baissé ensuite)'],[0,'Départ lancé']].map(([v,t])=>'<button data-v="'+v+'"'+(sel.neu===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div><small>Neutralisé : le peloton roule groupé à 28 km/h sur le premier kilomètre ; le chrono et la course démarrent au drapeau.</small>'}
  h+='<h3>Monde de la course</h3><div class="chips" id="cmwd">'+[['space','🚀 Space (le plus léger)'],['mont','🏔️ Montagne légère (vrai relief, neige, sans maisons)']].map(([v,t])=>'<button data-v="'+v+'"'+((sel.world||'space')===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div>'+((sel.world==='mont'&&CRS.cur&&CRS.cur.gen&&sel.k!=='stage')?'<small>⚠️ Le parcours actuel est imaginaire : il se roulera en Space. Génère un vrai parcours ci-dessous pour la Montagne.</small>':'');
  if(sel.k!=='stage'){h+='<h3>Parcours</h3>'+(c?'<div class="cd"><b>'+esc(c.name)+'</b>'+nf(c.km,1)+' km · '+nf(c.dp||0)+' m D+'+(lp?' · boucle':'')+'<div class="chips" style="margin-top:8px"><button id="cmch">⇄ Changer de parcours</button></div></div>':'<div class="cd">Aucun parcours : importe un GPX ou crée un parcours (Mes parcours).</div>');
   if(lp&&sel.k==='race')h+='<h3>Nombre de tours</h3><div class="chips" id="cmlp">'+[1,2,3].map(n=>'<button data-v="'+n+'"'+(sel.laps===n?' class="on"':'')+'>'+n+' tour'+(n>1?'s':'')+(c?' ('+nf(c.km*n,0)+' km)':'')+'</button>').join('')+'</div>';h+=famSingleHTML(sel)}
@@ -7577,14 +7607,20 @@ function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';
  h+='<h3>📻 Voix du directeur sportif</h3><div class="chips" id="cmvc"></div>';
  h+='<button class="go" id="cmgo">▶ '+(sel.k==='stage'?(S&&!S.over?'Nouvelle course par étapes':'Créer la course par étapes'):'Prendre le départ')+'</button>';
  e.innerHTML=h;const on=(id,f)=>{const x=$(id);if(x)x.onclick=f};cmpVoiceUI(e);famBind(e,sel);
- on('cmx',()=>e.style.display='none');e.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{sel.k=b.dataset.k;cmpOpen()});
+ on('cmx',()=>e.style.display='none');
+ {const o=sel.opts,upd=()=>{const t=cmpTotal(o),ld=t<=40?['🟢','confortable']:t<=60?['🟠','possible, un peu plus lourd pour la tablette']:['🔴','lourd : la tablette risque de ramer'],x=$('cmtot');if(x)x.innerHTML='<b>'+t+' coureurs</b> ('+(o.opp+1)+' équipes) · '+ld[0]+' '+ld[1]+(o.opp*o.per+o.mine>CMPN-6?' · limité à '+(CMPN-6):'');
+   const x1=$('cmo1v');if(x1)x1.textContent=o.opp+' équipes';const x2=$('cmo2v');if(x2)x2.textContent=o.per+' coureurs';const x3=$('cmo3v');if(x3)x3.textContent=o.mine+' coureurs'};
+  [['cmo1','opp'],['cmo2','per'],['cmo3','mine']].forEach(([id,k])=>{const el=$(id);if(el)el.oninput=()=>{o[k]=+el.value;upd()}});upd();
+  e.querySelectorAll('#cmgl [data-v]').forEach(b=>b.onclick=()=>{SET.glow=+b.dataset.v;ssave();cmpOpen()});e.querySelectorAll('#cmgl [data-p]').forEach(b=>b.onclick=()=>{SET.glowP=SET.glowP===0?1:0;ssave();cmpOpen()});
+  e.querySelectorAll('#cmnu [data-v]').forEach(b=>b.onclick=()=>{sel.neu=+b.dataset.v;cmpOpen()})}
+e.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{sel.k=b.dataset.k;cmpOpen()});
  e.querySelectorAll('#cmdf [data-v]').forEach(b=>b.onclick=()=>{sel.diff=+b.dataset.v;cmpOpen()});e.querySelectorAll('#cmlp [data-v]').forEach(b=>b.onclick=()=>{sel.laps=+b.dataset.v;cmpOpen()});
  e.querySelectorAll('#cmns [data-v]').forEach(b=>b.onclick=()=>{sel.ns=+b.dataset.v;cmpOpen()});e.querySelectorAll('#cmsrc [data-v]').forEach(b=>b.onclick=()=>{sel.src=b.dataset.v;cmpOpen()});
  e.querySelectorAll('#cmln [data-v]').forEach(b=>b.onclick=()=>{sel.len=b.dataset.v;cmpOpen()});
  e.querySelectorAll('.lst input').forEach(b=>b.onchange=()=>{const id=b.dataset.id;sel.pick=sel.pick.filter(x=>x!==id);if(b.checked)sel.pick.push(id)});
  on('cmch',()=>{e.style.display='none';crsMenu()});on('cmrs',()=>cmpResShow(null,'start'));on('cmgc',()=>cmpResShow(null,true));
  on('cmhi',cmpHistShow);on('cmab',()=>mod('Abandonner la course par étapes ?<br><small>Les classements seront effacés.</small>',[['Abandonner',()=>{try{localStorage.removeItem('v3comp')}catch(x){}cmpOpen()}],['Annuler',()=>{}]]));
- on('cmgo',()=>{if(sel.k==='stage')return cmpStageNew(sel);if(!COURSE)return say('Choisis d\'abord un parcours.');e.style.display='none';cmpStart({kind:sel.k,diff:sel.diff,world:sel.world||'space',laps:sel.k==='race'&&lp?sel.laps:1,seed:(Date.now()%100000)+7})})}
+ on('cmgo',()=>{if(sel.k==='stage')return cmpStageNew(sel);if(!COURSE)return say('Choisis d\'abord un parcours.');e.style.display='none';cmpStart({kind:sel.k,diff:sel.diff,world:sel.world||'space',opts:sel.opts,neu:sel.neu==null?1000:sel.neu,laps:sel.k==='race'&&lp?sel.laps:1,seed:(Date.now()%100000)+7})})}
 
 // ---- départ / arrêt ----
 function cmpStart(o){if(!COURSE)return say('Choisis d\'abord un parcours.');
@@ -7596,7 +7632,7 @@ function cmpStart(o){if(!COURSE)return say('Choisis d\'abord un parcours.');
   coach:{t:-1e9,tg:0,ann:-1e9,over:-1e9,p30:FTP*.6,ci:-1,lastTg:0}});
  nav('ride');goStart();s=0;v=0;
  CMP.Llap=COURSE.edges.reduce((a,[e])=>a+NET.E[e].len,0);CMP.L=CMP.Llap*CMP.laps;
- const R=cmpRoster(CMP.seed,CMP.diff);const kg=Math.max(45,+$('kg').value||75);
+ CMP.opts=cmpOptsN(o.opts);const R=cmpRoster(CMP.seed,CMP.diff,CMP.opts);const kg=Math.max(45,+$('kg').value||75);
  CMP.me={id:-1,team:0,role:'lead',name:'Toi',ftp:FTP,fe:FTP,fk:1,kj0:0,kjr:0,m:kg+8,cda:.32,wp:CWP,wbal:CWP,d:0,pd:0,v:0,lat:1.3,x:0,z:0,tx:0,tz:1,ok:true,alive:true,fin:null,kom:{},cp:[],sp:{}};
  R.forEach((r,i)=>Object.assign(r,{d:0,v:0,P:0,fe:r.ftp,fk:1,st:'pack',fin:null,lat:CLANES[r.lane],tlat:CLANES[r.lane],x:0,z:0,y:0,tx:0,tz:1,g:0,ok:true,alive:true,kom:{},sp:{},t0:0,ph:Math.random()*6,jer:null}));
  // grille de départ : 6 rangées derrière la ligne (toi en tête avec tes coéquipiers)
@@ -7611,13 +7647,14 @@ function cmpStart(o){if(!COURSE)return say('Choisis d\'abord un parcours.');
   const gcL=Object.entries(S.gc).sort((a,b)=>a[1]-b[1])[0],ptL=Object.entries(S.pts).sort((a,b)=>b[1]-a[1])[0],kmL=Object.entries(S.kom).sort((a,b)=>b[1]-a[1])[0];
   const setJ=(e,c)=>{if(!e)return;const r=R.find(q=>q.id===+e[0]);if(r&&!r.jer)r.jer=c};setJ(gcL,'#ffd400');setJ(ptL,'#22c55e');setJ(kmL,'#f5f5f5')}
  // contre-la-montre : départs toutes les minutes, toi en dernier ; les autres ont déjà roulé (calcul rapide)
- if(o.kind==='clm'){R.forEach((r,i)=>{r.t0=-(R.length-i)*60;r.lat=r.tlat=1.3;const pc=cPacing(0,CMP.L,r.fe*r.form,r.wp,r.m,r.cda,true,r.fe);r.tP=pc.P;r.tEst=pc.t;r.split=[];r.cp=[]});
+ const cgap=clamp(Math.floor(1800/Math.max(1,R.length)),20,60);if(o.kind==='clm'){R.forEach((r,i)=>{r.t0=-(R.length-i)*cgap;r.lat=r.tlat=1.3;const pc=cPacing(0,CMP.L,r.fe*r.form,r.wp,r.m,r.cda,true,r.fe);r.tP=pc.P;r.tEst=pc.t;r.split=[];r.cp=[]});
   for(const r of R){let t=r.t0;while(t<0){const dt2=Math.min(1,-t);CMP.T=t+dt2;cmpRider(r,dt2,true);t+=dt2}}CMP.T=0}
+ {const nl=o.kind==='race'?Math.min(o.neu||0,CMP.L*.15):0;CMP.neu=nl>=300?{on:true,len:nl,v:7.8,a:0}:null}
  cmpBuildMeshes();if(!CMP.M.G.parent)WORLD.add(CMP.M.G);cmpHiBuild();
  cmpArches();
  cEl('cmh').style.display='block';cmpHud(true);voxOn();
  const hd=o.kind==='clm'?'Contre-la-montre':o.kind==='race'?'Course en ligne':'Étape';
- setTimeout(()=>cRadio(cmpFatNote()+(o.kind==='clm'?dsF('depart_clm',{km:cKm(CMP.L)}):dsF('depart')+' '+hd+' de '+cKm(CMP.L)+(CMP.climbs.length?', '+CMP.climbs.length+' montée'+(CMP.climbs.length>1?'s':'')+' au programme':'')+'.')),1500)}
+ setTimeout(()=>cRadio(cmpFatNote()+(o.kind==='clm'?dsF('depart_clm',{km:cKm(CMP.L)}):(CMP.neu?dsF('neu_dep',{m:Math.round(CMP.neu.len)}):dsF('depart'))+' '+hd+' de '+cKm(CMP.L)+(CMP.climbs.length?', '+CMP.climbs.length+' montée'+(CMP.climbs.length>1?'s':'')+' au programme':'')+'.')),1500)}
 function cmpArches(){if(CMP.G){disposeGroup(CMP.G);CMP.G=null}const G=new T.Group();G.userData.keep=true;const o={};
  cpPos(1,o);G.add(lightArch(o.x,o.y,o.z,Math.atan2(o.tx,o.tz),'start','🏁 DÉPART',CMP.kind==='clm'?'CONTRE-LA-MONTRE':'COURSE'));
  cpPos(CMP.laps>1||COURSE.loop?CMP.Llap-1:CMP.Llap-1,o);G.add(lightArch(o.x,o.y,o.z,Math.atan2(o.tx,o.tz),'end','🏆 ARRIVÉE',cKm(CMP.L)));
@@ -7688,9 +7725,10 @@ function cmpRider(r,dt,solo,list,idx,ctx){if(r.fin!=null&&CMP.kind!=='clm'){r.v=
    else if(r.d<ctx.packTail&&r.wbal>.35*r.wp&&ctx.packTail-r.d<70){P=Math.min(cap,1.1*fe)}// on revient
    else P=Math.min(cap,fe*(r.d>ctx.packFront?.9:.8))}
   if(!r.st||r.st==='drop')r.st='pack'}
+ if(CMP.neu&&CMP.neu.on&&r.fin==null)P=Math.min(P,powFor(CMP.neu.v,g,r.m,r.cda,red)*1.02);
  const vmx=dt>0?cmpVmax(r):99;if(r.v>vmx)P=0;// virage trop rapide : roue libre, puis freinage avant l'entrée
  if(dt>0){const a=Math.atan(g),cda=r.cda*(1-red),F=.975*P*(1+(g>.02?red*clamp((g-.02)/.04,0,1)*.45:0))/Math.max(r.v,1.2)-r.m*9.81*Math.sin(a)-.004*r.m*9.81*Math.cos(a)-.6*cda*r.v*r.v;
-  r.v=clamp(r.v+F/(r.m+1.5)*dt,0,24);if(r.tr===1&&r.ti===0&&CMP.ord==='train'&&r.d>CMP.me.d+1.8*(CMP.trN||1)+3&&r.v>CMP.me.v)r.v=Math.max(CMP.me.v,r.v-3*dt);if(r.v>vmx){r.v=Math.max(vmx,r.v-5.5*dt);r.cb=1}else r.cb=0
+  r.v=clamp(r.v+F/(r.m+1.5)*dt,0,CMP.neu&&CMP.neu.on&&r.fin==null?CMP.neu.v:24);if(r.tr===1&&r.ti===0&&CMP.ord==='train'&&r.d>CMP.me.d+1.8*(CMP.trN||1)+3&&r.v>CMP.me.v)r.v=Math.max(CMP.me.v,r.v-3*dt);if(r.v>vmx){r.v=Math.max(vmx,r.v-5.5*dt);r.cb=1}else r.cb=0
   if(!solo&&list){const L2=cmpLead(r,list,idx);if(L2&&L2.gap<.8&&r.v>L2.o.v)r.v=L2.o.v}
   r.P=P;r.kjr+=P*dt/1000;r.fk=cmpFk(r.kj0+r.kjr);r.fe=r.ftp*r.fk*(1+(CMP.upP||0)/100);wbalStep(r,P,r.fe*cmpTerr(r,g),dt);const d0=r.d;r.d+=r.v*dt;
   if(r.fin==null&&r.d>=CMP.L&&d0<CMP.L)r.fin=CMP.T-(r.d-CMP.L)/Math.max(r.v,.5);
@@ -7728,7 +7766,7 @@ function cmpStep(dt,list){cmpTrain(dt);const{G,pack}=CMP.kind==='race'?cmpGroups
   const brk=G.filter(x=>x.front>pack.front+5);if(brk.length){const gap=(brk[0].front-pack.front)/Math.max(pf.v,5),gs=clamp(CMP.L/1000*9,45,300)*clamp((rem-7000)/(.55*CMP.L),0,1);k=Math.max(k,clamp(.62+.0035*(gap-gs),.58,1.02))}
   CMP.paceK=k;vref=steadyV(k*avgF,g,avgM,.31);if(g<-.03)vref=Math.min(20,vref)}
  const ctx={vref,pack,grpOf,packFront:pack?pack.front:0,packTail:pack?pack.tail:0,mates:CMP.R.filter(r=>r.team===0&&r.fin==null&&r.wbal>.08*r.wp&&Math.abs(r.d-me.d)<60).sort((a,b)=>a.d-b.d)};
- if(CMP.kind==='race')cmpAttacks(dt,G,pack,ctx);
+ if(CMP.kind==='race'&&!(CMP.neu&&CMP.neu.on))cmpAttacks(dt,G,pack,ctx);
  for(let i=0;i<list.length;i++){const r=list[i];if(r===me)continue;cmpRider(r,dt,false,list,i,ctx)}
  return{G,pack}}
 function cmpTick(dt,P,now){const me=CMP.me;if(!me)return;
@@ -7737,12 +7775,16 @@ function cmpTick(dt,P,now){const me=CMP.me;if(!me)return;
   cd.innerHTML='<div class="n">'+(n>0?n:'GO')+'</div><div class="t">'+(CMP.kind==='clm'?'Départ du contre-la-montre':'Départ de la course')+'</div>';if(n!==CMP.cdn){CMP.cdn=n;sfx(n>0?'tick':'go')}
   if(CMP.cd<=0){CMP.hold=false;setTimeout(()=>cd.style.display='none',700)}cmpUpdateMe(P,0);cmpDraw(dt);cmpHud();return}
  if(CMP.fin){cmpUpdateMe(P,0);cmpDraw(dt);return}
- CMP.T+=dt;cmpUpdateMe(P,dt);cmpStatTick(dt,P);
+ CMP.T+=dt;cmpUpdateMe(P,dt);cmpStatTick(dt,P);cmpNeu(dt);
  const list=[me,...CMP.R].sort((a,b)=>b.d-a.d);const{G,pack}=cmpStep(dt,list);
  cmpDraw(dt);
- CMP.evT+=dt;if(CMP.evT>1){CMP.evT=0;cmpEvents(G,pack,list)}
- cmpCoach(now,P);cmpHud();
+ CMP.evT+=dt;if(CMP.evT>1){CMP.evT=0;if(!(CMP.neu&&CMP.neu.on))cmpEvents(G,pack,list)}
+ if(!(CMP.neu&&CMP.neu.on))cmpCoach(now,P);cmpHud();
  if(me.fin==null&&me.d>=CMP.L){me.fin=CMP.T;cmpFinish()}}
+// premier kilomètre fictif : peloton groupé à 28 km/h, chrono et course à partir du drapeau baissé
+function cmpNeu(dt){const N=CMP.neu;if(!N||!N.on)return;const me=CMP.me,ds=CMP.R.map(r=>r.d).sort((a,b)=>a-b),med=ds.length?ds[ds.length>>1]:0,front=Math.max(med,me.d);
+ if(!N.a&&N.len-front<300){N.a=1;cRadio(dsF('neu_300'))}
+ if(front>=N.len){N.on=false;CMP.T=0;CMP.evT=0;CMP.ev={};Object.assign(CMP.coach,{t:-1e9,ann:-1e9,over:-1e9});for(const r of CMP.R){r.st='pack'}cRadio(dsF('neu_flag'))}}
 function cmpUpdateMe(P,dt){const me=CMP.me;me.pd=me.d;me.d=s;if(dt>0&&CMP.kind==='clm'&&me.fin==null&&me.cp){const k=Math.floor(me.d/CMP.cps),k0=Math.floor(me.pd/CMP.cps);if(k>k0&&k>=1)me.cp[k-1]=CMP.T-(me.d-k*CMP.cps)/Math.max(v,.5)}if(dt>0&&me.fin==null)for(const c of CMP.climbs)if(me.pd<c.d1&&me.d>=c.d1&&me.kom[c.i]==null){me.kom[c.i]=CMP.T;cmpCross('k',c.i,me)}for(const sp of CMP.sprints)if(me.pd<sp.d&&me.d>=sp.d&&me.sp[sp.i]==null){me.sp[sp.i]=CMP.T;cmpCross('s',sp.i,me)}me.v=v;me.lat=RLAT;me.x=RW.x;me.z=RW.z;me.tx=RW.tx;me.tz=RW.tz;me.P=P;if(dt>0){me.kjr+=P*dt/1000;me.fk=cmpFk(me.kj0+me.kjr);me.fe=FTP*me.fk;wbalStep(me,P,me.fe,dt)}
  CMP.coach.p30+=(P-CMP.coach.p30)*Math.min(1,dt/30)}
 function cmpAttacks(dt,G,pack,ctx){if(!pack)return;
@@ -7873,7 +7915,7 @@ CMP.dg=new Set(all.filter(danger).map(r=>r.id));
    const k=idx.findIndex((v,q)=>q>=3&&Math.abs(v-myI)===2&&v>myI);if(k>=0)idx.splice(k,1);else{const k2=idx.findIndex((v,q)=>q>=3&&Math.abs(v-myI)===2);if(k2>=0)idx.splice(k2,1);else idx.pop()}}
   let pv=-1;for(const j of idx){const r=all[j];if(pv>=0&&j-pv>1)h+='<div class="sep">⋮</div>';pv=j;
    const dg=danger(r),cup=gcRank&&gcRank.get(r)<=5,gl=gcRank?gcRank.get(r):null,nm=r===me?'Toi':r.name;
-   h+='<div class="r'+(r===me?' me':'')+'"><span>'+(j+1)+'</span><i style="background:'+cTeamCol(r.team)+'"></i><span class="nm">'+(r.role==='lead'&&r!==me?'★ ':'')+esc(nm)+(dg?' ⚠️':'')+(cup?' 🏆':'')+'</span><span class="g">'+(gl?'G'+gl+' ':'')+(j===0?'tête':(r.fin!=null?'':'+'+cGapTxt(gapS(r))))+'</span></div>'}}
+   h+='<div class="r'+(r===me?' me':'')+'"><span>'+(j+1)+'</span><i style="background:'+cTeamCol(r.team)+'"></i><span class="nm">'+(r.team===0&&r!==me?'<b style="color:#f0cf73">●</b> ':'')+(r.role==='lead'&&r!==me?'★ ':'')+esc(nm)+(dg?' ⚠️':'')+(cup?' 🏆':'')+'</span><span class="g">'+(gl?'G'+gl+' ':'')+(j===0?'tête':(r.fin!=null?'':'+'+cGapTxt(gapS(r))))+'</span></div>'}}
  h+='<div class="ob"><button class="ds" data-ds="1">📻 DS</button><button class="ds" data-vox="1">🎤 Parler</button><button class="ds" data-up="1">⬆ Adversaires +'+(CMP.upP||0)+' % → +1</button>'+[['train','🚆 Train'],['prot','🛡 Protège-moi'],['roul','🚂 Roulez'],['chas','🎯 Chasse'],['lead','⚡ Sprint'],['free','🆓 Libres']].map(([k,t])=>'<button data-o="'+k+'"'+(CMP.ord===k?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
  if(h!==e._h){e._h=h;e.innerHTML=h;e.querySelectorAll('[data-b]').forEach(b=>b.onclick=ev=>{ev.stopPropagation();cmpBoard.tab=b.dataset.b;cmpBoard(true)});cmpBtn(e)}e.style.display='block'}
 // ---- ordres à la voix : bouton des écouteurs (touches multimédia) ou bouton 🎤 Parler ----
@@ -7974,7 +8016,7 @@ function cmpStatHtml(res){const st=CMP.stat||{},t=Math.max(1,st.t),me=res.rows.f
  const ns=Math.max(1,st.n);return '<div class="cards">'+c(fmt(Math.round(t)),'Temps de course')+c(nf(km/(t/3600),1)+' km/h','Vitesse moyenne')+c(Math.round(st.e/t)+' W','Puissance moyenne ('+nf(st.e/t/Math.max(45,+$('kg').value||75),2)+' W/kg)')+c(Math.round(st.mx)+' W','Puissance maxi')+
   c(Math.round(st.e/1000)+' kJ','Travail')+c(pct(st.dr),'Dans les roues (abri moyen −'+Math.round(100*st.drs/Math.max(1,st.dr))+' %)')+c(pct(st.fr),'En tête de ton groupe')+c(nf(st.rk/ns,1)+'<sup>e</sup>','Place moyenne (meilleure : '+(st.best||'?')+'<sup>e</sup>)')+
   c(pct(st.top10),'Dans les 10 premiers ('+pct(st.top3)+' dans les 3 premiers)')+c(st.wb+' %','Réserve W\'bal la plus basse'+(st.lo>3?' · '+Math.round(st.lo)+' s à sec':''))+
-  c((CMP.spt[-1]||0)+' pts','Sprints intermédiaires')+c((CMP.kpt[-1]||0)+' pts','Points de la montagne')+c((CMP.bon[-1]||0)+' s','Bonifications gagnées')+c(me.pos+'<sup>e</sup> / 30','Classement final'+(me.gap>0?' · +'+cGapTxt(me.gap):''))+'</div>'}
+  c((CMP.spt[-1]||0)+' pts','Sprints intermédiaires')+c((CMP.kpt[-1]||0)+' pts','Points de la montagne')+c((CMP.bon[-1]||0)+' s','Bonifications gagnées')+c(me.pos+'<sup>e</sup> / '+(CMP.R.length+1),'Classement final'+(me.gap>0?' · +'+cGapTxt(me.gap):''))+'</div>'}
 function cmpHistShow(){const e=cEl('cmp');e.className='cmp';e.style.display='block';const H=cmpHistLoad(),K={clm:'⏱️ CLM',race:'🚴 Course'};
  const best={};H.forEach(x=>{if(x.k==='clm'){const b=best[x.n];if(!b||x.t<b)best[x.n]=x.t}});
  let h='<button class="x" id="cmx">✕</button><h2>📜 Historique des courses</h2>';
@@ -8002,8 +8044,9 @@ function cmpHud(force){const e=$('cmh');if(!e||!CMP.me)return;const now=performa
  let l1='',l2='';if(CMP.kind==='clm'){const best=CMP.R.filter(r=>r.fin!=null).map(r=>r.fin-r.t0);l1='⏱️ '+fmt(CMP.T)+' · reste '+cKm(rem);
   const ahead=CMP.R.filter(r=>r.fin==null&&r.d>me.d&&r.t0<=CMP.T).sort((a,b)=>a.d-b.d)[0];l2=(ahead?'Devant : '+ahead.name+' à '+Math.round(ahead.d-me.d)+' m':'Personne devant')+(best.length?' · meilleur '+fmt(Math.min(...best)):'')}
  else{const all=[me,...CMP.R].filter(r=>r.fin==null||r===me).sort((a,b)=>b.d-a.d),rk=all.indexOf(me)+1,lead=all[0];
-  l1='🚴 '+(CMP.stageK?'Étape '+(CMP.stageK.i+1)+' · ':'')+rk+'<sup>e</sup> / 30 · reste '+cKm(rem);
-  const gp=lead!==me?(lead.d-me.d)/Math.max(me.v,5):0;l2=lead===me?'Tu es en tête !':'Tête de course : '+lead.name+' à '+cGapTxt(gp);}
+  l1='🚴 '+(CMP.stageK?'Étape '+(CMP.stageK.i+1)+' · ':'')+rk+'<sup>e</sup> / '+(CMP.R.length+1)+' · reste '+cKm(rem);
+  const gp=lead!==me?(lead.d-me.d)/Math.max(me.v,5):0;l2=lead===me?'Tu es en tête !':'Tête de course : '+lead.name+' à '+cGapTxt(gp);
+  if(CMP.neu&&CMP.neu.on){const nf0=Math.max(CMP.R.length?CMP.R.map(r=>r.d).sort((a,b)=>a-b)[CMP.R.length>>1]:0,me.d);l1='🏳️ Neutralisé · drapeau dans '+Math.max(0,Math.round(CMP.neu.len-nf0))+' m';l2='Reste dans le peloton, 28 km/h'}}
  const wb=Math.round(100*clamp(me.wbal/me.wp,0,1));
  const ob='';
  const h='<div class="l1">'+l1+'</div><div class="l2">'+l2+'</div><div class="wb"><i style="width:'+wb+'%"></i></div><small>Réserve '+wb+' %'+(CMP.coach.tg&&CMP.coach.ci!==-1?' · cible coach '+CMP.coach.tg+' W':'')+'</small>'+ob;
@@ -8155,7 +8198,7 @@ async function cmpStageNew(sel){let list=[];const n=sel.ns||4,st=famSt(sel);
    catch(x){CRS.list.splice(base);try{localStorage.v3crs=JSON.stringify(CRS.list)}catch(y){}if(go)go.disabled=false;return say('Étape '+(i+1)+' impossible : '+(x&&x.message||x)+(sel.src==='real'?' (Internet requis)':''))}
    if(!c){CRS.list.splice(base);if(go)go.disabled=false;return say('Création des étapes impossible.')}list.push({id:c.id,name:c.name,kind:s.t==='clm'?'clm':'race',km:c.km})}
   try{localStorage.v3crs=JSON.stringify(CRS.list)}catch(e){CRS.list.splice(base);if(go)go.disabled=false;return say('Stockage plein : supprime des parcours dans « Mes parcours ».')}}
- const S={name:'Tour VCT '+new Date().toLocaleDateString('fr-FR'),seed:(Date.now()%100000)+11,diff:sel.diff,world:sel.world||'space',upP:0,list,i:0,gc:{},pts:{},kom:{},over:false,prevCrs:CRS.cur?CRS.cur.id:null};cmpSave(S);
+ const S={name:'Tour VCT '+new Date().toLocaleDateString('fr-FR'),seed:(Date.now()%100000)+11,diff:sel.diff,world:sel.world||'space',opts:cmpOptsN(sel.opts),neu:sel.neu==null?1000:sel.neu,upP:0,list,i:0,gc:{},pts:{},kom:{},over:false,prevCrs:CRS.cur?CRS.cur.id:null};cmpSave(S);
  cmpResShow(null,'start')}
 function cmpStageNewOLD(sel){let list=[];
  if(sel.src==='mine'){const ids=sel.pick.filter(id=>CRS.list.some(q=>q.id===id));if(ids.length<3||ids.length>5)return say('Coche de 3 à 5 parcours.');
@@ -8173,12 +8216,12 @@ function cmpStageGo(){const S=cmpLoad();if(!S||S.over)return cmpOpen();const st=
  say('🗓️ Étape '+(S.i+1)+' / '+S.list.length+' : '+st.name);
  // on attend que le parcours soit prêt avant le départ
  let tries=0;const go=()=>{if(++tries>120)return say('Parcours pas prêt : réessaie.');if(!COURSE||!NET.ready||!CRS.cur||CRS.cur.id!==st.id)return setTimeout(go,250);
-  cmpStart({kind:st.kind,diff:S.diff,world:S.world||'space',upP:S.upP||0,seed:S.seed,laps:1,stageK:{i:S.i}})};setTimeout(go,300)}
+  cmpStart({kind:st.kind,diff:S.diff,world:S.world||'space',opts:S.opts,neu:S.neu==null?1000:S.neu,upP:S.upP||0,seed:S.seed,laps:1,stageK:{i:S.i}})};setTimeout(go,300)}
 function cmpStageEnd(rows,kom){const S=cmpLoad();if(!S||S.over)return;const st=S.list[S.i],race=st.kind!=='clm';
  rows.forEach((r,i)=>{const bon=race?[10,6,4][i]||0:0;S.gc[r.id]=(S.gc[r.id]||0)+r.tg-bon-(CMP.bon[r.id]||0);if(race){const p=[25,20,16,14,12,10,8,6,4,2][i]||0;if(p)S.pts[r.id]=(S.pts[r.id]||0)+p}});
  for(const[id,p]of Object.entries(kom))S.kom[id]=(S.kom[id]||0)+p;
  for(const[id,p]of Object.entries(CMP.spt))S.pts[id]=(S.pts[id]||0)+p;
- S.last={n:st.name,rows:rows.slice(0,30).map(r=>[r.id,r.tg])};S.upP=CMP.upP||0;S.i++;if(S.i>=S.list.length)S.over=true;cmpSave(S);CMP.stageK=null}
+ S.last={n:st.name,rows:rows.slice(0,CMPN).map(r=>[r.id,r.tg])};S.upP=CMP.upP||0;S.i++;if(S.i>=S.list.length)S.over=true;cmpSave(S);CMP.stageK=null}
 
 // ====================== animaux et sons de campagne : vaches et moutons dans les prés, chiens et chats dans les jardins, écureuils (rares), écoles, églises ======================
 // placement déterministe par cellule de 256 m (calculé une fois, par tranches) ; maillages instanciés animés dans le shader (tête qui broute, queue)

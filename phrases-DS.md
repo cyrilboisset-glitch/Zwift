@@ -456,3 +456,14 @@ Banque de phrases (jargon cycliste) : 54 situations, 292 phrases. Chaque situati
 - **N'oublie pas ta cadence**, ne t'écrase pas sur les pédales.
 - **Bois une gorgée** pendant que c'est calme.
 - **Reste souple dans les mains** et relâche les épaules.
+
+## Départ neutralisé (version n)
+- Les gars, on est **neutralisés** sur le premier kilomètre, **{m} mètres** à vingt-huit à l'heure. On reste groupés, on regarde la voiture, **personne ne bouge**.
+- Départ fictif ! **Pas de bêtise** : on roule au train derrière la voiture, le drapeau sera baissé dans {m} mètres.
+- Neutralisé jusqu'à **{m} mètres**, tout le monde sage dans le peloton. On se met en jambes, on boit un coup, et au drapeau on y va.
+- Le **drapeau** sera baissé dans trois cents mètres ! Place-toi dans les premiers, **reste attentif**, ça va partir vite.
+- Trois cents mètres avant le départ réel : **on se replace**, on se met bien dans les roues, ne reste pas au fond du peloton.
+- Attention, le départ réel arrive, **trois cents mètres** ! Tiens ta place, ça va frotter.
+- **Drapeau baissé !** C'est le départ réel, la course est lancée, **chrono parti** ! Allez, reste dans les roues.
+- Le **drapeau est baissé** ! C'est parti pour de vrai, garde ton calme et ta place au chaud.
+- **C'est lancé !** Départ réel, le chrono tourne. On reste groupés au début, on ne gaspille rien.
