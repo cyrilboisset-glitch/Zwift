@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · ag';const ERRL=[];
+const VCT_VER='27/11/2026 · ah';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -5509,7 +5509,7 @@ function suiviRender(){progTick(true);const L=lvlOf(GS.xp),a=lvlXP(L),b=lvlXP(L+
 const GOALS=[
  ['end','🚵','Endurance','Fond aérobie en zone 2 : la base de tout, longue et régulière.'],
  ['tempo','⏱️','Tempo','Blocs soutenus en zone 3, rythme « allure de sortie club ».'],
- ['ss','🎯','Sweet Spot','Blocs à 88–93 % de la FTP : beaucoup de progrès pour une fatigue raisonnable.'],
+ ['ss','🎯','Sweet Spot','Blocs à 88–93 % de la FTP.'],
  ['seuil','📈','Seuil (FTP)','Efforts autour de 100 % de la FTP pour la faire monter.'],
  ['vo2','🫁','VO2max','Intervalles de 2 à 5 min à 110–120 % de la FTP.'],
  ['ana','⚡','30/30 anaérobie','Séries d\'efforts courts au-dessus de la VO2max.'],
@@ -6347,9 +6347,9 @@ function tplanFix(P){if(!P)return P;if(typeof P.start==='number')P.start=strD(mo
 GS.tplan=tplanFix(GS.tplan);setTimeout(()=>{try{tplanAuto()}catch(e){}},4000);
 // liste de toutes les séances du plan, avec leur date (jour prévu, ou jour choisi si on l'a décalée)
 function tplanSessions(P){const T=TPG.find(x=>x.id===P.id);if(!T)return[];const out=[];
- for(let w=0;w<P.W;w++){const rec=w%4===3,L=T.wk(w,P.W).slice(0,P.S);L.forEach((s,j)=>{let[g,l,f,g2]=s;if(rec){l=0;f*=.85;if(j===0&&g!=='dukan')g='end'}
+ for(let w=0;w<P.W;w++){const tf=P.tap&&w>=P.W-2?(w===P.W-2?.7:.45):1,rec=w%4===3&&tf===1,L=T.wk(w,P.W).slice(0,P.S);L.forEach((s,j)=>{let[g,l,f,g2]=s;if(rec){l=0;f*=.85;if(j===0&&g!=='dukan')g='end'}
    const k=out.length,ad=P.adj&&P.adj[k];if(ad){if(ad.g!=null)g=ad.g;if(ad.l!=null)l=ad.l}
-   let min=clamp(Math.round(Math.max(P.M*(rec?.8:1),P.M*f)*(ad&&ad.f?ad.f:1)/5)*5,20,180);const cm=P.cmp&&P.cmp[k];if(cm)min=clamp(Math.round(clamp(min+cm,min*.75,min*1.25)/5)*5,20,180);if(P.dur&&P.dur[k])min=P.dur[k];const date=P.mv&&P.mv[k]?P.mv[k]:addD(P.start,7*w+(P.days[j]!=null?P.days[j]:j));
+   let min=clamp(Math.round(Math.max(P.M*(rec?.8:1),P.M*f)*tf*(ad&&ad.f?ad.f:1)/5)*5,tf<1?30:20,180);const cm=P.cmp&&P.cmp[k];if(cm)min=clamp(Math.round(clamp(min+cm,min*.75,min*1.25)/5)*5,20,180);if(P.dur&&P.dur[k])min=P.dur[k];const date=P.mv&&P.mv[k]?P.mv[k]:addD(P.start,7*w+(P.days[j]!=null?P.days[j]:j));
    out.push({w,j,g,lvl:l,min,g2:g2||'',rec,date})})}return out}
 function tplanNext(){const P=GS.tplan;if(!P)return null;const L=tplanSessions(P);const i=L.findIndex((_,k)=>!P.done.includes(k));return i<0?null:Object.assign({i},L[i])}
 const gName=g=>{const o=GOALS.find(x=>x[0]===g);return o?o[2]:g};
@@ -6374,7 +6374,7 @@ function tplanReplan(why,keep){const P=GS.tplan;if(!P)return 0;const L=tplanSess
  const sl=tplanSlots(P,doneToday?addD(today,1):today,todo.length);let moved=0;
  todo.forEach((k,n)=>{if(L[k].date!==sl[n])moved++;P.mv[k]=sl[n]});
  // reprise en douceur après plus d'une semaine sans séance
- const lastD=Object.values(P.dd||{}).sort().pop();if(why.indexOf('retard')===0&&lastD&&Math.round((parseD(today)-parseD(lastD))/864e5)>7&&!P.adj[todo[0]])P.adj[todo[0]]={f:.85,why:'reprise'};
+ const lastD=Object.values(P.dd||{}).sort().pop();if(why.indexOf('retard')===0&&lastD&&Math.round((parseD(today)-parseD(lastD))/864e5)>14&&!P.adj[todo[0]])P.adj[todo[0]]={f:.85,why:'reprise'};
  const end=fmtD(sl[sl.length-1]);P.note={t:today,txt:'🔄 Plan réorganisé : '+why+'. '+todo.length+' séance'+(todo.length>1?'s':'')+' restante'+(todo.length>1?'s':'')+' replacée'+(todo.length>1?'s':'')+' sur tes jours habituels, même progression ; dernière séance le '+end};
  gsave();try{say('Plan réorganisé · fin le '+end)}catch(e){}return moved}
 function tplanAuto(){const P=GS.tplan;if(!P)return;const L=tplanSessions(P),today=strD(new Date());const late=L.filter((s,k)=>!P.done.includes(k)&&s.date<today);
@@ -6417,13 +6417,13 @@ function tplanSess(k){const P=GS.tplan,x=tplanSessions(P)[k],dn=P.done.includes(
 // Un coach « à règles » : il lit ton historique (forme CTL / fatigue ATL / équilibre TSB, séances par semaine, FTP et son âge, meilleure puissance sur 20 min)
 // pour (1) proposer un plan sur mesure, modulable (objectif, séances par semaine, durée, prudence), (2) ajuster le plan en cours (retard, fatigue, forme), (3) conseiller sur la FTP.
 // ⚠ Seuils = ORDRES DE GRANDEUR [CHOIX], à ajuster : TSB < −25 très fatigué, > +15 très frais ; hausse de forme > 7 points par semaine = trop rapide ; retard > 3 jours.
-const COA={on:0,id:'ftp',S:0,M:60,mode:'normal',W:0};
+const COA={on:0,id:'ftp',S:0,M:60,mode:'normal',W:0,tap:0};
 const COMODE={prudent:['Prudent',3],normal:['Équilibré',5],ambitieux:['Ambitieux',8]};
-const COWHY={end:'Endurance : la base aérobie. Tu dois pouvoir parler, c\'est elle qui permet d\'encaisser le reste.',tempo:'Tempo : rythme soutenu mais contrôlé, pour tenir longtemps à bonne allure.',
- ss:'Sweet spot : longs blocs un peu sous la FTP. Gros effet sur la FTP pour une fatigue raisonnable.',seuil:'Seuil : tu apprends à tenir ta FTP, c\'est le travail qui la fait monter le plus directement.',
- vo2:'VO2max : efforts de 2 à 5 min bien au-dessus de la FTP pour relever ton plafond. Dur : garde des jours faciles autour.',ana:'30/30 : efforts courts très intenses pour la puissance et la récupération entre les efforts.',
- spr:'Sprints : explosivité. Peu de volume, qualité maximale, repose-toi bien entre les efforts.',force:'Force : basse cadence, comme dans un col. Renforce sans trop de fatigue cardio.',velo:'Vélocité : haute cadence, pour un coup de pédale souple et économe.',
- pyr:'Pyramide : paliers qui montent puis redescendent, bon travail de transition.',recup:'Récupération : très facile, elle te fait progresser en te laissant absorber la charge.',dukan:'Brûle-graisses : longue zone 2, adaptée à ton régime.'};
+const COWHY={end:'Endurance : base aérobie à basse intensité. Chez les athlètes d\'endurance on observe environ 80 % du volume à basse intensité (observation, pas une règle absolue).',tempo:'Tempo : rythme soutenu mais contrôlé, entre l\'endurance et le seuil.',
+ ss:'Sweet spot : longs blocs juste sous la FTP (88–94 %). Charge modérée. Je n\'ai trouvé aucun essai contrôlé qui le montre meilleur que le seuil ou le tempo : c\'est un choix de plan.',seuil:'Seuil : tu travailles autour de ta FTP.',
+ vo2:'VO2max : intervalles intenses. Les méta-analyses donnent les meilleurs gains avec des intervalles d\'au moins 2 min et au moins 15 min de travail intense au total. Garde des jours faciles autour.',ana:'30/30 : intervalles courts. Des essais sur cyclistes entraînés (Rønnestad) donnent un gain de VO2max au moins égal à des intervalles plus longs, sur de petits groupes.',
+ spr:'Sprints : efforts maximaux courts, avec récupération complète entre chaque.',force:'Force : basse cadence, comme dans un col.',velo:'Vélocité : haute cadence, pour travailler la coordination du coup de pédale.',
+ pyr:'Pyramide : paliers qui montent puis redescendent.',recup:'Récupération : très facile, pour absorber la charge.',dukan:'Brûle-graisses : séance longue à intensité modérée. L\'oxydation des graisses est maximale vers 55–70 % de la VO2max (Jeukendrup 2004) ; l\'effet sur le poids dépend surtout du bilan énergétique de la journée.'};
 function coachData(){const ser=fitnessSeries(120),n=ser.length,last=ser[n-1]||{ctl:0,atl:0,tsb:0},w1=ser[Math.max(0,n-8)]||last,now=Date.now(),H=GS.hist.filter(h=>h.el>=900),
   tss=h=>h.tss!=null?h.tss:Math.round(h.el/3600*Math.pow((h.ap||0)/FTP,2)*100),i7=H.filter(h=>now-h.t<=7*864e5),i14=H.filter(h=>now-h.t>7*864e5&&now-h.t<=14*864e5),i28=H.filter(h=>now-h.t<=28*864e5),
   kg=Math.max(40,+$('kg').value||75),f=GS.ftp||[],lf=f.length?f[f.length-1]:null,sum=(a,g)=>a.reduce((x,h)=>x+g(h),0);
@@ -6441,10 +6441,10 @@ function coachPlanParams(){const D=coachData(),T=TPG.find(x=>x.id===COA.id)||TPG
  if(D.ftpDays!=null&&D.ftpDays>60)N.push('Ta FTP date de '+D.ftpDays+' jours : un test FTP (rampe) avant de commencer cale mieux les séances.');
  if(D.ftpDays==null)N.push('Ta FTP n\'a jamais été testée dans l\'appli : fais un test FTP (rampe) pour partir sur des bases justes.');
  const W=COA.W||T.w,pct=+(COMODE[COA.mode][1]*clamp(W/8,.6,1.5)*[1.3,1,.7][D.lvl]).toFixed(1),tgt=Math.round(FTP*(1+pct/100));
- if(T.tgt)N.push('Cible FTP : '+tgt+' W (+'+pct.toString().replace('.',',')+' %) en '+W+' semaines. Ordre de grandeur : plus on est entraîné, plus le gain est lent.');
+ if(T.tgt)N.push('Cible FTP : '+tgt+' W (+'+pct.toString().replace('.',',')+' %) en '+W+' semaines. Estimation prudente de l\'appli (aucune valeur de référence scientifique) : plus on est entraîné, plus le gain est lent, et la réponse varie beaucoup d\'une personne à l\'autre. Un test confirmera.');
  return{S,M:COA.M,W,tgt,pct,firstEasy,when,notes:N,T,D}}
 function coachCreate(){const p=coachPlanParams(),m=mondayOf(new Date());if(p.when)m.setDate(m.getDate()+7);
- GS.tplan=tplanFix({id:COA.id,W:p.W,S:p.S,M:p.M,days:TPDEF[p.S].slice(),start:strD(m),tgt:p.T.tgt?p.tgt:0,ftp0:FTP,done:[],res:{},mv:{},est:[],adj:{},coach:1});
+ GS.tplan=tplanFix({id:COA.id,W:p.W,S:p.S,M:p.M,days:TPDEF[p.S].slice(),start:strD(m),tgt:p.T.tgt?p.tgt:0,ftp0:FTP,done:[],res:{},mv:{},est:[],adj:{},coach:1,tap:COA.tap?1:0});
  if(p.firstEasy){const L=tplanSessions(GS.tplan);L.filter(x=>x.w===0).forEach((x,j)=>{GS.tplan.adj[j]={l:Math.max(0,x.lvl-1),why:'reprise progressive'}})}
  COA.on=0;gsave();say('Plan créé par le coach : bonne route !')}
 function coachBuildHTML(){const p=coachPlanParams(),ch=(a,L,sel)=>tpChips(a,L,sel);
@@ -6453,6 +6453,7 @@ function coachBuildHTML(){const p=coachPlanParams(),ch=(a,L,sel)=>tpChips(a,L,se
   '<div class="gq">Séances par semaine</div>'+ch('coS',[[0,'Conseillé ('+p.S+')'],...[2,3,4,5,6].map(n=>[n,n])],v=>+v===COA.S)+
   '<div class="gq">Durée minimale d\'une séance</div>'+ch('coM',[30,45,60,75,90].map(n=>[n,n+' min']),v=>+v===COA.M)+
   '<div class="gq">Durée du plan</div>'+ch('coW',[[0,'Conseillée ('+p.T.w+' sem.)'],...[4,6,8,10,12].map(n=>[n,n+' sem.'])],v=>+v===COA.W)+
+  (p.T.tgt||COA.id==='vo2'?'<div class="gq">Affûtage final (2 dernières semaines)</div>'+ch('cotp',[[0,'Non'],[1,'Oui : volume −30 % puis −55 %, intensité et fréquence gardées']],v=>+v===COA.tap)+'<small style="display:block">Méta-analyses (Bosquet 2007, Wang 2023) : environ 2 semaines, volume −41 à −60 %. Utile avant une épreuve ou un test.</small>':'')+
   '<div class="gq">Niveau d\'ambition</div>'+ch('coq',Object.entries(COMODE).map(([k,x])=>[k,x[0]]),v=>v===COA.mode)+
   '<div style="margin:10px 0;line-height:1.5">'+p.notes.map(x=>'<div>• '+esc(x)+'</div>').join('')+'</div>'+
   '<button data-a="cocreate" class="on" style="width:100%">✅ Créer ce plan ('+p.S+' séances par semaine, '+p.W+' semaines)</button><button data-a="cooff" style="width:100%;margin-top:6px">Fermer</button></div>'}
@@ -6461,8 +6462,9 @@ function coachAdvice(P){const D=coachData(),A=[],L=tplanSessions(P),today=strD(n
   due=L.filter(s=>s.date<=today).length,dn=P.done.length,nx=todo[0],lastE=P.est.length?P.est[P.est.length-1]:null;
  if(late.length&&today>addD(late[0].date,3))A.push({id:'resched',sev:1,t:late.length+' séance'+(late.length>1?'s':'')+' en retard (la plus ancienne : '+esc(fmtD(late[0].date))+'). Je peux décaler la suite du plan pour repartir d\'aujourd\'hui sans rien perdre.',b:'📆 Repartir d\'aujourd\'hui'});
  const adj=nx&&P.adj[nx.k];
- if(nx&&!adj&&(D.tsb<-25||(D.ramp>7&&D.tsb<-12)))A.push({id:'lighten',sev:2,t:'Ta fatigue est élevée (équilibre '+Math.round(D.tsb)+(D.ramp>7?', forme en hausse de '+nf(D.ramp,0)+' points en une semaine : trop vite':'')+'). Mieux vaut alléger les prochaines séances pour ne pas t\'épuiser.',b:'🛋️ Alléger les prochaines séances'});
+  if(nx&&!adj&&D.tsb<-25)A.push({id:'lighten',sev:2,t:'Ta fatigue est élevée (équilibre '+Math.round(D.tsb)+' : repère courant, pas une mesure médicale). Alléger les prochaines séances laisse le temps d\'absorber la charge. Si la fatigue dure plusieurs semaines malgré le repos, si ta performance baisse ou si tu es souvent malade ou blessé, pense à ton apport énergétique et parle à un médecin (consensus du CIO 2023 sur le déficit énergétique).',b:'🛋️ Alléger les prochaines séances'});
  else if(nx&&!adj&&nx.lvl<2&&D.tsb>12&&late.length===0&&dn>=3)A.push({id:'harder',sev:0,t:'Tu es frais (équilibre +'+Math.round(D.tsb)+') et régulier : tu peux monter d\'un cran les 2 prochaines séances.',b:'💪 Monter d\'un cran'});
+ {const d=coachDist(P);if(d&&d.T>=10800&&d.e<.55)A.push({id:'none',sev:0,t:'Seulement '+Math.round(d.e*100)+' % du temps facile sur les 14 prochains jours (chez les athlètes d\'endurance on observe environ 75–80 %). Si tu te sens usé, remplace une séance dure par de l\'endurance : c\'est une observation, pas une règle.'})}
  if(due>=3&&dn/due<.6)A.push({id:'lessmin',sev:1,t:'Tu as fait '+dn+' séance'+(dn>1?'s':'')+' sur '+due+' prévues. Un plan tenu vaut mieux qu\'un plan parfait : je peux raccourcir les séances de 15 min (ou retire un jour avec ⚙️).',b:'⏱️ Raccourcir de 15 min'});
  if(dn>=2&&(!lastE||dn-lastE.k>=4))A.push({id:'estimate',sev:0,t:'Assez de séances pour estimer ta FTP avec tes données (puissance et fréquence cardiaque).',b:'🔎 Estimer ma FTP'});
  if(D.b20&&Math.round(D.b20*.95)>FTP+3)A.push({id:'setftp',v:Math.round(D.b20*.95),sev:1,t:'Ta meilleure puissance sur 20 min ('+D.b20+' W) donne une FTP d\'environ '+Math.round(D.b20*.95)+' W, au-dessus de la tienne ('+FTP+' W). Tes séances sont peut-être trop faciles.',b:'Régler la FTP à '+Math.round(D.b20*.95)+' W'});
@@ -6483,24 +6485,58 @@ function coachAct(id,v){const P=GS.tplan;if(!P)return;const L=tplanSessions(P),t
 // bilan de la semaine
 function coachWeek(){const D=coachData(),B=[];if(D.n7+D.n14===0)return['Pas encore de sortie sur les 2 dernières semaines : le plus dur, c\'est de démarrer. Une séance facile de 45 min suffit.'];
  B.push(D.n7+' séance'+(D.n7>1?'s':'')+' ces 7 derniers jours ('+coachH(D.h7)+'), contre '+D.n14+' la semaine d\'avant ('+coachH(D.h14)+').');
- if(D.tss14>0){const r=D.tss7/D.tss14-1;B.push('Charge : '+Math.round(D.tss7)+' TSS ('+(r>=0?'+':'')+Math.round(r*100)+' % par rapport à la semaine précédente).'+(r>.3?' Hausse forte : garde une semaine plus calme ensuite.':''))}
+ if(D.tss14>0){const r=D.tss7/D.tss14-1;B.push('Charge : '+Math.round(D.tss7)+' TSS ('+(r>=0?'+':'')+Math.round(r*100)+' % par rapport à la semaine précédente).'+(r>.3?' Hausse forte : sois attentif à ta fatigue (aucun seuil de hausse n\'est validé scientifiquement).':''))}
  B.push('Forme '+Math.round(D.ctl)+' · fatigue '+Math.round(D.atl)+' · équilibre '+(D.tsb>=0?'+':'')+Math.round(D.tsb)+' : '+coachTsb(D.tsb)+'.');
- if(D.ramp>7)B.push('La forme monte de '+nf(D.ramp,0)+' points en une semaine : au-delà de ~7 le risque de fatigue augmente.');
  return B}
 // conseils FTP
 function coachFtp(){const D=coachData(),B=[],f=GS.ftp||[];B.push('FTP : '+FTP+' W, soit '+nf(D.wkg,2)+' W/kg ('+nf(D.kg,0)+' kg).');
  if(f.length>=2){const a=f[0],b=f[f.length-1],d=Math.round((b.t-a.t)/864e5);if(d>=14)B.push('Évolution : '+a.w+' → '+b.w+' W en '+d+' jours ('+(b.w>=a.w?'+':'')+(b.w-a.w)+' W).')}
  B.push(D.ftpDays==null?'Aucun test enregistré : fais un test FTP en rampe (Entraînement → Test FTP).':D.ftpDays>42?'Dernier changement il y a '+D.ftpDays+' jours : refais un test pour que tes zones restent justes.':'Dernier changement il y a '+D.ftpDays+' jours : tes zones sont à jour.');
- if(D.b20)B.push('Meilleure puissance sur 20 min : '+D.b20+' W (FTP estimée : '+Math.round(D.b20*.95)+' W).');
- B.push('Pour la faire monter : 1 ou 2 séances de qualité par semaine (sweet spot, seuil), le reste facile ; jamais deux séances dures de suite ; une semaine allégée toutes les 3 à 4 semaines.');
+ if(D.b20)B.push('Meilleure puissance sur 20 min : '+D.b20+' W (FTP estimée ≈ '+Math.round(D.b20*.95)+' W : le coefficient de 95 % est juste en moyenne chez les cyclistes entraînés, mais l\'erreur individuelle peut atteindre 5 à 10 %).');
+ B.push('Pour la faire monter : la dose compte (la réponse varie beaucoup d\'une personne à l\'autre : si rien ne bouge, augmente le volume ou le nombre de séances avant de conclure que le plan ne marche pas). Chez les athlètes d\'endurance, environ 80 % du temps est fait à basse intensité.');
+ B.push('Usage courant, sans preuve forte : pas deux séances dures de suite, une semaine allégée toutes les 3 à 4 semaines.');
  B.push('Fais le test reposé (après un jour facile) et à heure et conditions comparables, pour que les résultats se comparent.');
  return B}
+// ----- base scientifique du coach (27 nov. 2026, demande de Cyril : « des faits scientifiques, pas des on-dit ») -----
+// Niveaux : S = méta-analyses ou consensus de sociétés savantes ; I = études isolées, petits effectifs ou observations ; H = choix de l'appli, SANS source.
+const EVID=[
+ ['I','Répartition de l\'intensité','Chez les athlètes d\'endurance on observe environ 80 % du volume à basse intensité (Seiler 2010 ; Stöggl & Sperlich 2015). Polarisé ou pyramidal : pas de gagnant net dans les méta-analyses de 2024-2025 ; pyramidal plutôt pour les sportifs de loisir.'],
+ ['S','Intervalles et VO2max','Gains plus importants avec des intervalles d\'au moins 2 min et au moins 15 min de travail intense par séance (méta-analyse 2019). Chez des cyclistes entraînés aucun type d\'intervalle ne ressort clairement. Au-delà de ~11 min de HIIT par séance, le gain supplémentaire est faible (méta-analyse récente).'],
+ ['I','30/15 (Rønnestad)','Gain de VO2max supérieur aux intervalles longs chez des cyclistes entraînés (2015 ; microcycle 2021), mais sur de petits groupes.'],
+ ['S','Affûtage','Environ 2 semaines, volume réduit de 41 à 60 %, intensité et fréquence maintenues (Bosquet 2007 ; Wang 2023). Utile pour un effort de plus de ~1 h 30 ou un test.'],
+ ['S','Variabilité individuelle','La réponse à un même entraînement varie beaucoup d\'une personne à l\'autre (HERITAGE) ; augmenter la dose supprime la plupart des « non-répondeurs ». Si ta FTP ne bouge pas, ajuste la dose avant de juger le plan.'],
+ ['S','Périodisation','À charge égale, blocs ou classique : pas de différence nette (Almquist 2022 ; Mølmen 2019, petit avantage VO2max).'],
+ ['I','FTP = 95 % du test de 20 min','Juste en moyenne chez les cyclistes entraînés (2019), mais l\'erreur individuelle peut atteindre ±9 % (2019) ou 12 W de biais (2022). D\'où le test de contrôle toutes les 4 à 6 semaines.'],
+ ['I','Pause d\'entraînement','5 à 7 jours : perte faible (environ 5 % de VO2max, surtout du volume sanguin). Les pertes importantes viennent après 4 semaines ou plus (sources surtout grand public). D\'où une reprise allégée seulement après plus de 14 jours.'],
+ ['I','Forme / fatigue / équilibre','Modèle courant (Banister, repris par TrainingPeaks). Les constantes (42 et 7 jours) sont une convention, elles varient selon la personne ; la prédiction de la performance est limitée. À lire comme une tendance.'],
+ ['I','Charge et blessure','Le ratio charge aiguë/chronique est lié au risque de blessure mais les méthodes sont très disparates (revues 2020, 2025) : aucun seuil de hausse hebdomadaire n\'est validé. Le coach ne s\'en sert plus pour décider.'],
+ ['S','Déficit énergétique (RED-S)','Consensus du CIO 2023 : performance qui baisse, séances ratées, fatigue, infections, blessures, humeur ou sommeil perturbés. Au moindre doute, voir un médecin.'],
+ ['I','Nutrition pendant l\'effort','Glucides : environ 30 g/h de 1 h à 2 h, 60 g/h de 2 h à 3 h, jusqu\'à 90 g/h au-delà de 2 h 30 (avec glucose et fructose 2:1) ; l\'intestin s\'entraîne (Jeukendrup 2014 ; Mlinaric 2025). Ne pas perdre plus de 2 % de son poids en sueur (Périard 2021). Sodium 300–700 mg/h si long ou chaud. Repères généraux, très variables d\'une personne à l\'autre.'],
+ ['I','Récupération et protéines','Protéines 1,5–2 g/kg/jour pour un sportif ; après une séance intense ou à jeun : environ 1 g/kg de glucides et 20–30 g de protéines (Burke 2017 ; Thomas 2016). La « fenêtre » immédiate n\'est pas indispensable si le total de la journée est bon.'],
+ ['H','Choix de l\'appli, sans source','Cible de FTP (+3 / +5 / +8 % selon le mode), seuil « très fatigué » à −25, compensation de durée sur les 3 séances suivantes (±25 % au plus), niveaux et durées des blocs, seuil d\'une journée en retard. À vérifier par un test FTP et ton ressenti.']];
+const EVL={S:['🟢','Solide'],I:['🟠','Indicatif'],H:['⚪','Choix de l\'appli']};
+function coachEvidHTML(){return EVID.map(e=>'<div style="margin-top:6px;line-height:1.4"><b>'+EVL[e[0]][0]+' '+esc(e[1])+'</b> <small>('+EVL[e[0]][1]+')</small><br><small>'+esc(e[2])+'</small></div>').join('')+'<small style="display:block;margin-top:8px;opacity:.8">Ce coach ne remplace ni un entraîneur ni un médecin. Les études citées portent surtout sur des groupes de cyclistes ou d\'athlètes : elles donnent des tendances, pas une garantie pour toi.</small>'}
+// répartition de l'intensité sur les 14 prochains jours : facile < 76 % FTP, modéré 76–100 %, intense > 100 % (approximation des zones de lactate)
+function coachDist(P){const L=tplanSessions(P),t0=strD(new Date()),t1=addD(t0,14);let e=0,m=0,h=0;L.forEach((s,k)=>{if(P.done.includes(k)||s.date<t0||s.date>t1)return;let W;try{W=genWorkout(s.g,s.min,s.lvl,k+1,'cro',s.g2)}catch(_){return}for(const b of W.bl||[]){const f=(b[1]+b[2])/2;if(f<.76)e+=b[0];else if(f<=1)m+=b[0];else h+=b[0]}});const T=e+m+h;return T?{e:e/T,m:m/T,h:h/T,T}:null}
+// ravitaillement conseillé pour une séance (repères généraux : Jeukendrup 2014, Mlinaric 2025, Périard 2021)
+function coachFuel(x){const min=x.min,B=[];
+ if(min<60)B.push('Moins d\'1 h : de l\'eau suffit (un rinçage de bouche avec une boisson sucrée peut aider si c\'est intense).');
+ else if(min<=120)B.push('1 h à 2 h : environ 30 g de glucides par heure (ex. 1 gel de 25 g, ou 30 g de maltodextrine dans le bidon).');
+ else if(min<=150)B.push('2 h à 2 h 30 : environ 60 g de glucides par heure.');
+ else B.push('Plus de 2 h 30 : jusqu\'à 90 g de glucides par heure, avec glucose et fructose (2:1) ; à essayer d\'abord en séance (l\'intestin s\'entraîne, sur 2 à 3 semaines).');
+ B.push('Bois à la soif et vise à ne pas perdre plus de 2 % de ton poids (pèse-toi avant et après : pertes en litres = poids avant − poids après + eau bue). Si c\'est long ou chaud : sodium 300 à 700 mg par heure.');
+ return B}
+function coachFuelHTML(x){return '<details style="margin-top:6px"><summary><small><b>🍌 Ravitaillement conseillé</b></small></summary><small style="display:block;line-height:1.45;margin-top:3px">'+coachFuel(x).map(t=>'• '+esc(t)).join('<br>')+'<br><i>Repères généraux (Jeukendrup 2014, Périard 2021) : très variables d\'une personne à l\'autre.</i></small></details>'}
+function coachNutriHTML(){const kg=coachData().kg;return '<small style="display:block;line-height:1.5;margin-top:4px">• Protéines : 1,5 à 2 g/kg/jour, soit '+Math.round(kg*1.5)+' à '+Math.round(kg*2)+' g pour '+Math.round(kg)+' kg, réparties en 3 apports de 25–35 g environ.<br>• Glucides du jour : plus après une séance intense ou une forte charge, normaux à réduits un jour de repos facile.<br>• Après une séance intense ou à jeun : environ 1 g/kg de glucides et 20 à 30 g de protéines dans l\'heure.<br>• Oméga 3 à longue chaîne : environ 1,4 g/jour d\'EPA+DHA conseillés aux athlètes (prise de position ISSN 2025).<br>• Un manque d\'énergie prolongé nuit à la performance, la récupération et la santé (RED-S, CIO 2023) : parles-en à un médecin au moindre doute.<br><i>Repères généraux issus d\'un cours de diététicien du sport (sources citées), pas un régime personnalisé.</i></small>'}
 function coachCardHTML(P){const D=coachData(),A=coachAdvice(P),L=tplanSessions(P),nx=tplanNext(),ad=Object.keys(P.adj||{}).filter(k=>!P.done.includes(+k)).length,li=a=>a.map(x=>'<div>• '+esc(x)+'</div>').join('');
  return '<div class="hw" style="display:block;border-color:var(--ac)"><b>🧠 Coach</b><small style="display:block;line-height:1.5">Forme '+Math.round(D.ctl)+' · fatigue '+Math.round(D.atl)+' · équilibre '+(D.tsb>=0?'+':'')+Math.round(D.tsb)+' : <b>'+coachTsb(D.tsb)+'</b></small>'+
   (nx?'<div style="margin-top:8px;line-height:1.5"><b>Prochaine séance : '+esc(sLab(nx))+'</b><br><small>'+esc(COWHY[nx.g]||'')+(nx.g2?' '+esc(COWHY[nx.g2]||''):'')+(P.adj[nx.i]?'<br>🧠 Ajustée par le coach ('+esc(P.adj[nx.i].why||'')+').':'')+'</small></div>':'')+
   (A.length?'<div style="margin-top:10px"><b>Conseils du moment</b>'+A.map(a=>'<div style="margin-top:6px;line-height:1.45;font-size:13.5px">'+(a.sev>=2?'🔴 ':a.sev===1?'🟠 ':'🟢 ')+a.t+(a.b?'<br><button data-a="coact" data-v="'+a.id+(a.v?':'+a.v:'')+'" style="margin-top:4px">'+a.b+'</button>':'')+'</div>').join('')+'</div>':'<div style="margin-top:10px;font-size:13.5px">🟢 Rien à corriger : continue comme ça.</div>')+
   '<details style="margin-top:10px"><summary><b>📈 Conseils FTP</b></summary><small style="display:block;line-height:1.5;margin-top:4px">'+li(coachFtp())+'</small></details>'+
   '<details style="margin-top:6px"><summary><b>🗓️ Bilan de la semaine</b></summary><small style="display:block;line-height:1.5;margin-top:4px">'+li(coachWeek())+'</small></details>'+
+  (()=>{const d=coachDist(P);return d?'<details style="margin-top:6px"><summary><b>⚖️ Répartition de l\'intensité</b></summary><small style="display:block;line-height:1.5;margin-top:4px">14 prochains jours : <b>'+Math.round(d.e*100)+' % facile</b> (< 76 % FTP) · '+Math.round(d.m*100)+' % modéré · '+Math.round(d.h*100)+' % intense (> 100 % FTP).<br>Repère : chez les athlètes d\'endurance on observe environ 75–80 % de facile (observation, pas une règle) ; pour un sportif de loisir un profil pyramidal est aussi défendable.</small></details>':''})()+
+  '<details style="margin-top:6px"><summary><b>🥗 Nutrition (repères)</b></summary>'+coachNutriHTML()+'</details>'+
+  '<details style="margin-top:6px"><summary><b>📚 Sur quoi ça repose</b></summary>'+coachEvidHTML()+'</details>'+
   (ad?'<button data-a="coact" data-v="clear" style="margin-top:8px">↩️ Annuler les ajustements du coach ('+ad+')</button>':'')+'</div>'}
 // après une séance du plan : un mot du coach seulement s'il y a quelque chose d'important
 function coachDebrief(){const P=GS.tplan;if(!P)return;const a=coachAdvice(P).find(x=>x.sev>=2||x.id==='setftp');if(a)modQ('🧠 Coach<br><small style="line-height:1.5">'+a.t+'</small>',[['Voir mon plan',()=>{tplanRender();showScr('s-tpl')}],['Plus tard',()=>{}]])}
@@ -6520,7 +6556,7 @@ function tplanCalHTML(P,L,nx,today){const dt=k=>P.done.includes(k)&&P.dd&&P.dd[k
  let m0=strD(mondayOf(parseD(mn)));const by={};L.forEach((s,k)=>{(by[dt(k)]=by[dt(k)]||[]).push(k)});
  let o='<div class="hw" style="display:block;padding:8px"><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:.7em;opacity:.7;margin-bottom:3px">'+TPD.map(d=>'<span>'+d+'</span>').join('')+'</div>';
  for(let wk=m0;wk<=mx;wk=addD(wk,7)){const wn=L.find((s,k)=>dt(k)>=wk&&dt(k)<addD(wk,7)),cells=[];let open=null;
-  o+='<div style="font-size:.68em;opacity:.65;margin:5px 0 2px">'+(wn?'Semaine '+(wn.w+1)+(wn.rec?' · allégée':'')+' · ':'')+'du '+esc(fmtD(wk))+'</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">';
+  o+='<div style="font-size:.68em;opacity:.65;margin:5px 0 2px">'+(wn?'Semaine '+(wn.w+1)+(wn.rec?' · allégée':'')+(P.tap&&wn.w>=P.W-2?' · affûtage':'')+' · ':'')+'du '+esc(fmtD(wk))+'</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">';
   for(let d=0;d<7;d++){const day=addD(wk,d),ks=by[day]||[],isT=day===today;
    o+='<div style="min-height:54px;border-radius:8px;padding:3px;background:'+(isT?'rgba(240,207,115,.16)':'rgba(255,255,255,.04)')+';border:1px solid '+(isT?'#f0cf73':'transparent')+'"><div style="font-size:.66em;opacity:.6">'+parseD(day).getDate()+'</div>'+
     ks.map(k=>{const s=L[k],dn=P.done.includes(k),sel=TPW.cx===k;if(sel)open=k;
@@ -6528,7 +6564,7 @@ function tplanCalHTML(P,L,nx,today){const dt=k=>P.done.includes(k)&&P.dd&&P.dd[k
   o+='</div>';
   if(open!=null){const s=L[open],dn=P.done.includes(open),r=P.res&&P.res[open];
    o+='<div style="margin-top:5px;border:1px solid #c99a34;border-radius:10px;padding:8px;background:rgba(240,207,115,.07)"><b>'+esc(sLab(s))+'</b> <small>· '+esc(fmtD(dt(open)))+' · '+s.min+' min · '+['facile','normal','difficile'][s.lvl]+(dn?' · ✅ faite'+(r?' · '+r.ap+' W moy.':''):'')+'</small>'+
-    (COWHY[s.g]?'<small style="display:block;opacity:.8;margin:3px 0 5px">'+esc(COWHY[s.g])+'</small>':'')+tplanSchema(s,open)+
+    (COWHY[s.g]?'<small style="display:block;opacity:.8;margin:3px 0 5px">'+esc(COWHY[s.g])+'</small>':'')+tplanSchema(s,open)+coachFuelHTML(s)+
     (dn?'':'<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px"><button data-a="start" data-v="'+open+'" class="on">▶ Lancer / durée</button><button data-a="sess" data-v="'+open+'">📆 Décaler…</button></div>')+'</div>'}}
  return o+'</div>'}
 // ----- écran -----
@@ -6577,6 +6613,7 @@ function tplanRender(){const P=GS.tplan,el=$('tpb');let o='';
   else if(a==='coM')COA.M=+v;
   else if(a==='coW')COA.W=+v;
   else if(a==='coq')COA.mode=v;
+  else if(a==='cotp')COA.tap=+v;
   else if(a==='cocreate')coachCreate();
   else if(a==='coact'){const q=String(v).split(':');coachAct(q[0],+q[1]||0);if(q[0]==='estimate'||q[0]==='test')return}
   else if(a==='cal')TPW.cal=!TPW.cal;
