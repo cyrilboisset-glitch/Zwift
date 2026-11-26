@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · af';const ERRL=[];
+const VCT_VER='27/11/2026 · ag';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -6504,6 +6504,33 @@ function coachCardHTML(P){const D=coachData(),A=coachAdvice(P),L=tplanSessions(P
   (ad?'<button data-a="coact" data-v="clear" style="margin-top:8px">↩️ Annuler les ajustements du coach ('+ad+')</button>':'')+'</div>'}
 // après une séance du plan : un mot du coach seulement s'il y a quelque chose d'important
 function coachDebrief(){const P=GS.tplan;if(!P)return;const a=coachAdvice(P).find(x=>x.sev>=2||x.id==='setftp');if(a)modQ('🧠 Coach<br><small style="line-height:1.5">'+a.t+'</small>',[['Voir mon plan',()=>{tplanRender();showScr('s-tpl')}],['Plus tard',()=>{}]])}
+// ----- calendrier du plan (27 nov. 2026, demande de Cyril) : tout le plan en semaines, un toucher sur un jour déroule le schéma de la séance -----
+const tpZC=f=>f<.55?'#8a8f98':f<.76?'#3b8fd9':f<.9?'#3fb36b':f<1.05?'#e6c23a':f<1.2?'#ee8a2a':'#e0463a';
+function tplanSchema(x,k){let W;try{W=genWorkout(x.g,x.min,x.lvl,k+1,'cro',x.g2)}catch(e){return ''}const B=W.bl||[],T=B.reduce((a,b)=>a+b[0],0);if(!T)return '';
+ const w=600,h=110,yb=96,sc=82/1.5;let t=0,sv='<svg viewBox="0 0 '+w+' '+(h+14)+'" style="width:100%;max-height:190px;display:block"><line x1="0" x2="'+w+'" y1="'+(yb-sc)+'" y2="'+(yb-sc)+'" stroke="#c99a34" stroke-dasharray="4 4" opacity=".7"/><text x="3" y="'+(yb-sc-3)+'" font-size="10" fill="#c99a34">FTP '+FTP+' W</text>';
+ for(const b of B){const x0=t/T*w,x1=(t+b[0])/T*w,ya=yb-Math.min(1.5,b[1])*sc,yc=yb-Math.min(1.5,b[2])*sc;sv+='<polygon points="'+x0.toFixed(1)+','+yb+' '+x0.toFixed(1)+','+ya.toFixed(1)+' '+x1.toFixed(1)+','+yc.toFixed(1)+' '+x1.toFixed(1)+','+yb+'" fill="'+tpZC((b[1]+b[2])/2)+'" stroke="#0f0e0d" stroke-width=".6"/>';t+=b[0]}
+ const stp=T>5400?1200:T>2400?600:300;for(let q=0;q<=T;q+=stp)sv+='<text x="'+Math.min(w-14,q/T*w).toFixed(0)+'" y="'+(h+9)+'" font-size="10" fill="#9a9288">'+Math.round(q/60)+' min</text>';
+ sv+='</svg>';
+ // liste des blocs : on regroupe les blocs identiques qui se suivent
+ const R=[];for(const b of B){const l=R[R.length-1];if(l&&l.b[1]===b[1]&&l.b[2]===b[2]&&l.b[3]===b[3]&&l.b[0]===b[0])l.n++;else R.push({b,n:1})}
+ const row=r=>{const b=r.b,p=b[1]===b[2]?Math.round(b[1]*100)+' % ('+Math.round(b[1]*FTP)+' W)':Math.round(b[1]*100)+' → '+Math.round(b[2]*100)+' % ('+Math.round(b[1]*FTP)+' → '+Math.round(b[2]*FTP)+' W)',d=b[0]>=120?(Math.round(b[0]/6)/10).toString().replace('.',',')+' min':b[0]+' s';
+  return '<div style="display:flex;gap:6px;align-items:baseline;font-size:.78em;padding:1px 0"><i style="width:9px;height:9px;border-radius:2px;flex:none;background:'+tpZC((b[1]+b[2])/2)+'"></i><span>'+(r.n>1?r.n+' × ':'')+d+' · '+p+(b[3]?' · '+esc(b[3]):'')+'</span></div>'};
+ return sv+'<div style="margin-top:4px">'+R.slice(0,16).map(row).join('')+(R.length>16?'<small>… +'+(R.length-16)+' blocs</small>':'')+'</div>'+(W.d?'<small style="display:block;margin-top:4px;opacity:.85">'+esc(W.d)+'</small>':'')}
+function tplanCalHTML(P,L,nx,today){const dt=k=>P.done.includes(k)&&P.dd&&P.dd[k]?P.dd[k]:L[k].date;let mn=P.start,mx=P.start;L.forEach((s,k)=>{const d=dt(k);if(d<mn)mn=d;if(d>mx)mx=d});if(today<mn)mn=today;
+ let m0=strD(mondayOf(parseD(mn)));const by={};L.forEach((s,k)=>{(by[dt(k)]=by[dt(k)]||[]).push(k)});
+ let o='<div class="hw" style="display:block;padding:8px"><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:.7em;opacity:.7;margin-bottom:3px">'+TPD.map(d=>'<span>'+d+'</span>').join('')+'</div>';
+ for(let wk=m0;wk<=mx;wk=addD(wk,7)){const wn=L.find((s,k)=>dt(k)>=wk&&dt(k)<addD(wk,7)),cells=[];let open=null;
+  o+='<div style="font-size:.68em;opacity:.65;margin:5px 0 2px">'+(wn?'Semaine '+(wn.w+1)+(wn.rec?' · allégée':'')+' · ':'')+'du '+esc(fmtD(wk))+'</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">';
+  for(let d=0;d<7;d++){const day=addD(wk,d),ks=by[day]||[],isT=day===today;
+   o+='<div style="min-height:54px;border-radius:8px;padding:3px;background:'+(isT?'rgba(240,207,115,.16)':'rgba(255,255,255,.04)')+';border:1px solid '+(isT?'#f0cf73':'transparent')+'"><div style="font-size:.66em;opacity:.6">'+parseD(day).getDate()+'</div>'+
+    ks.map(k=>{const s=L[k],dn=P.done.includes(k),sel=TPW.cx===k;if(sel)open=k;
+     return '<div data-a="calk" data-v="'+k+'" style="cursor:pointer;margin-top:2px;border-radius:6px;padding:2px 3px;font-size:.68em;line-height:1.15;overflow:hidden;background:'+(sel?'#f0cf73':tpZC(s.g==='end'||s.g==='recup'||s.g==='dukan'?.65:s.g==='tempo'||s.g==='ss'?.85:s.g==='seuil'?1:1.15)+'33')+';color:'+(sel?'#0f0e0d':'inherit')+'">'+(dn?'✅':k===(nx&&nx.i)?'▶️':day<today?'🟠':'')+' '+esc(gName(s.g))+'<br><small>'+s.min+' min</small></div>'}).join('')+'</div>'}
+  o+='</div>';
+  if(open!=null){const s=L[open],dn=P.done.includes(open),r=P.res&&P.res[open];
+   o+='<div style="margin-top:5px;border:1px solid #c99a34;border-radius:10px;padding:8px;background:rgba(240,207,115,.07)"><b>'+esc(sLab(s))+'</b> <small>· '+esc(fmtD(dt(open)))+' · '+s.min+' min · '+['facile','normal','difficile'][s.lvl]+(dn?' · ✅ faite'+(r?' · '+r.ap+' W moy.':''):'')+'</small>'+
+    (COWHY[s.g]?'<small style="display:block;opacity:.8;margin:3px 0 5px">'+esc(COWHY[s.g])+'</small>':'')+tplanSchema(s,open)+
+    (dn?'':'<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px"><button data-a="start" data-v="'+open+'" class="on">▶ Lancer / durée</button><button data-a="sess" data-v="'+open+'">📆 Décaler…</button></div>')+'</div>'}}
+ return o+'</div>'}
 // ----- écran -----
 const TPW={id:'ftp',W:8,S:3,days:null,M:60,tgt:0,when:0,edit:0};
 const tpChips=(a,L,sel)=>'<div class="chips">'+L.map(([v,t])=>'<button data-a="'+a+'" data-v="'+v+'"'+(sel(v)?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
@@ -6514,11 +6541,11 @@ function tplanRender(){const P=GS.tplan,el=$('tpb');let o='';
    (P.tgt?'<div style="margin-top:8px"><small>FTP : '+P.ftp0+' W → <b>'+FTP+' W</b> · cible '+P.tgt+' W</small><div class="prog"><i style="width:'+clamp((FTP-P.ftp0)/Math.max(1,P.tgt-P.ftp0)*100,0,100).toFixed(0)+'%"></i></div></div>':'')+
    (P.est.length?'<small style="display:block;margin-top:6px">Dernière estimation de la FTP : '+P.est[P.est.length-1].est+' W ('+new Date(P.est[P.est.length-1].t).toLocaleDateString('fr-FR')+', fiabilité '+P.est[P.est.length-1].conf+')</small>':'')+
    (nx?'<button data-a="start" data-v="'+nx.i+'" class="on" style="width:100%;margin-top:8px">▶ Séance suivante · '+esc(fmtD(nx.date))+(nx.date<today?' (en retard)':nx.date===today?' (aujourd\'hui)':'')+' · '+esc(sLab(nx))+' · '+nx.min+' min</button><button data-a="sess" data-v="'+nx.i+'" style="width:100%;margin-top:6px">📆 Décaler cette séance</button>':'')+
-   '<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px"><button data-a="est">🔎 Estimer ma FTP</button><button data-a="edit">⚙️ Jours et durée</button></div></div>';
+   '<button data-a="cal" style="width:100%;margin-top:6px">'+(TPW.cal?'📋 Voir en liste':'📅 Voir tout le plan en calendrier')+'</button><div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px"><button data-a="est">🔎 Estimer ma FTP</button><button data-a="edit">⚙️ Jours et durée</button></div></div>';
   if(P.note)o+='<div class="hw" style="display:block;border-color:#c99a34"><small style="color:#f4efe6">'+P.note.txt+'</small></div>';
   o+=coachCardHTML(P);
   if(TPW.edit)o+='<div class="hw" style="display:block"><b>⚙️ Modifier le plan</b><div class="gq">Durée minimale d\'une séance</div>'+tpChips('edM',[30,45,60,75,90].map(n=>[n,n+' min']),v=>+v===TPW.M)+'<div class="gq">Jours d\'entraînement (garde '+P.S+' jour'+(P.S>1?'s':'')+')</div>'+tpChips('edD',TPD.map((d,i)=>[i,d]),v=>TPW.days.includes(+v))+'<button data-a="edsave" class="on" style="width:100%;margin-top:8px">Enregistrer</button><small>Les séances déjà décalées à la main gardent leur date. Les séances à venir tiennent compte de la nouvelle durée.</small></div>';
-  for(let w=0;w<P.W;w++){const S=L.map((s,k)=>Object.assign({k},s)).filter(s=>s.w===w);o+='<div class="hist" style="margin-bottom:6px"><div><b>Semaine '+(w+1)+(S[0]&&S[0].rec?' · allégée':'')+'</b></div>'+
+  if(TPW.cal)o+=tplanCalHTML(P,L,nx,today);else for(let w=0;w<P.W;w++){const S=L.map((s,k)=>Object.assign({k},s)).filter(s=>s.w===w);o+='<div class="hist" style="margin-bottom:6px"><div><b>Semaine '+(w+1)+(S[0]&&S[0].rec?' · allégée':'')+'</b></div>'+
    S.map(s=>'<div data-a="sess" data-v="'+s.k+'" style="cursor:pointer"><span>'+(P.done.includes(s.k)?'✅':s.k===(nx&&nx.i)?'▶️':s.date<today?'🟠':'⬜')+' '+esc(fmtD(s.date))+' · '+esc(sLab(s))+'</span><span>'+s.min+' min · '+['facile','normal','difficile'][s.lvl]+'</span></div>').join('')+'</div>'}
   o+='<button data-a="stop" style="width:100%">Arrêter ce plan</button>'}
  else if(COA.on)o+=coachBuildHTML();
@@ -6552,6 +6579,8 @@ function tplanRender(){const P=GS.tplan,el=$('tpb');let o='';
   else if(a==='coq')COA.mode=v;
   else if(a==='cocreate')coachCreate();
   else if(a==='coact'){const q=String(v).split(':');coachAct(q[0],+q[1]||0);if(q[0]==='estimate'||q[0]==='test')return}
+  else if(a==='cal')TPW.cal=!TPW.cal;
+  else if(a==='calk'){TPW.cx=TPW.cx===+v?null:+v}
   else if(a==='start'){tplanStart(+v);return}
   else if(a==='sess'){tplanSess(+v);return}
   else if(a==='est'){tplanEstimate(false);return}
