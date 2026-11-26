@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · ad';const ERRL=[];
+const VCT_VER='27/11/2026 · ae';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -6343,12 +6343,13 @@ const addD=(s,n)=>{const d=parseD(s);d.setDate(d.getDate()+n);return strD(d)},mo
 const fmtD=s=>parseD(s).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
 // plans commencés avec l'ancienne version : on complète
 function tplanFix(P){if(!P)return P;if(typeof P.start==='number')P.start=strD(mondayOf(new Date(P.start)));if(!P.W){const T=TPG.find(x=>x.id===P.id);P.W=T?T.w:8}
- if(!P.days)P.days=(TPDEF[P.S]||TPDEF[4]).slice();if(!P.mv)P.mv={};if(!P.res)P.res={};if(!P.est)P.est=[];if(P.tgt==null)P.tgt=0;if(!P.ftp0)P.ftp0=FTP;return P}
+ if(!P.days)P.days=(TPDEF[P.S]||TPDEF[4]).slice();if(!P.mv)P.mv={};if(!P.adj)P.adj={};if(!P.res)P.res={};if(!P.est)P.est=[];if(P.tgt==null)P.tgt=0;if(!P.ftp0)P.ftp0=FTP;return P}
 GS.tplan=tplanFix(GS.tplan);
 // liste de toutes les séances du plan, avec leur date (jour prévu, ou jour choisi si on l'a décalée)
 function tplanSessions(P){const T=TPG.find(x=>x.id===P.id);if(!T)return[];const out=[];
  for(let w=0;w<P.W;w++){const rec=w%4===3,L=T.wk(w,P.W).slice(0,P.S);L.forEach((s,j)=>{let[g,l,f,g2]=s;if(rec){l=0;f*=.85;if(j===0&&g!=='dukan')g='end'}
-   const min=clamp(Math.round(Math.max(P.M*(rec?.8:1),P.M*f)/5)*5,20,180),k=out.length,date=P.mv&&P.mv[k]?P.mv[k]:addD(P.start,7*w+(P.days[j]!=null?P.days[j]:j));
+   const k=out.length,ad=P.adj&&P.adj[k];if(ad){if(ad.g!=null)g=ad.g;if(ad.l!=null)l=ad.l}
+   const min=clamp(Math.round(Math.max(P.M*(rec?.8:1),P.M*f)*(ad&&ad.f?ad.f:1)/5)*5,20,180),date=P.mv&&P.mv[k]?P.mv[k]:addD(P.start,7*w+(P.days[j]!=null?P.days[j]:j));
    out.push({w,j,g,lvl:l,min,g2:g2||'',rec,date})})}return out}
 function tplanNext(){const P=GS.tplan;if(!P)return null;const L=tplanSessions(P);const i=L.findIndex((_,k)=>!P.done.includes(k));return i<0?null:Object.assign({i},L[i])}
 const gName=g=>{const o=GOALS.find(x=>x[0]===g);return o?o[2]:g};
@@ -6380,7 +6381,7 @@ function tplanEstimate(auto){const P=GS.tplan;if(!P)return;const R=P.done.map(k=
  show('📈 FTP estimée<br><b style="font:800 34px var(--num);color:var(--ac)">'+est+' W</b><br><small>FTP actuelle : '+base+' W ('+(est>=base?'+':'')+(est-base)+' W) · fiabilité '+conf+' · '+R.length+' séance'+(R.length>1?'s':'')+'<br>'+info.map(esc).join('<br>')+'<br>Estimation : à confirmer par un test FTP.</small>',
   [est!==base?['Appliquer '+est+' W',()=>{FTP=est;$('ftp').value=est;save();ftpLog(est,1);$('zn').innerHTML=zonesHTML();tplanRender()}]:['OK',()=>{}],['Garder '+base+' W',()=>{}]])}
 function tplanDone(i,pts){const P=GS.tplan;if(!P||P.done.includes(i))return;P.done.push(i);try{const st=tplanStats(pts);if(st)P.res[i]=st}catch(e){console.warn(e)}const L=tplanSessions(P);gsave();
- if(P.done.length>=L.length){reward('🏆','Plan « '+TPG.find(t=>t.id===P.id).n+' » terminé !',500);celebrate(true)}else reward('📅','Séance du plan validée ('+P.done.length+'/'+L.length+')',50);
+ if(P.done.length>=L.length){reward('🏆','Plan « '+TPG.find(t=>t.id===P.id).n+' » terminé !',500);celebrate(true)}else{reward('📅','Séance du plan validée ('+P.done.length+'/'+L.length+')',50);setTimeout(()=>{try{coachDebrief()}catch(e){}},2500)}
  if(P.done.length%4===0)setTimeout(()=>tplanEstimate(true),1500)}
 // ----- décaler les séances (à tout moment) -----
 function tplanMove(k,n){const P=GS.tplan,x=tplanSessions(P)[k];P.mv[k]=addD(x.date,n);gsave();tplanRender()}
@@ -6390,6 +6391,97 @@ function tplanSess(k){const P=GS.tplan,x=tplanSessions(P)[k],dn=P.done.includes(
  const tx='<b>Semaine '+(x.w+1)+' · '+esc(sLab(x))+'</b><br><small>'+esc(fmtD(x.date))+' · '+x.min+' min · '+['facile','normal','difficile'][x.lvl]+(dn?' · ✅ faite'+(r?'<br>Puissance moy. '+r.ap+' W'+(r.hr?' · FC moy. '+r.hr+' bpm':'')+(r.ef?' · '+r.ef.toFixed(2).replace('.',',')+' W/bpm':''):''):(x.date<today?' · en retard':''))+'</small>',B=[];
  if(!dn)B.push(['▶ Lancer maintenant',()=>tplanStart(k)],['📆 Demain (+1 jour)',()=>tplanMove(k,1)],['📆 Hier (−1 jour)',()=>tplanMove(k,-1)],['📅 Choisir une date…',()=>tplanPick(k)],['⏩ Décaler aussi les suivantes (+1 jour)',()=>tplanShiftAll(k,1)]);
  B.push(['Fermer',()=>{}]);mod(tx,B)}
+// ====================== coach intégré (27 nov. 2026, demande de Cyril : gratuit, sans Internet, sans IA en ligne) ======================
+// Un coach « à règles » : il lit ton historique (forme CTL / fatigue ATL / équilibre TSB, séances par semaine, FTP et son âge, meilleure puissance sur 20 min)
+// pour (1) proposer un plan sur mesure, modulable (objectif, séances par semaine, durée, prudence), (2) ajuster le plan en cours (retard, fatigue, forme), (3) conseiller sur la FTP.
+// ⚠ Seuils = ORDRES DE GRANDEUR [CHOIX], à ajuster : TSB < −25 très fatigué, > +15 très frais ; hausse de forme > 7 points par semaine = trop rapide ; retard > 3 jours.
+const COA={on:0,id:'ftp',S:0,M:60,mode:'normal',W:0};
+const COMODE={prudent:['Prudent',3],normal:['Équilibré',5],ambitieux:['Ambitieux',8]};
+const COWHY={end:'Endurance : la base aérobie. Tu dois pouvoir parler, c\'est elle qui permet d\'encaisser le reste.',tempo:'Tempo : rythme soutenu mais contrôlé, pour tenir longtemps à bonne allure.',
+ ss:'Sweet spot : longs blocs un peu sous la FTP. Gros effet sur la FTP pour une fatigue raisonnable.',seuil:'Seuil : tu apprends à tenir ta FTP, c\'est le travail qui la fait monter le plus directement.',
+ vo2:'VO2max : efforts de 2 à 5 min bien au-dessus de la FTP pour relever ton plafond. Dur : garde des jours faciles autour.',ana:'30/30 : efforts courts très intenses pour la puissance et la récupération entre les efforts.',
+ spr:'Sprints : explosivité. Peu de volume, qualité maximale, repose-toi bien entre les efforts.',force:'Force : basse cadence, comme dans un col. Renforce sans trop de fatigue cardio.',velo:'Vélocité : haute cadence, pour un coup de pédale souple et économe.',
+ pyr:'Pyramide : paliers qui montent puis redescendent, bon travail de transition.',recup:'Récupération : très facile, elle te fait progresser en te laissant absorber la charge.',dukan:'Brûle-graisses : longue zone 2, adaptée à ton régime.'};
+function coachData(){const ser=fitnessSeries(120),n=ser.length,last=ser[n-1]||{ctl:0,atl:0,tsb:0},w1=ser[Math.max(0,n-8)]||last,now=Date.now(),H=GS.hist.filter(h=>h.el>=900),
+  tss=h=>h.tss!=null?h.tss:Math.round(h.el/3600*Math.pow((h.ap||0)/FTP,2)*100),i7=H.filter(h=>now-h.t<=7*864e5),i14=H.filter(h=>now-h.t>7*864e5&&now-h.t<=14*864e5),i28=H.filter(h=>now-h.t<=28*864e5),
+  kg=Math.max(40,+$('kg').value||75),f=GS.ftp||[],lf=f.length?f[f.length-1]:null,sum=(a,g)=>a.reduce((x,h)=>x+g(h),0);
+ return{ctl:last.ctl,atl:last.atl,tsb:last.tsb,ramp:last.ctl-w1.ctl,n7:i7.length,n14:i14.length,n28:i28.length,perWk:i28.length/4,h7:sum(i7,h=>h.el)/3600,h14:sum(i14,h=>h.el)/3600,h28:sum(i28,h=>h.el)/14400,tss7:sum(i7,tss),tss14:sum(i14,tss),
+  kg,wkg:FTP/kg,ftpDays:lf?Math.round((now-lf.t)/864e5):null,b20:GS.pc&&GS.pc[1200]?GS.pc[1200].w:0,lvl:last.ctl<25?0:last.ctl<50?1:2}}
+const coachTsb=t=>t<-25?'très fatigué':t<-10?'fatigué (normal en période de charge)':t<5?'équilibré':t<15?'frais':'très frais (si ça dure, tu perds de la forme)';
+const coachH=h=>h<1?Math.round(h*60)+' min':nf(h,1)+' h';
+// paramètres proposés pour un nouveau plan, d'après ton historique et tes choix
+function coachPlanParams(){const D=coachData(),T=TPG.find(x=>x.id===COA.id)||TPG[0],N=[];let S=COA.S;
+ const rec=D.n28===0?3:clamp(Math.round(D.perWk+1),2,5);if(!S)S=rec;let firstEasy=false,when=0;{const m0=mondayOf(new Date()),d0=addD(strD(m0),TPDEF[S][0]);if(d0<strD(new Date()))when=1}
+ N.push(D.n28===0?'Pas encore d\'historique : je pars sur '+S+' séances par semaine.':'Ces 4 dernières semaines : '+nf(D.perWk,1)+' séance'+(D.perWk>=1.5?'s':'')+' par semaine, '+coachH(D.h28)+' par semaine. Conseil : '+rec+' séances.');
+ if(D.n28>0&&S>D.perWk+2){firstEasy=true;N.push('⚠️ '+S+' séances, c\'est nettement plus que ton rythme actuel : la 1re semaine sera allégée pour t\'habituer.')}
+ if(D.tsb<-20){firstEasy=true;when=1;N.push('⚠️ Tu es fatigué en ce moment (équilibre '+Math.round(D.tsb)+') : je démarre la semaine prochaine, avec une 1re semaine allégée.')}
+ const hrs=S*COA.M*1.1/60;if(D.h28>0&&hrs>D.h28*1.6)N.push('⚠️ Environ '+coachH(hrs)+' par semaine, contre '+coachH(D.h28)+' aujourd\'hui : monte en charge progressivement ou réduis la durée.');
+ if(D.ftpDays!=null&&D.ftpDays>60)N.push('Ta FTP date de '+D.ftpDays+' jours : un test FTP (rampe) avant de commencer cale mieux les séances.');
+ if(D.ftpDays==null)N.push('Ta FTP n\'a jamais été testée dans l\'appli : fais un test FTP (rampe) pour partir sur des bases justes.');
+ const W=COA.W||T.w,pct=+(COMODE[COA.mode][1]*clamp(W/8,.6,1.5)*[1.3,1,.7][D.lvl]).toFixed(1),tgt=Math.round(FTP*(1+pct/100));
+ if(T.tgt)N.push('Cible FTP : '+tgt+' W (+'+pct.toString().replace('.',',')+' %) en '+W+' semaines. Ordre de grandeur : plus on est entraîné, plus le gain est lent.');
+ return{S,M:COA.M,W,tgt,pct,firstEasy,when,notes:N,T,D}}
+function coachCreate(){const p=coachPlanParams(),m=mondayOf(new Date());if(p.when)m.setDate(m.getDate()+7);
+ GS.tplan=tplanFix({id:COA.id,W:p.W,S:p.S,M:p.M,days:TPDEF[p.S].slice(),start:strD(m),tgt:p.T.tgt?p.tgt:0,ftp0:FTP,done:[],res:{},mv:{},est:[],adj:{},coach:1});
+ if(p.firstEasy){const L=tplanSessions(GS.tplan);L.filter(x=>x.w===0).forEach((x,j)=>{GS.tplan.adj[j]={l:Math.max(0,x.lvl-1),why:'reprise progressive'}})}
+ COA.on=0;gsave();say('Plan créé par le coach : bonne route !')}
+function coachBuildHTML(){const p=coachPlanParams(),ch=(a,L,sel)=>tpChips(a,L,sel);
+ return '<div class="hw" style="display:block"><b>🧠 Coach : ton plan sur mesure</b><small>Gratuit, hors ligne. Je lis ton historique et je te propose un plan que tu peux régler.</small>'+
+  '<div class="gq">Objectif</div>'+ch('coid',TPG.map(t=>[t.id,t.ic+' '+t.n.replace(/ \(.*\)/,'')]),v=>v===COA.id)+
+  '<div class="gq">Séances par semaine</div>'+ch('coS',[[0,'Conseillé ('+p.S+')'],...[2,3,4,5,6].map(n=>[n,n])],v=>+v===COA.S)+
+  '<div class="gq">Durée minimale d\'une séance</div>'+ch('coM',[30,45,60,75,90].map(n=>[n,n+' min']),v=>+v===COA.M)+
+  '<div class="gq">Durée du plan</div>'+ch('coW',[[0,'Conseillée ('+p.T.w+' sem.)'],...[4,6,8,10,12].map(n=>[n,n+' sem.'])],v=>+v===COA.W)+
+  '<div class="gq">Niveau d\'ambition</div>'+ch('coq',Object.entries(COMODE).map(([k,x])=>[k,x[0]]),v=>v===COA.mode)+
+  '<div style="margin:10px 0;line-height:1.5">'+p.notes.map(x=>'<div>• '+esc(x)+'</div>').join('')+'</div>'+
+  '<button data-a="cocreate" class="on" style="width:100%">✅ Créer ce plan ('+p.S+' séances par semaine, '+p.W+' semaines)</button><button data-a="cooff" style="width:100%;margin-top:6px">Fermer</button></div>'}
+// conseils sur le plan en cours
+function coachAdvice(P){const D=coachData(),A=[],L=tplanSessions(P),today=strD(new Date()),todo=L.map((s,k)=>Object.assign({k},s)).filter(s=>!P.done.includes(s.k)),late=todo.filter(s=>s.date<today),
+  due=L.filter(s=>s.date<=today).length,dn=P.done.length,nx=todo[0],lastE=P.est.length?P.est[P.est.length-1]:null;
+ if(late.length&&today>addD(late[0].date,3))A.push({id:'resched',sev:1,t:late.length+' séance'+(late.length>1?'s':'')+' en retard (la plus ancienne : '+esc(fmtD(late[0].date))+'). Je peux décaler la suite du plan pour repartir d\'aujourd\'hui sans rien perdre.',b:'📆 Repartir d\'aujourd\'hui'});
+ const adj=nx&&P.adj[nx.k];
+ if(nx&&!adj&&(D.tsb<-25||(D.ramp>7&&D.tsb<-12)))A.push({id:'lighten',sev:2,t:'Ta fatigue est élevée (équilibre '+Math.round(D.tsb)+(D.ramp>7?', forme en hausse de '+nf(D.ramp,0)+' points en une semaine : trop vite':'')+'). Mieux vaut alléger les prochaines séances pour ne pas t\'épuiser.',b:'🛋️ Alléger les prochaines séances'});
+ else if(nx&&!adj&&nx.lvl<2&&D.tsb>12&&late.length===0&&dn>=3)A.push({id:'harder',sev:0,t:'Tu es frais (équilibre +'+Math.round(D.tsb)+') et régulier : tu peux monter d\'un cran les 2 prochaines séances.',b:'💪 Monter d\'un cran'});
+ if(due>=3&&dn/due<.6)A.push({id:'lessmin',sev:1,t:'Tu as fait '+dn+' séance'+(dn>1?'s':'')+' sur '+due+' prévues. Un plan tenu vaut mieux qu\'un plan parfait : je peux raccourcir les séances de 15 min (ou retire un jour avec ⚙️).',b:'⏱️ Raccourcir de 15 min'});
+ if(dn>=2&&(!lastE||dn-lastE.k>=4))A.push({id:'estimate',sev:0,t:'Assez de séances pour estimer ta FTP avec tes données (puissance et fréquence cardiaque).',b:'🔎 Estimer ma FTP'});
+ if(D.b20&&Math.round(D.b20*.95)>FTP+3)A.push({id:'setftp',v:Math.round(D.b20*.95),sev:1,t:'Ta meilleure puissance sur 20 min ('+D.b20+' W) donne une FTP d\'environ '+Math.round(D.b20*.95)+' W, au-dessus de la tienne ('+FTP+' W). Tes séances sont peut-être trop faciles.',b:'Régler la FTP à '+Math.round(D.b20*.95)+' W'});
+ if((P.id==='ftp'||P.id==='vo2')&&(D.ftpDays==null||D.ftpDays>42)&&dn>=3)A.push({id:'test',sev:D.tsb>-10?1:0,t:'Ta FTP n\'a pas bougé depuis '+(D.ftpDays==null?'toujours':D.ftpDays+' jours')+'. Un test en rampe te dira si le plan marche. '+(D.tsb>-10?'Tu es assez reposé pour le faire.':'Attends d\'être reposé : fais-le après un jour de repos ou une séance facile.'),b:'📈 Faire le test FTP'});
+ if(P.tgt&&dn>=L.length/2){const att=(FTP-P.ftp0)/Math.max(1,P.tgt-P.ftp0);if(att>=1)A.push({id:'none',sev:0,t:'🎯 Cible de FTP atteinte ('+FTP+' W) ! Refais un test pour confirmer, puis fixe-toi une nouvelle cible.'});
+  else if(att<.2)A.push({id:'test',sev:0,t:'À mi-plan, ta FTP a peu bougé ('+P.ftp0+' → '+FTP+' W). Elle n\'est mise à jour que par un test ou une estimation : fais-en un avant de conclure.',b:'📈 Faire le test FTP'})}
+ return A.sort((a,b)=>b.sev-a.sev)}
+function coachAct(id,v){const P=GS.tplan;if(!P)return;const L=tplanSessions(P),today=strD(new Date()),todo=L.map((s,k)=>Object.assign({k},s)).filter(s=>!P.done.includes(s.k));
+ if(id==='resched'&&todo.length){const f=todo[0],off=Math.round((parseD(today)-parseD(f.date))/864e5);if(off>0){for(const s of todo)P.mv[s.k]=addD(s.date,off);say('Plan décalé de '+off+' jour'+(off>1?'s':''))}}
+ else if(id==='lighten'){todo.slice(0,3).forEach((s,j)=>{P.adj[s.k]=j===0&&coachData().tsb<-30?{g:'recup',l:0,f:.7,why:'fatigue'}:{l:Math.max(0,s.lvl-1),f:.85,why:'fatigue'}});say('Prochaines séances allégées')}
+ else if(id==='harder'){todo.slice(0,2).forEach(s=>{if(s.lvl<2)P.adj[s.k]={l:s.lvl+1,why:'en forme'}});say('Prochaines séances renforcées')}
+ else if(id==='lessmin'){P.M=Math.max(30,P.M-15);say('Séances raccourcies : '+P.M+' min minimum')}
+ else if(id==='estimate'){tplanEstimate(false);return}
+ else if(id==='test'){try{startW(WKALL().find(w=>w.ramp))}catch(e){say('Test indisponible')}return}
+ else if(id==='setftp'&&v>0){FTP=v;$('ftp').value=v;save();ftpLog(v,1);try{$('zn').innerHTML=zonesHTML()}catch(e){}say('FTP réglée à '+v+' W')}
+ else if(id==='clear'){P.adj={};say('Ajustements du coach retirés')}
+ gsave()}
+// bilan de la semaine
+function coachWeek(){const D=coachData(),B=[];if(D.n7+D.n14===0)return['Pas encore de sortie sur les 2 dernières semaines : le plus dur, c\'est de démarrer. Une séance facile de 45 min suffit.'];
+ B.push(D.n7+' séance'+(D.n7>1?'s':'')+' ces 7 derniers jours ('+coachH(D.h7)+'), contre '+D.n14+' la semaine d\'avant ('+coachH(D.h14)+').');
+ if(D.tss14>0){const r=D.tss7/D.tss14-1;B.push('Charge : '+Math.round(D.tss7)+' TSS ('+(r>=0?'+':'')+Math.round(r*100)+' % par rapport à la semaine précédente).'+(r>.3?' Hausse forte : garde une semaine plus calme ensuite.':''))}
+ B.push('Forme '+Math.round(D.ctl)+' · fatigue '+Math.round(D.atl)+' · équilibre '+(D.tsb>=0?'+':'')+Math.round(D.tsb)+' : '+coachTsb(D.tsb)+'.');
+ if(D.ramp>7)B.push('La forme monte de '+nf(D.ramp,0)+' points en une semaine : au-delà de ~7 le risque de fatigue augmente.');
+ return B}
+// conseils FTP
+function coachFtp(){const D=coachData(),B=[],f=GS.ftp||[];B.push('FTP : '+FTP+' W, soit '+nf(D.wkg,2)+' W/kg ('+nf(D.kg,0)+' kg).');
+ if(f.length>=2){const a=f[0],b=f[f.length-1],d=Math.round((b.t-a.t)/864e5);if(d>=14)B.push('Évolution : '+a.w+' → '+b.w+' W en '+d+' jours ('+(b.w>=a.w?'+':'')+(b.w-a.w)+' W).')}
+ B.push(D.ftpDays==null?'Aucun test enregistré : fais un test FTP en rampe (Entraînement → Test FTP).':D.ftpDays>42?'Dernier changement il y a '+D.ftpDays+' jours : refais un test pour que tes zones restent justes.':'Dernier changement il y a '+D.ftpDays+' jours : tes zones sont à jour.');
+ if(D.b20)B.push('Meilleure puissance sur 20 min : '+D.b20+' W (FTP estimée : '+Math.round(D.b20*.95)+' W).');
+ B.push('Pour la faire monter : 1 ou 2 séances de qualité par semaine (sweet spot, seuil), le reste facile ; jamais deux séances dures de suite ; une semaine allégée toutes les 3 à 4 semaines.');
+ B.push('Fais le test reposé (après un jour facile) et à heure et conditions comparables, pour que les résultats se comparent.');
+ return B}
+function coachCardHTML(P){const D=coachData(),A=coachAdvice(P),L=tplanSessions(P),nx=tplanNext(),ad=Object.keys(P.adj||{}).filter(k=>!P.done.includes(+k)).length,li=a=>a.map(x=>'<div>• '+esc(x)+'</div>').join('');
+ return '<div class="hw" style="display:block;border-color:var(--ac)"><b>🧠 Coach</b><small style="display:block;line-height:1.5">Forme '+Math.round(D.ctl)+' · fatigue '+Math.round(D.atl)+' · équilibre '+(D.tsb>=0?'+':'')+Math.round(D.tsb)+' : <b>'+coachTsb(D.tsb)+'</b></small>'+
+  (nx?'<div style="margin-top:8px;line-height:1.5"><b>Prochaine séance : '+esc(sLab(nx))+'</b><br><small>'+esc(COWHY[nx.g]||'')+(nx.g2?' '+esc(COWHY[nx.g2]||''):'')+(P.adj[nx.i]?'<br>🧠 Ajustée par le coach ('+esc(P.adj[nx.i].why||'')+').':'')+'</small></div>':'')+
+  (A.length?'<div style="margin-top:10px"><b>Conseils du moment</b>'+A.map(a=>'<div style="margin-top:6px;line-height:1.45;font-size:13.5px">'+(a.sev>=2?'🔴 ':a.sev===1?'🟠 ':'🟢 ')+a.t+(a.b?'<br><button data-a="coact" data-v="'+a.id+(a.v?':'+a.v:'')+'" style="margin-top:4px">'+a.b+'</button>':'')+'</div>').join('')+'</div>':'<div style="margin-top:10px;font-size:13.5px">🟢 Rien à corriger : continue comme ça.</div>')+
+  '<details style="margin-top:10px"><summary><b>📈 Conseils FTP</b></summary><small style="display:block;line-height:1.5;margin-top:4px">'+li(coachFtp())+'</small></details>'+
+  '<details style="margin-top:6px"><summary><b>🗓️ Bilan de la semaine</b></summary><small style="display:block;line-height:1.5;margin-top:4px">'+li(coachWeek())+'</small></details>'+
+  (ad?'<button data-a="coact" data-v="clear" style="margin-top:8px">↩️ Annuler les ajustements du coach ('+ad+')</button>':'')+'</div>'}
+// après une séance du plan : un mot du coach seulement s'il y a quelque chose d'important
+function coachDebrief(){const P=GS.tplan;if(!P)return;const a=coachAdvice(P).find(x=>x.sev>=2||x.id==='setftp');if(a)modQ('🧠 Coach<br><small style="line-height:1.5">'+a.t+'</small>',[['Voir mon plan',()=>{tplanRender();showScr('s-tpl')}],['Plus tard',()=>{}]])}
 // ----- écran -----
 const TPW={id:'ftp',W:8,S:3,days:null,M:60,tgt:0,when:0,edit:0};
 const tpChips=(a,L,sel)=>'<div class="chips">'+L.map(([v,t])=>'<button data-a="'+a+'" data-v="'+v+'"'+(sel(v)?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
@@ -6400,11 +6492,13 @@ function tplanRender(){const P=GS.tplan,el=$('tpb');let o='';
    (P.est.length?'<small style="display:block;margin-top:6px">Dernière estimation de la FTP : '+P.est[P.est.length-1].est+' W ('+new Date(P.est[P.est.length-1].t).toLocaleDateString('fr-FR')+', fiabilité '+P.est[P.est.length-1].conf+')</small>':'')+
    (nx?'<button data-a="start" data-v="'+nx.i+'" class="on" style="width:100%;margin-top:8px">▶ Séance suivante · '+esc(fmtD(nx.date))+(nx.date<today?' (en retard)':nx.date===today?' (aujourd\'hui)':'')+' · '+esc(sLab(nx))+' · '+nx.min+' min</button><button data-a="sess" data-v="'+nx.i+'" style="width:100%;margin-top:6px">📆 Décaler cette séance</button>':'')+
    '<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px"><button data-a="est">🔎 Estimer ma FTP</button><button data-a="edit">⚙️ Jours et durée</button></div></div>';
+  o+=coachCardHTML(P);
   if(TPW.edit)o+='<div class="hw" style="display:block"><b>⚙️ Modifier le plan</b><div class="gq">Durée minimale d\'une séance</div>'+tpChips('edM',[30,45,60,75,90].map(n=>[n,n+' min']),v=>+v===TPW.M)+'<div class="gq">Jours d\'entraînement (garde '+P.S+' jour'+(P.S>1?'s':'')+')</div>'+tpChips('edD',TPD.map((d,i)=>[i,d]),v=>TPW.days.includes(+v))+'<button data-a="edsave" class="on" style="width:100%;margin-top:8px">Enregistrer</button><small>Les séances déjà décalées à la main gardent leur date. Les séances à venir tiennent compte de la nouvelle durée.</small></div>';
   for(let w=0;w<P.W;w++){const S=L.map((s,k)=>Object.assign({k},s)).filter(s=>s.w===w);o+='<div class="hist" style="margin-bottom:6px"><div><b>Semaine '+(w+1)+(S[0]&&S[0].rec?' · allégée':'')+'</b></div>'+
    S.map(s=>'<div data-a="sess" data-v="'+s.k+'" style="cursor:pointer"><span>'+(P.done.includes(s.k)?'✅':s.k===(nx&&nx.i)?'▶️':s.date<today?'🟠':'⬜')+' '+esc(fmtD(s.date))+' · '+esc(sLab(s))+'</span><span>'+s.min+' min · '+['facile','normal','difficile'][s.lvl]+'</span></div>').join('')+'</div>'}
   o+='<button data-a="stop" style="width:100%">Arrêter ce plan</button>'}
- else{const T=TPG.find(x=>x.id===TPW.id)||TPG[0];if(!TPW.days)TPW.days=(TPDEF[TPW.S]||TPDEF[3]).slice();if(!TPW.tgt)TPW.tgt=Math.round(FTP*1.06);
+ else if(COA.on)o+=coachBuildHTML();
+ else{const T=TPG.find(x=>x.id===TPW.id)||TPG[0];o+='<button data-a="coon" class="on" style="width:100%;margin-bottom:10px">🧠 Créer mon plan avec le coach (conseillé)</button>';if(!TPW.days)TPW.days=(TPDEF[TPW.S]||TPDEF[3]).slice();if(!TPW.tgt)TPW.tgt=Math.round(FTP*1.06);
   o+='<div class="gq">Objectif</div>'+TPG.map(t=>'<button class="card tpc'+(t.id===TPW.id?' on':'')+'" data-a="goal" data-v="'+t.id+'" style="width:100%;margin-bottom:8px;'+(t.id===TPW.id?'border-color:var(--ac)':'')+'"><b>'+t.ic+' '+t.n+(t.id===TPW.id?' ✓':'')+'</b><span>'+t.d+'</span></button>').join('');
   if(T.tgt)o+='<div class="gq">FTP à atteindre (actuelle : '+FTP+' W)</div>'+tpChips('tgtp',[3,5,8,10].map(p=>[p,'+'+p+' % → '+Math.round(FTP*(1+p/100))+' W']),v=>Math.round(FTP*(1+v/100))===TPW.tgt)+'<label style="margin-top:6px">Cible <input id="tpt" type="number" min="'+(FTP+1)+'" max="500" value="'+TPW.tgt+'" style="width:90px"> W</label>';
   o+='<div class="gq">Durée du plan</div>'+tpChips('W',[4,6,8,10,12].map(n=>[n,n+' sem.']),v=>+v===TPW.W)+
@@ -6425,6 +6519,15 @@ function tplanRender(){const P=GS.tplan,el=$('tpb');let o='';
   else if(a==='when')TPW.when=+v;
   else if(a==='create'){const T=TPG.find(x=>x.id===TPW.id),m=mondayOf(new Date());if(TPW.when)m.setDate(m.getDate()+7);
    GS.tplan=tplanFix({id:TPW.id,W:TPW.W,S:TPW.days.length,M:TPW.M,days:TPW.days.slice(),start:strD(m),tgt:T.tgt?TPW.tgt:0,ftp0:FTP,done:[],res:{},mv:{},est:[]});gsave();say('Plan créé : bonne route !')}
+  else if(a==='coon')COA.on=1;
+  else if(a==='cooff')COA.on=0;
+  else if(a==='coid')COA.id=v;
+  else if(a==='coS')COA.S=+v;
+  else if(a==='coM')COA.M=+v;
+  else if(a==='coW')COA.W=+v;
+  else if(a==='coq')COA.mode=v;
+  else if(a==='cocreate')coachCreate();
+  else if(a==='coact'){const q=String(v).split(':');coachAct(q[0],+q[1]||0);if(q[0]==='estimate'||q[0]==='test')return}
   else if(a==='start'){tplanStart(+v);return}
   else if(a==='sess'){tplanSess(+v);return}
   else if(a==='est'){tplanEstimate(false);return}
