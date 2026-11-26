@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · ae';const ERRL=[];
+const VCT_VER='27/11/2026 · af';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -6343,20 +6343,42 @@ const addD=(s,n)=>{const d=parseD(s);d.setDate(d.getDate()+n);return strD(d)},mo
 const fmtD=s=>parseD(s).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
 // plans commencés avec l'ancienne version : on complète
 function tplanFix(P){if(!P)return P;if(typeof P.start==='number')P.start=strD(mondayOf(new Date(P.start)));if(!P.W){const T=TPG.find(x=>x.id===P.id);P.W=T?T.w:8}
- if(!P.days)P.days=(TPDEF[P.S]||TPDEF[4]).slice();if(!P.mv)P.mv={};if(!P.adj)P.adj={};if(!P.res)P.res={};if(!P.est)P.est=[];if(P.tgt==null)P.tgt=0;if(!P.ftp0)P.ftp0=FTP;return P}
-GS.tplan=tplanFix(GS.tplan);
+ if(!P.days)P.days=(TPDEF[P.S]||TPDEF[4]).slice();if(!P.mv)P.mv={};if(!P.adj)P.adj={};if(!P.dur)P.dur={};if(!P.cmp)P.cmp={};if(!P.dd)P.dd={};if(!P.res)P.res={};if(!P.est)P.est=[];if(P.tgt==null)P.tgt=0;if(!P.ftp0)P.ftp0=FTP;return P}
+GS.tplan=tplanFix(GS.tplan);setTimeout(()=>{try{tplanAuto()}catch(e){}},4000);
 // liste de toutes les séances du plan, avec leur date (jour prévu, ou jour choisi si on l'a décalée)
 function tplanSessions(P){const T=TPG.find(x=>x.id===P.id);if(!T)return[];const out=[];
  for(let w=0;w<P.W;w++){const rec=w%4===3,L=T.wk(w,P.W).slice(0,P.S);L.forEach((s,j)=>{let[g,l,f,g2]=s;if(rec){l=0;f*=.85;if(j===0&&g!=='dukan')g='end'}
    const k=out.length,ad=P.adj&&P.adj[k];if(ad){if(ad.g!=null)g=ad.g;if(ad.l!=null)l=ad.l}
-   const min=clamp(Math.round(Math.max(P.M*(rec?.8:1),P.M*f)*(ad&&ad.f?ad.f:1)/5)*5,20,180),date=P.mv&&P.mv[k]?P.mv[k]:addD(P.start,7*w+(P.days[j]!=null?P.days[j]:j));
+   let min=clamp(Math.round(Math.max(P.M*(rec?.8:1),P.M*f)*(ad&&ad.f?ad.f:1)/5)*5,20,180);const cm=P.cmp&&P.cmp[k];if(cm)min=clamp(Math.round(clamp(min+cm,min*.75,min*1.25)/5)*5,20,180);if(P.dur&&P.dur[k])min=P.dur[k];const date=P.mv&&P.mv[k]?P.mv[k]:addD(P.start,7*w+(P.days[j]!=null?P.days[j]:j));
    out.push({w,j,g,lvl:l,min,g2:g2||'',rec,date})})}return out}
 function tplanNext(){const P=GS.tplan;if(!P)return null;const L=tplanSessions(P);const i=L.findIndex((_,k)=>!P.done.includes(k));return i<0?null:Object.assign({i},L[i])}
 const gName=g=>{const o=GOALS.find(x=>x[0]===g);return o?o[2]:g};
 const sLab=s=>gName(s.g)+(s.g2?' + '+gName(s.g2):'');
 // lancer une séance du plan : on peut ajouter du temps le jour même
-function tplanStart(k){const P=GS.tplan;if(!P)return;const L=tplanSessions(P),i=k==null?(tplanNext()||{}).i:k;if(i==null||!L[i])return;const x=L[i];
- mod('Séance du plan · '+esc(sLab(x))+'<br><small>'+x.min+' min prévues. Tu as plus de temps aujourd\'hui ?</small>',[[x.min+' min (prévu)',()=>tplanGo(i,0)],['+10 min',()=>tplanGo(i,10)],['+20 min',()=>tplanGo(i,20)],['+30 min',()=>tplanGo(i,30)],['+45 min',()=>tplanGo(i,45)],['Annuler',()=>{}]])}
+function tplanStart(k){const P=GS.tplan;if(!P)return;const L=tplanSessions(P),i=k==null?(tplanNext()||{}).i:k;if(i==null||!L[i])return;tplanDurMenu(i,true)}
+// durée d'une séance, le jour même : chaque changement réorganise tout le reste du plan (27 nov. 2026, demande de Cyril)
+function tplanDurMenu(i,launch){const P=GS.tplan,x=tplanSessions(P)[i];const B=[];
+ B.push([x.min+' min (prévu)',()=>{if(launch)tplanGo(i,0)}]);
+ [-30,-20,-10,10,20,30,45].forEach(d=>{const m=x.min+d;if(m<20||m>180)return;B.push([(d>0?'+':'−')+Math.abs(d)+' min → '+m+' min',()=>{tplanSetDur(i,m);if(launch)tplanGo(i,0);else tplanRender()}])});
+ B.push(['Annuler',()=>{}]);
+ mod('Séance du plan · '+esc(sLab(x))+'<br><small>'+x.min+' min prévues. Combien de temps as-tu aujourd\'hui ?<br>Le reste du plan sera réorganisé en conséquence.</small>',B)}
+function tplanSetDur(i,m){const P=GS.tplan,L=tplanSessions(P),x=L[i];m=clamp(Math.round(m/5)*5,20,180);const d=x.min-m;if(d===0)return;P.dur[i]=m;
+ const nx=L.map((_,k)=>k).filter(k=>k>i&&!P.done.includes(k)&&!L[k].rec).slice(0,3);
+ if(nx.length){let u=Math.round(Math.abs(d)/5);for(let n=0;u>0;n++,u--){const k=nx[n%nx.length];P.cmp[k]=(P.cmp[k]||0)+(d>0?5:-5)}}
+ P.mv[i]=strD(new Date());tplanReplan('durée de la séance changée ('+x.min+' → '+m+' min'+(nx.length?', '+(d>0?'je rajoute':'j\'enlève')+' ≈ '+Math.abs(d)+' min sur les '+nx.length+' séances suivantes':'')+')',i)}
+// réorganisation totale : les séances restantes (dans l'ordre, donc la même progression) sont replacées sur tes jours de la semaine choisis, à partir d'aujourd'hui
+function tplanSlots(P,from,n){const out=[];let d=from;for(let g=0;g<900&&out.length<n;g++,d=addD(d,1)){const wd=(parseD(d).getDay()+6)%7;if(P.days.includes(wd))out.push(d)}return out}
+function tplanReplan(why,keep){const P=GS.tplan;if(!P)return 0;const L=tplanSessions(P),today=strD(new Date());
+ const todo=L.map((_,k)=>k).filter(k=>!P.done.includes(k)&&k!==keep);if(!todo.length)return 0;
+ const doneToday=Object.values(P.dd||{}).includes(today)||keep!=null||new Date().getHours()>=21;
+ const sl=tplanSlots(P,doneToday?addD(today,1):today,todo.length);let moved=0;
+ todo.forEach((k,n)=>{if(L[k].date!==sl[n])moved++;P.mv[k]=sl[n]});
+ // reprise en douceur après plus d'une semaine sans séance
+ const lastD=Object.values(P.dd||{}).sort().pop();if(why.indexOf('retard')===0&&lastD&&Math.round((parseD(today)-parseD(lastD))/864e5)>7&&!P.adj[todo[0]])P.adj[todo[0]]={f:.85,why:'reprise'};
+ const end=fmtD(sl[sl.length-1]);P.note={t:today,txt:'🔄 Plan réorganisé : '+why+'. '+todo.length+' séance'+(todo.length>1?'s':'')+' restante'+(todo.length>1?'s':'')+' replacée'+(todo.length>1?'s':'')+' sur tes jours habituels, même progression ; dernière séance le '+end};
+ gsave();try{say('Plan réorganisé · fin le '+end)}catch(e){}return moved}
+function tplanAuto(){const P=GS.tplan;if(!P)return;const L=tplanSessions(P),today=strD(new Date());const late=L.filter((s,k)=>!P.done.includes(k)&&s.date<today);
+ if(late.length)tplanReplan('séance'+(late.length>1?'s':'')+' manquée'+(late.length>1?'s':'')+' ('+late.length+')')}
 function tplanGo(i,ex){const P=GS.tplan,x=tplanSessions(P)[i],T=TPG.find(t=>t.id===P.id),m=Math.min(180,x.min+ex),W=genWorkout(x.g,m,x.lvl,i+1,'cro',x.g2);
  startW({n:'Plan '+T.n+' · S'+(x.w+1)+' · '+W.n,d:W.d,b:()=>W.bl,plan:i})}
 // ----- résultats d'une séance et estimation de la FTP -----
@@ -6380,7 +6402,7 @@ function tplanEstimate(auto){const P=GS.tplan;if(!P)return;const R=P.done.map(k=
  P.est.push({t:Date.now(),k:P.done.length,est,base,conf});gsave();
  show('📈 FTP estimée<br><b style="font:800 34px var(--num);color:var(--ac)">'+est+' W</b><br><small>FTP actuelle : '+base+' W ('+(est>=base?'+':'')+(est-base)+' W) · fiabilité '+conf+' · '+R.length+' séance'+(R.length>1?'s':'')+'<br>'+info.map(esc).join('<br>')+'<br>Estimation : à confirmer par un test FTP.</small>',
   [est!==base?['Appliquer '+est+' W',()=>{FTP=est;$('ftp').value=est;save();ftpLog(est,1);$('zn').innerHTML=zonesHTML();tplanRender()}]:['OK',()=>{}],['Garder '+base+' W',()=>{}]])}
-function tplanDone(i,pts){const P=GS.tplan;if(!P||P.done.includes(i))return;P.done.push(i);try{const st=tplanStats(pts);if(st)P.res[i]=st}catch(e){console.warn(e)}const L=tplanSessions(P);gsave();
+function tplanDone(i,pts){const P=GS.tplan;if(!P||P.done.includes(i))return;P.done.push(i);P.dd[i]=strD(new Date());try{const st=tplanStats(pts);if(st)P.res[i]=st}catch(e){console.warn(e)}const L=tplanSessions(P);gsave();
  if(P.done.length>=L.length){reward('🏆','Plan « '+TPG.find(t=>t.id===P.id).n+' » terminé !',500);celebrate(true)}else{reward('📅','Séance du plan validée ('+P.done.length+'/'+L.length+')',50);setTimeout(()=>{try{coachDebrief()}catch(e){}},2500)}
  if(P.done.length%4===0)setTimeout(()=>tplanEstimate(true),1500)}
 // ----- décaler les séances (à tout moment) -----
@@ -6389,7 +6411,7 @@ function tplanShiftAll(k,n){const P=GS.tplan,L=tplanSessions(P);for(let i=k;i<L.
 function tplanPick(k){const P=GS.tplan,x=tplanSessions(P)[k];mod('Nouvelle date<br><small>'+esc(sLab(x))+'</small><br><input id="tpd" type="date" value="'+x.date+'" style="margin-top:8px">',[['Valider',()=>{const v=$('tpd').value;if(/^\d{4}-\d\d-\d\d$/.test(v)){P.mv[k]=v;gsave();tplanRender()}}],['Annuler',()=>{}]])}
 function tplanSess(k){const P=GS.tplan,x=tplanSessions(P)[k],dn=P.done.includes(k),r=P.res&&P.res[k],today=strD(new Date());
  const tx='<b>Semaine '+(x.w+1)+' · '+esc(sLab(x))+'</b><br><small>'+esc(fmtD(x.date))+' · '+x.min+' min · '+['facile','normal','difficile'][x.lvl]+(dn?' · ✅ faite'+(r?'<br>Puissance moy. '+r.ap+' W'+(r.hr?' · FC moy. '+r.hr+' bpm':'')+(r.ef?' · '+r.ef.toFixed(2).replace('.',',')+' W/bpm':''):''):(x.date<today?' · en retard':''))+'</small>',B=[];
- if(!dn)B.push(['▶ Lancer maintenant',()=>tplanStart(k)],['📆 Demain (+1 jour)',()=>tplanMove(k,1)],['📆 Hier (−1 jour)',()=>tplanMove(k,-1)],['📅 Choisir une date…',()=>tplanPick(k)],['⏩ Décaler aussi les suivantes (+1 jour)',()=>tplanShiftAll(k,1)]);
+ if(!dn)B.push(['▶ Lancer maintenant',()=>tplanStart(k)],['⏱ Changer la durée (réorganise le plan)',()=>tplanDurMenu(k,false)],['🔄 Réorganiser tout le plan à partir d\'aujourd\'hui',()=>{tplanReplan('réorganisation demandée');tplanRender()}],['📆 Demain (+1 jour)',()=>tplanMove(k,1)],['📆 Hier (−1 jour)',()=>tplanMove(k,-1)],['📅 Choisir une date…',()=>tplanPick(k)],['⏩ Décaler aussi les suivantes (+1 jour)',()=>tplanShiftAll(k,1)]);
  B.push(['Fermer',()=>{}]);mod(tx,B)}
 // ====================== coach intégré (27 nov. 2026, demande de Cyril : gratuit, sans Internet, sans IA en ligne) ======================
 // Un coach « à règles » : il lit ton historique (forme CTL / fatigue ATL / équilibre TSB, séances par semaine, FTP et son âge, meilleure puissance sur 20 min)
@@ -6449,7 +6471,7 @@ function coachAdvice(P){const D=coachData(),A=[],L=tplanSessions(P),today=strD(n
   else if(att<.2)A.push({id:'test',sev:0,t:'À mi-plan, ta FTP a peu bougé ('+P.ftp0+' → '+FTP+' W). Elle n\'est mise à jour que par un test ou une estimation : fais-en un avant de conclure.',b:'📈 Faire le test FTP'})}
  return A.sort((a,b)=>b.sev-a.sev)}
 function coachAct(id,v){const P=GS.tplan;if(!P)return;const L=tplanSessions(P),today=strD(new Date()),todo=L.map((s,k)=>Object.assign({k},s)).filter(s=>!P.done.includes(s.k));
- if(id==='resched'&&todo.length){const f=todo[0],off=Math.round((parseD(today)-parseD(f.date))/864e5);if(off>0){for(const s of todo)P.mv[s.k]=addD(s.date,off);say('Plan décalé de '+off+' jour'+(off>1?'s':''))}}
+ if(id==='resched'&&todo.length){tplanReplan('replacé à ta demande')}
  else if(id==='lighten'){todo.slice(0,3).forEach((s,j)=>{P.adj[s.k]=j===0&&coachData().tsb<-30?{g:'recup',l:0,f:.7,why:'fatigue'}:{l:Math.max(0,s.lvl-1),f:.85,why:'fatigue'}});say('Prochaines séances allégées')}
  else if(id==='harder'){todo.slice(0,2).forEach(s=>{if(s.lvl<2)P.adj[s.k]={l:s.lvl+1,why:'en forme'}});say('Prochaines séances renforcées')}
  else if(id==='lessmin'){P.M=Math.max(30,P.M-15);say('Séances raccourcies : '+P.M+' min minimum')}
@@ -6486,12 +6508,14 @@ function coachDebrief(){const P=GS.tplan;if(!P)return;const a=coachAdvice(P).fin
 const TPW={id:'ftp',W:8,S:3,days:null,M:60,tgt:0,when:0,edit:0};
 const tpChips=(a,L,sel)=>'<div class="chips">'+L.map(([v,t])=>'<button data-a="'+a+'" data-v="'+v+'"'+(sel(v)?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
 function tplanRender(){const P=GS.tplan,el=$('tpb');let o='';
+ if(P)try{tplanAuto()}catch(e){console.warn(e)}
  if(P){const T=TPG.find(x=>x.id===P.id),L=tplanSessions(P),nx=tplanNext(),today=strD(new Date());
   o+='<div class="hw" style="display:block"><b>'+T.ic+' '+esc(T.n)+'</b><small>'+P.S+' séance'+(P.S>1?'s':'')+' par semaine ('+P.days.map(d=>TPD[d]).join(' · ')+') · au moins '+P.M+' min · '+P.W+' semaines · début le '+esc(fmtD(P.start))+'</small><div class="prog"><i style="width:'+(P.done.length/L.length*100).toFixed(0)+'%"></i></div><small>'+P.done.length+' / '+L.length+' séances faites</small>'+
    (P.tgt?'<div style="margin-top:8px"><small>FTP : '+P.ftp0+' W → <b>'+FTP+' W</b> · cible '+P.tgt+' W</small><div class="prog"><i style="width:'+clamp((FTP-P.ftp0)/Math.max(1,P.tgt-P.ftp0)*100,0,100).toFixed(0)+'%"></i></div></div>':'')+
    (P.est.length?'<small style="display:block;margin-top:6px">Dernière estimation de la FTP : '+P.est[P.est.length-1].est+' W ('+new Date(P.est[P.est.length-1].t).toLocaleDateString('fr-FR')+', fiabilité '+P.est[P.est.length-1].conf+')</small>':'')+
    (nx?'<button data-a="start" data-v="'+nx.i+'" class="on" style="width:100%;margin-top:8px">▶ Séance suivante · '+esc(fmtD(nx.date))+(nx.date<today?' (en retard)':nx.date===today?' (aujourd\'hui)':'')+' · '+esc(sLab(nx))+' · '+nx.min+' min</button><button data-a="sess" data-v="'+nx.i+'" style="width:100%;margin-top:6px">📆 Décaler cette séance</button>':'')+
    '<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px"><button data-a="est">🔎 Estimer ma FTP</button><button data-a="edit">⚙️ Jours et durée</button></div></div>';
+  if(P.note)o+='<div class="hw" style="display:block;border-color:#c99a34"><small style="color:#f4efe6">'+P.note.txt+'</small></div>';
   o+=coachCardHTML(P);
   if(TPW.edit)o+='<div class="hw" style="display:block"><b>⚙️ Modifier le plan</b><div class="gq">Durée minimale d\'une séance</div>'+tpChips('edM',[30,45,60,75,90].map(n=>[n,n+' min']),v=>+v===TPW.M)+'<div class="gq">Jours d\'entraînement (garde '+P.S+' jour'+(P.S>1?'s':'')+')</div>'+tpChips('edD',TPD.map((d,i)=>[i,d]),v=>TPW.days.includes(+v))+'<button data-a="edsave" class="on" style="width:100%;margin-top:8px">Enregistrer</button><small>Les séances déjà décalées à la main gardent leur date. Les séances à venir tiennent compte de la nouvelle durée.</small></div>';
   for(let w=0;w<P.W;w++){const S=L.map((s,k)=>Object.assign({k},s)).filter(s=>s.w===w);o+='<div class="hist" style="margin-bottom:6px"><div><b>Semaine '+(w+1)+(S[0]&&S[0].rec?' · allégée':'')+'</b></div>'+
