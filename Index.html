@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · aj';const ERRL=[];
+const VCT_VER='27/11/2026 · ak';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -2042,7 +2042,9 @@ const _FARH=[];
 function renderScene(){try{riderLodCam()}catch(e){}fogSun();GU.uSunV.value.copy(SUN).transformDirection(cam.matrixWorldInverse);GU.uSunC.value.setRGB(1,.9,.62).multiplyScalar(SPACE.on?0:clamp(DAYF,0,1)*sm(-2,10,ELEV));TU.uDetQ.value=QK==='ultra'?1:QK==='high'?.8:0;const n0=cam.near,f0=cam.far;ren.autoClear=false;ren.clear();
  cam.near=SPLIT*.985;cam.far=160000;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=false;
  {const hid=_FARH;hid.length=0;const hide=g=>{if(g&&g.visible&&g.position.distanceToSquared(cam.position)<40000){g.visible=false;hid.push(g)}};hide(R);for(const n of NPCS)hide(n.R);
-  ren.render(sc,cam);for(const g of hid)g.visible=true}
+  // l'herbe (au plus 80 m autour de la caméra) est entièrement dans la passe proche : inutile de l'envoyer à la passe lointaine (plan proche à 256 m)
+  const gm=GRASS.mesh,gv=!!(gm&&gm.visible);if(gv)gm.visible=false;
+  ren.render(sc,cam);if(gv)gm.visible=true;for(const g of hid)g.visible=true}
  ren.clearDepth();const sv=sky.visible,cv=clouds.visible,mv=moon.visible,tv=stars.visible;sky.visible=clouds.visible=moon.visible=stars.visible=false;
  cam.near=RNEAR;cam.far=SPLIT;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=true;ren.render(sc,cam);
  sky.visible=sv;clouds.visible=cv;moon.visible=mv;stars.visible=tv;cam.near=n0;cam.far=f0;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=true;
