@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · ak';const ERRL=[];
+const VCT_VER='27/11/2026 · al';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -2253,9 +2253,6 @@ const ll2xz=(lat,lon)=>[(lon-LO0)*KX,-(lat-LA)*110574];
 const xz2ll=(x,z)=>[LA-z/110574,LO0+x/KX];
 const NET={E:[],ND:[],ready:false};let CHUNKS=[];
 // décodage d'entiers delta (même principe que les polylignes Google)
-function decInts(s,dim){const out=[],prev=new Array(dim).fill(0);let i=0;
- while(i<s.length){const row=[];for(let k=0;k<dim;k++){let r=0,sh=0,b;do{b=s.charCodeAt(i++)-63;r|=(b&31)<<sh;sh+=5}while(b>=32);prev[k]+=(r&1)?~(r>>1):(r>>1);row.push(prev[k])}out.push(row)}
- return out}
 // routes du parcours actif : la trace du GPX (une route, ou deux pour une boucle afin que départ et arrivée se rejoignent).
 // Altitude tous les 20 m : celle du GPX, sinon 300 m en attendant le relief réel (finishTrack la recale ensuite sur le relief).
 function netSrc(){const c=CRS.cur,pts=c?crsPts(c):null;
@@ -3456,9 +3453,6 @@ function trunkGeo(r0,r1,h,sides,segs,bend,seed){const r=rng(seed),P=[],Nn=[],U=[
   for(let i=0;i<=sides;i++){const a=i/sides*6.283;P.push(ox+Math.cos(a)*rad,y,oz+Math.sin(a)*rad);Nn.push(Math.cos(a),0,Math.sin(a));U.push(i/sides*2,y*6);const k=.75+.25*t;C.push(k,k,k)}}
  for(let j=0;j<segs;j++)for(let i=0;i<sides;i++){const a=j*(sides+1)+i,b=a+1,c=a+sides+1,d=c+1;idx.push(a,c,b,b,c,d)}
  return finishGeo(P,Nn,U,C,idx)}
-function addBranch(P,Nn,U,C,idx,a,b,r){const base=P.length/3,d=V(b[0]-a[0],b[1]-a[1],b[2]-a[2]).normalize(),u=V(0,1,0).cross(d);if(u.lengthSq()<1e-4)u.set(1,0,0);u.normalize();const w=d.clone().cross(u);
- for(let j=0;j<2;j++){const p=j?b:a,rr=j?r*.4:r;for(let i=0;i<=4;i++){const t=i/4*6.283,n=u.clone().multiplyScalar(Math.cos(t)).addScaledVector(w,Math.sin(t));P.push(p[0]+n.x*rr,p[1]+n.y*rr,p[2]+n.z*rr);Nn.push(n.x,n.y,n.z);U.push(i/4,j*3);C.push(.8,.8,.8)}}
- for(let i=0;i<4;i++){const A=base+i,B=A+1,Cc=A+5,D=Cc+1;idx.push(A,Cc,B,B,Cc,D)}}
 // ---- arbres 3D détaillés (7 novembre 2026) : tronc courbe évasé au pied, branches maîtresses et rameaux en tubes d'écorce,
 // feuillage en grappes au bout des branches (cartes orientées vers l'extérieur, ombrées vers le cœur), cœur sombre qui bouche le fond ----
 // tube le long d'une polyligne (repère transporté d'un point à l'autre) ; rayons par point
@@ -4053,12 +4047,6 @@ function signGroup(v,i,exit,dir){const o=5.6*dir,x=X[i]-TZ[i]*o,z=Z[i]+TX[i]*o,y
  const pm=new T.MeshLambertMaterial({color:0x9aa0a6});for(const sx of[-.55,.55]){const p=new T.Mesh(new T.CylinderGeometry(.04,.04,2.4,10),pm);p.position.set(sx,1.2,.06);G.add(p)}
  G.add(frame,pf,pb);G.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true}});return G}
 // arche de sprint (300 m avant la sortie, dans le sens de marche)
-function sprintArch(v,i,dir){const G=new T.Group(),x=X[i],z=Z[i];G.position.set(x,H[i],z);G.rotation.y=Math.atan2(TX[i]*dir,TZ[i]*dir);
- const k=mkCanvas(1024,128),g=k.getContext('2d'),gr=g.createLinearGradient(0,0,1024,0);gr.addColorStop(0,'#0f7a3a');gr.addColorStop(.5,'#19b35a');gr.addColorStop(1,'#0f7a3a');g.fillStyle=gr;g.fillRect(0,0,1024,128);
- g.fillStyle='#fff';g.font='800 64px "Arial Narrow",Arial';g.textAlign='center';g.textBaseline='middle';g.fillText('⚡ SPRINT · '+up(v.name)+' ⚡',512,66);
- const tx=texOf(k,true,false),m=new T.MeshLambertMaterial({map:tx,side:T.DoubleSide}),b=new T.Mesh(new T.PlaneGeometry(10.5,1.3),m);b.position.y=5.6;
- const pm=new T.MeshLambertMaterial({color:0x1d2a24});for(const sx of[-5.2,5.2]){const p=new T.Mesh(new T.BoxGeometry(.25,6.3,.25),pm);p.position.set(sx,3.1,0);G.add(p)}
- G.add(b);G.traverse(o=>{if(o.isMesh)o.castShadow=true});return G}
 // point situé à d mètres avant l'échantillon i, dans le sens dir, sur la même route
 function backAlong(i,d,dir,E){const t=SD[i]-d*dir;let j=E.i0+Math.round(clamp(t,0,E.len)/SEG);return clamp(j,E.i0,E.i1)}
 function villageGroup(v){const E=NET.E[v.e],G=new T.Group(),len=SD[v.i1]-SD[v.i0];
@@ -4098,7 +4086,6 @@ function vwShow(v,exit,info){const el=$('vw');if(!v){el.style.display='none';ret
 const RIDER={};
 const SKIN=CA(0xd09a78),LYC=CA(0x101114),SOCK=CA(0xf2f2f0),GLOVE=CA(0x15161a),WHITE=[1,1,1];
 // ---- texture du maillot / cuissard (1024x512) : zone torse (u 0..0.75), zone unie (u > 0.75) ----
-const JERSEY=0xffd23f;
 // o (facultatif) : {st: style 0..8, sock, glove, short} ; styles : 0 classique, 1 dégradé, 2 bandes, 3 écharpe, 4 néon, 5 pois, 6 uni sponsor, 7 tricolore, 8 arc-en-ciel
 const lumOf=h=>{const c=new T.Color(h);return .3*c.r+.59*c.g+.11*c.b};
 function jerseyCanvas(c1,c2,t1,t2,acc,noGrain,o){o=o||{};const k=mkCanvas(1024,512),g=k.getContext('2d'),W=768,Hh=512,st=o.st||0,S=o.short||'#101114';acc=acc||'#d7263d';
@@ -4374,52 +4361,6 @@ function hShell(ph,th,T0,o,aero){hDir(ph,th,T0,o,aero);if(aero)return o;const bk
 // nid d'abeille : distance au bord de la cellule (deux réseaux décalés)
 function hexEdge(x,y,s){const w=s*1.732,h=s*3;let d=[];for(const[ox,oy]of[[0,0],[w/2,h/2]]){const i=Math.round((x-ox)/w),j=Math.round((y-oy)/h);for(const di of[-1,0,1]){const cx=ox+(i+di)*w,cy=oy+j*h;d.push(Math.hypot(x-cx,y-cy))}}
  d.sort((a,b)=>a-b);return d[1]-d[0]}
-function helmetParts(hm,hb,ha){const G=new T.Group(),T0=.019,NU=112,NJ=30;
- const shell=aero=>{const P=[],UV=[],I=[],RIM=[],pt=V();
-  for(let i=0;i<=NU;i++){const t=i/NU,th=(t*2-1)*Math.PI,pm=hPm(th,T0,aero);
-   for(let j=0;j<=NJ;j++){hShell(pm*Math.pow(j/NJ,.9),th,T0,pt,aero);P.push(pt.x,pt.y,pt.z);UV.push(t,1-j/NJ)}
-   const ip=hDir(pm,th,.002,V(),false);RIM.push(pt.x,pt.y,pt.z,ip.x,ip.y+.007,ip.z)}
-  for(let i=0;i<NU;i++)for(let j=0;j<NJ;j++){const a=i*(NJ+1)+j,b=a+1,c=a+NJ+1,d=c+1;I.push(a,b,c,b,d,c)}
-  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('uv',new T.Float32BufferAttribute(UV,2));g.setIndex(I);smoothN(g);
-  const rg=new T.BufferGeometry(),RI=[];for(let i=0;i<NU;i++){const a=i*2;RI.push(a,a+2,a+1,a+1,a+2,a+3)}rg.setAttribute('position',new T.Float32BufferAttribute(RIM,3));rg.setIndex(RI);rg.computeVertexNormals();
-  const s=new T.Mesh(g,hm),r=new T.Mesh(rg,hb);s.add(r);return s};
- // décor peint sur la coque (multiplie la couleur du casque) + relief (bumpMap) : calculé par tranches dans la file de tâches
- const TW=512,TH=256,k=mkCanvas(TW,TH),gx=k.getContext('2d'),kb=mkCanvas(TW,TH),gb2=kb.getContext('2d');gx.fillStyle='#fff';gx.fillRect(0,0,TW,TH);gb2.fillStyle='#808080';gb2.fillRect(0,0,TW,TH);
- const vt=texOf(k,true,false),bt=texOf(kb,false,false);hm.map=vt;hm.bumpMap=bt;hm.bumpScale=.0012;hm.roughness=.22;hm.needsUpdate=true;
- job(function*(){const im=gx.createImageData(TW,TH),D=im.data,ib=gb2.createImageData(TW,TH),B=ib.data,pt={x:0,y:0,z:0,set(x,y,z){this.x=x;this.y=y;this.z=z;return this}};let t0=performance.now();
-  for(let i=0;i<TW;i++){if(performance.now()-t0>5){yield;t0=performance.now()}const th=((i+.5)/TW*2-1)*Math.PI,pm=hPm(th,T0,false),ye=hEdge(Math.cos(th));
-   for(let j=0;j<TH;j++){hShell(pm*Math.pow((j+.5)/TH,.9),th,T0,pt,false);const x=pt.x,y=pt.y,z=pt.z,ax=Math.abs(x);let c=1,b=128;
-    if(pt.rear){// sorties d'air arrière : fond sombre, lamelles horizontales, montant central ; haut du becquet laissé blanc
-     if(y>.208)c=1;else{c=.12;if(ax<.011)c=1;else{const q=((y-.1)/.019)%1;if(q>.72){c=.62;b=175}}if(y>.2){c=.9;b=150}}}
-    else{const sd=ax>.036,yc=.19+.006*clamp(-z/.15,-1,1);
-     // bandeau noir latéral (séparation coque haute / coque basse), de l'avant jusqu'aux sorties arrière
-     if(sd&&Math.abs(y-yc)<.0095*(1+.3*sm(.05,-.1,z))*sm(.13,.07,z)){c=.1;b=105}
-     // grande ouïe latérale en nid d'abeille
-     const ez=z-.032,ey=y-.158,ca=Math.cos(-.2),sa=Math.sin(-.2),u=(ez*ca-ey*sa)/.05,w=(ez*sa+ey*ca)/.0165,d=Math.hypot(u,w);
-     if(ax>.045&&d<1.18){if(d<1){c=.14;b=95;if(hexEdge(z,y,.0042)<.0011){c=.42;b=165}}else{c=.97;b=160}}
-     // entrées d'air avant : prise centrale et deux ouïes
-     if(z>.07&&Math.cos(th)>.6){const e=Math.hypot(x/.03,(y-.178)/.0105);if(e<1){c=ax<.0022?.92:.11;b=c<.5?100:150}else if(e<1.15){c=.96;b=158}}
-     if(y<ye+.004){c*=.94}}
-    const p=(j*TW+i)*4;D[p]=D[p+1]=D[p+2]=255*c;D[p+3]=255;B[p]=B[p+1]=B[p+2]=b;B[p+3]=255}}
-  gx.putImageData(im,0,0);gb2.putImageData(ib,0,0);vt.needsUpdate=true;bt.needsUpdate=true}(),-5,'helmvents');
- const S1=shell(false),S2=shell(true);S2.visible=false;G.add(S1,S2);G.userData.shell=S1;G.userData.tail=S2;G.userData.vtex=vt;
- // logos (décalcomanies) : ovale « VCT » et « AERO » sur les côtés, « VCT » sur le becquet
- const lk=mkCanvas(512,192),lg=lk.getContext('2d');lg.strokeStyle='#111';lg.lineWidth=12;lg.beginPath();lg.ellipse(256,72,210,56,0,0,6.2832);lg.stroke();
- lg.fillStyle='#111';lg.font='900 italic 86px "Arial Black",Arial';lg.textAlign='center';lg.textBaseline='middle';lg.fillText('VCT',256,76);lg.font='italic 600 40px Arial';lg.fillText('AERO',256,160);
- const lm=new T.MeshStandardMaterial({map:texOf(lk,true,false),transparent:true,roughness:.3,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
- const decal=(ph,th,w,h)=>{const pm=hPm(th,T0,false),a=hShell(pm*ph,th,T0,V(),false),b=hShell(pm*ph,th+.02,T0,V(),false),c=hShell(pm*(ph+.02),th,T0,V(),false),n=b.clone().sub(a).cross(c.clone().sub(a)).normalize();
-  if(n.dot(a.clone().sub(HO))<0)n.negate();const m=new T.Mesh(new T.PlaneGeometry(w,h),lm);m.position.copy(a).addScaledVector(n,.0012);m.lookAt(a.clone().add(n));m.renderOrder=3;G.add(m)};
- for(const s2 of[-1,1])decal(.82,s2*2.05,.056,.021);decal(.6,Math.PI,.05,.019);
- // molette de serrage, berceau à l'arrière, sangles en Y sous l'oreille
- const dial=new T.Mesh(new T.CylinderGeometry(.014,.014,.012,18),ha);dial.rotation.x=Math.PI/2;dial.position.set(0,.088,-.118);G.add(dial);
- const cra=new T.Mesh(new T.TorusGeometry(.07,.004,6,24,Math.PI*.8),hb);cra.rotation.set(Math.PI/2+.25,0,Math.PI*.1+Math.PI);cra.position.set(0,.092,-.04);G.add(cra);
- const strapG=pts=>{const c=new T.CatmullRomCurve3(pts),N=24,P=[],I=[];for(let q=0;q<=N;q++){const t=q/N,p=c.getPoint(t),tg=c.getTangent(t),sd=V(Math.sign(p.x)||1,0,0).cross(tg).normalize().multiplyScalar(.0075);P.push(p.x-sd.x,p.y-sd.y,p.z-sd.z,p.x+sd.x,p.y+sd.y,p.z+sd.z)}
-  for(let q=0;q<N;q++){const a=q*2;I.push(a,a+2,a+1,a+1,a+2,a+3)}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setIndex(I);g.computeVertexNormals();return g};
- for(const s of[-1,1]){const j=V(s*.074,.06,-.006);
-  for(const pts of[[V(s*.076,.142,.03),V(s*.076,.1,.014),j],[V(s*.074,.12,-.066),V(s*.077,.082,-.04),j],[j,V(s*.06,.024,.022),V(s*.03,-.006,.054),V(0,-.013,.062)]])G.add(new T.Mesh(strapG(pts),hb));
-  const bk=new T.Mesh(new T.BoxGeometry(.008,.02,.014),hb);bk.position.copy(j);G.add(bk)}
- const bu=new T.Mesh(new T.BoxGeometry(.03,.009,.02),hb);bu.position.set(0,-.012,.062);G.add(bu);
- return G}
 // lunettes enveloppantes : verre découpé (pont du nez), monture, branches
 function glassesParts(lens,hb){const G=new T.Group(),P=[],I=[],TOP=[],NU=40,NV=7,r=.1;
  for(let i=0;i<=NU;i++){const f=i/NU*2-1,ph=Math.PI/2+f*.92,af=Math.abs(f),t0=1.2+.04*af*af,t1=lerp(1.47,1.73,sm(.02,.3,af))-.12*sm(.55,1,af);
@@ -4439,30 +4380,6 @@ function handFingers(s2){const GL=[],SK=[],q=new T.Quaternion(),sc=V(1,1,1);
  {let p=V(-s2*.028,.03,.006),d=V(-s2*.55,.75,.45).normalize();const p2=p.clone().addScaledVector(d,.036);seg(GL,p,p2,.0095);d.add(V(0,-.1,.35)).normalize();seg(SK,p2,p2.clone().addScaledVector(d,.03),.0085)}
  const G=new T.Group(),a=new T.Mesh(mergeGeos(GL),KM.glove),b=new T.Mesh(mergeGeos(SK),KM.skin);a.castShadow=b.castShadow=true;G.add(a,b);return G}
 // assemblage de la tête du joueur
-function faceBuild(G,km){const cv=mkCanvas(512,512),bv=mkCanvas(512,512);{const a=cv.getContext('2d'),b=bv.getContext('2d');a.fillStyle='#cf9a78';a.fillRect(0,0,512,512);b.fillStyle='#808080';b.fillRect(0,0,512,512)}const tex=texOf(cv,true,false),btx=texOf(bv,false,false);
- const mat=new T.MeshPhysicalMaterial({map:tex,bumpMap:btx,bumpScale:.0005,roughness:.55,metalness:0,sheen:.45,sheenColor:new T.Color(0xff8a70),sheenRoughness:.55,clearcoat:.04,clearcoatRoughness:.35});
- skinSSS(mat);skinSSS(KM.skin);skinSSS(KM.skinE);const mesh=new T.Mesh(faceGeo(),mat);G.add(mesh);
- // yeux : globe, iris (calotte peinte), paupières avec cils
- const icv=mkCanvas(128,64),itx=texOf(icv,true,false),irM=new T.MeshStandardMaterial({map:itx,roughness:.12,metalness:0}),scM=stdM(0xf3eee8,.22,0);
- const lk=mkCanvas(4,64),lg=lk.getContext('2d');lg.fillStyle='#fff';lg.fillRect(0,0,4,64);lg.fillStyle='#2a1d17';lg.fillRect(0,0,4,4);lg.fillRect(0,60,4,4);lg.fillStyle='#8a5a4a';lg.fillRect(0,4,4,2);lg.fillRect(0,58,4,2);
- const lidM=new T.MeshStandardMaterial({color:KM.skin.color,map:texOf(lk,true,false),roughness:.5});KM.lid=lidM;skinSSS(lidM);
- const ez=hfront(.031,.1235,false)-.005-.0118,eyes=[],lidU=[],lidL=[];
- const sclG=new T.SphereGeometry(.0118,24,16),irG=new T.SphereGeometry(.01195,32,6,0,6.2832,0,.5),luG=new T.SphereGeometry(.0126,28,8,0,6.2832,0,1.25),llG=new T.SphereGeometry(.0126,28,6,0,6.2832,Math.PI-1,1);
- for(const s of[-1,1]){const E=new T.Group();E.position.set(s*.031,.1235,ez);const B=new T.Group();B.add(new T.Mesh(sclG,scM));const ir=new T.Mesh(irG,irM);ir.rotation.x=Math.PI/2;B.add(ir);E.add(B);eyes.push(B);
-  const u=new T.Mesh(luG,lidM),l=new T.Mesh(llG,lidM);E.add(u,l);lidU.push(u);lidL.push(l);G.add(E)}
- // bouche : cavité sombre et dents (celles du bas suivent la mâchoire)
- const cav=new T.Mesh(new T.SphereGeometry(.024,16,10),stdM(0x3a1515,.8,0,{side:T.BackSide}));cav.scale.set(1,.62,.8);cav.position.set(0,.05,.068);G.add(cav);
- const tM=stdM(0xece5d6,.3,0),tu=new T.Mesh(new T.CylinderGeometry(.021,.021,.0072,20,1,true,-.8,1.6),tM);tu.position.set(0,.0556,.062);G.add(tu);
- const jp=new T.Group();jp.position.copy(HINGE);const tl=new T.Mesh(new T.CylinderGeometry(.0195,.0195,.0068,20,1,true,-.75,1.5),tM);tl.position.set(0,.0494-HINGE.y,.062-HINGE.z);jp.add(tl);G.add(jp);
- // oreilles
- for(const s of[-1,1]){const w=new T.Group();w.scale.x=s;const e=earGroup(KM.skin,KM.skinE);e.position.set(.0782,.079,-.002);e.rotation.set(-.2,-.36,0);w.add(e);G.add(w)}
- // cou : pomme d'Adam, sterno-cléido-mastoïdiens
- {const g=new T.CylinderGeometry(.06,.064,.13,32,10,true),p=g.attributes.position;// cou allongé vers le bas (raccord avec le vrai corps)
-  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i)-.012,z=p.getZ(i),a=Math.atan2(x,z);let k=1.05;
-   const ad=.006*Math.exp(-((x/.012)**2)-(((y+.03)/.012)**2))*(z>0?1:0),sc=.004*Math.exp(-(((Math.abs(a)-.75-(y+.08)*2.5)/.25)**2))*(z>0?1:0);
-   p.setXYZ(i,x*(1+sc/.055),y,(z*k+ad+.002)*(1+sc/.055))}
-  smoothN(g);const nk=new T.Mesh(g,KM.skin);G.add(nk)}
- G.userData.face={mesh,mat,tex,btx,cv,bv,icv,itx,eyes,lidU,lidL,jp,key:''};return G}
 // ---- vraie tête du joueur (19 novembre 2026, demande de Cyril : « améliore au maximum son visage et surtout son casque ») ----
 // Tête MakeHuman hm08 (CC0) avec les cibles homme jeune (comme le corps), dents et langue ; préparée hors ligne :
 // repère de l'os de la tête, ouverture de la mâchoire (cible de forme), zones lèvres / sourcils / barbe / cheveux courts.
@@ -5381,19 +5298,6 @@ function doneWk(){GS.wk++;GS.pts+=100;gsave();say('Séance terminée : +100 poin
 // sprints : 300 m avant chaque panneau de sortie d'agglomération (dans le sens où l'on roule), disputés par les cyclistes PNJ
 let SP=null,ps=0,gT=0,gS=0,vwT=0,lastPos={e:-1,u:0,dir:1};
 function onVillages(){}
-function sprintEnd(g){const pk=Math.round(SP.pk),old=GS.rec[g.key]||0,now=performance.now();
- const ahead=NPCLOG.filter(l=>l.key===g.key&&now-l.t<25000),rank=ahead.length+1;
- const behind=NPCS.filter(n=>n.alive&&n.spr&&n.spr.key===g.key&&n.spr.go&&!n.spr.done&&Math.hypot(n.x-RW.x,n.z-RW.z)<60);
- let msg,b=0;
- if(pk<50&&!ahead.length){msg='Sprint manqué : pousse plus fort !'}
- else{const nr=pk>old;b=20+Math.round(pk/20);if(nr){GS.rec[g.key]=pk;b+=old?80:40}
-  if(rank===1)GS.spr=(GS.spr||0)+1;
-  if(rank===1&&behind.length){b+=30+10*behind.length}
-  GS.pts+=b;gsave();
-  const who=rank===1?(behind.length?'1er devant '+behind.map(n=>n.name).slice(0,3).join(', '):'1er'):rank+'e derrière '+ahead.map(l=>l.name).slice(0,3).join(', ');
-  msg='Sprint '+up(g.v.name)+' : '+who+' · '+pk+' W'+(nr?' — RECORD ! ':' ')+'+'+b+' pts'}
- say(msg);vwShow(g.v,true,msg.replace(/</g,''));vwT=5;
- if(typeof cheerAudio==='function'&&rank===1&&pk>=50)PED.voiceT=0}
 function gameTick(dt,P){const on=mode==='ride'||mode==='wk',gm=$('gm');gm.style.display=on?'block':'none';
  // panneau d'entrée d'agglomération (tous modes sauf accueil)
  if(mode!=='home'&&lastPos.e===RID.e&&lastPos.dir===RID.dir){for(const v of VIL){if(v.e!==RID.e)continue;const i=RID.dir>0?(v.sg0?v.i0:-1):(v.sg1?v.i1:-1);if(i<0)continue;
@@ -5748,20 +5652,6 @@ function setCourse(edges,name){const p=despike((edges||[]).filter(s=>NET.E[s[0]]
 // 1) un point tous les 50 m est accroché à la route la plus proche (à moins de 40 m) ;
 // 2) une route n'est retenue que si 2 points de suite s'y accrochent (sauf route courte) : les croisements frôlés sont ignorés ;
 // 3) les routes retenues sont reliées dans l'ordre par les plus courts chemins du réseau.
-function gpxToEdges(ll){return withFullNet(()=>{const Q=ll.map(p=>ll2xz(p[0],p[1])),W=[];if(Q.length<2)return[];
- W.push(Q[0]);for(let i=1;i<Q.length;i++){const a=Q[i-1],b=Q[i],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.ceil(L/50);for(let k=1;k<=n;k++)W.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}
- const sn=W.map(p=>{const q=roadQ(p[0],p[1],{});return q&&q.d<40?EOF[q.i]:-1});
- const seq=[];for(let i=0;i<sn.length;i++){const e=sn[i];if(e<0)continue;const ok=sn[i-1]===e||sn[i+1]===e||NET.E[e].len<220;if(!ok)continue;if(seq[seq.length-1]!==e)seq.push(e)}
- if(!seq.length)return[];
- const W2=e=>NET.E[e].len,cache=new Map(),dk=n=>{let D=cache.get(n);if(!D){D=dijk(n,W2);cache.set(n,D)}return D};
- const ends=e=>[NET.E[e].a,NET.E[e].b];
- // sens de la première route : celui qui mène le plus court vers la suivante
- let entry;{const e0=seq[0],[a,b]=ends(e0);if(seq.length<2)entry=a;else{const[c,d]=ends(seq[1]),da=Math.min(dk(b).dist[c],dk(b).dist[d]),db=Math.min(dk(a).dist[c],dk(a).dist[d]);entry=da<=db?a:b}}
- const out=[];
- for(let k=0;k<seq.length;k++){const e=seq[k],E=NET.E[e],dir=entry===E.a?1:-1,exit=dir>0?E.b:E.a;out.push([e,dir]);if(k===seq.length-1)break;
-  const f=seq[k+1],[c,d]=ends(f),D=dk(exit),to=D.dist[c]<=D.dist[d]?c:d;if(!isFinite(D.dist[to]))return out;
-  const p=spPath(D,exit,to);if(p)for(const s of p)out.push([s.e,s.d]);entry=to}
- return out})}
 // démarrer une séance (ou l'exploration) : on choisit d'abord le parcours
 function courseThen(f,what){if(!COURSE)return mod('Pas encore de parcours<br><small>Importe un fichier GPX : il devient ton parcours en 3D.</small>',[['📂 Importer un GPX',()=>$('gf').click()],['🗺️ Tracer sur la carte',mrOpen],['📚 Mes parcours',crsMenu],['Annuler',()=>{}]]);
  mod('Parcours de la '+(what||'sortie')+'<br><small>'+esc(COURSE.name)+(ROUTE?' · '+nf(ROUTE.len/1000,1)+' km':'')+(COURSE.loop?' · boucle (on enchaîne les tours)':'')+'</small>',
@@ -6991,9 +6881,6 @@ function velBuild(){const t0=performance.now();velBuildCurve();const lowQ=QK==='
  {const P=[];for(let i=0;i<24;i++){const a=i/24*6.283;P.push(cx,17,cz,cx+Math.cos(a)*70,4+((i*5)%9),cz+Math.sin(a)*46)}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));
   VEL.laser=new T.LineSegments(g,new T.LineBasicMaterial({color:0x22ff88,transparent:true,opacity:.9,blending:T.AdditiveBlending,depthWrite:false}));VEL.laser.visible=false;VELG.add(VEL.laser)}
  VEL.built=true;console.log('vélodrome construit en',Math.round(performance.now()-t0),'ms · ligne de mesure',velLineLen(null,.2).toFixed(2),'m')}
-function velMerge(gs){const P=[],N=[],I=[];let o=0;for(const g of gs){const gg=g.index?g:g;const p=gg.attributes.position,n=gg.attributes.normal;for(let i=0;i<p.count;i++){P.push(p.getX(i),p.getY(i),p.getZ(i));N.push(n.getX(i),n.getY(i),n.getZ(i))}
-  const ix=gg.index.array;for(let i=0;i<ix.length;i++)I.push(ix[i]+o);o+=p.count}
- const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('normal',new T.Float32BufferAttribute(N,3));g.setIndex(I);return g}
 // ---------- entrée / sortie ----------
 // vélodrome habillé selon le monde : Space (piste de verre, ouvert sur la nébuleuse), Néon (piste noire, néons cyan / orange, grille),
 // Montagne (en plein air au milieu de montagnes stylisées) ; lignes, chrono, lumière de rythme et records inchangés
@@ -7572,7 +7459,6 @@ function npcReset(){for(const n of NPCS){n.alive=false;n.R.visible=false}npcT=0}
 // 6 équipes de 5 (ton équipe VCT : toi + 4 coéquipiers), niveaux calculés sur ta FTP (en W/kg), coureurs légers dessinés en instanciation,
 // directeur sportif à la radio, coach des watts repris de l'appli Vélo Coach (W' 18 kJ, CP = FTP, P = CP + W'bal / durée(P), rappel 5 min, « lève le pied » à +5 %).
 // Monde par défaut : Space Astéroïdes (le plus léger pour la tablette), remis comme avant à la sortie.
-const CTEAM=[7,0,1,2,3,4];// (ancien) équipes (indices de NPC_TEAMS)
 // 24 nov. 2026 (version n) : équipes et noms de coureurs INVENTÉS (aucun vrai nom, sponsor ni logo), couleurs de maillot inspirées de vraies équipes
 const CTM=[NPC_TEAMS[7],
  ['#f2c500','#111114','#ffffff',0xf2c500,'FRELON','RACING','Frelon Racing'],['#4fb3f0','#ffffff','#1e6fbf',0x4fb3f0,'CIEL D\'AZUR','CYCLING','Ciel d\'Azur'],['#d7263d','#ffffff','#111114',0xd7263d,'CARMIN','PRO TEAM','Carmin Pro'],
@@ -7581,7 +7467,6 @@ const CTM=[NPC_TEAMS[7],
  ['#f1ece0','#d4b483','#111114',0xf1ece0,'DUNE','CYCLING','Dune']];
 const CFN=['Adrien','Baptiste','Corentin','Damien','Étienne','Fabien','Gaspard','Hadrien','Ilian','Jules','Killian','Loïc','Mathis','Noé','Octave','Paul','Quentin','Rémi','Sacha','Théo','Ulysse','Valentin','Wilfried','Xavier','Yann','Zacharie','Aurélien','Benoît','Clément','Dorian','Élie','Florian','Grégoire','Hugo','Ismaël','Joris','Kévin','Léo','Maël','Nils','Olivier','Pablo','Raphaël','Samuel','Tristan','Victor','Yoann','Alessio','Bruno','Carlos','Diego','Emil','Filip','Gianni','Henrik','Ivan','Jonas','Lars','Marek','Niko'];
 const CSN=['Valcourt','Ormeau','Brisset','Calvet','Dessaint','Estrada','Fauchet','Granier','Hautbois','Isnard','Jolivet','Kerlan','Lacombe','Marsaud','Nivelle','Oudard','Pelissier','Quenel','Rochas','Sabatier','Tanguy','Urvoy','Vasseur','Wagner','Yvert','Zambon','Arnoult','Bellec','Cordier','Dumas','Espinasse','Fabre','Gaillard','Hamel','Imbert','Jacquet','Koenig','Laborde','Mazet','Noguera','Olivier','Perrot','Ravel','Soulier','Thibault','Vidal','Alonso','Bertolini','Conti','Duarte','Esposito','Ferrari','Gallo','Hoffmann','Jansen','Kowal','Lindberg','Moretti','Novak','Pavlik','Rinaldi','Sandoval','Tomasi','Visser','Weber','Zielinski','Barrau','Chauvet','Delmas','Ferrand','Gimenez','Hureau','Joubert','Lemaire','Maurel','Navarro','Orsini','Pagès','Rebours','Sauvage','Trouillet','Vernet','Aubry','Brun','Cazeaux','Daix','Escoffier','Fouquet','Garrigue','Hennequin','Issartel','Jourdan','Lasserre','Marchetti','Nadal','Ortega','Pinson','Quillet','Roussel','Sicard','Tessier'];
-const CSUR=['Martin','Bernard','Dubois','Durand','Lefebvre','Moreau','Laurent','Simon','Michel','Garcia','Roux','Fournier','Girard','Bonnet','Dupont','Lambert','Fontaine','Rousseau','Vincent','Muller','Faure','Mercier','Blanc','Guérin','Boyer','Garnier','Chevalier','Perrin','Morin','Gauthier'];
 const CROLE={lead:'Leader',grim:'Grimpeur',roul:'Rouleur',spr:'Sprinteur',eq:'Équipier'};
 const CWP=18000;// W' (J) [Vélo Coach, ConfigWbal.wPrimeJ]
 // ---- fatigue mémorisée entre deux courses, selon le temps réel écoulé (22 nov. 2026, demande de Cyril) ----
@@ -8816,16 +8701,6 @@ async function cmpStageNew(sel){let list=[];const n=sel.ns||4,st=famSt(sel);
   try{localStorage.v3crs=JSON.stringify(CRS.list)}catch(e){CRS.list.splice(base);if(go)go.disabled=false;return say('Stockage plein : supprime des parcours dans « Mes parcours ».')}}
  const S={name:'Tour VCT '+new Date().toLocaleDateString('fr-FR'),seed:(Date.now()%100000)+11,diff:cmpDiffVal(sel.diff),world:sel.world||'space',opts:cmpOptsN(sel.opts),neu:sel.neu==null?1000:sel.neu,upP:0,list,i:0,gc:{},pts:{},kom:{},over:false,prevCrs:CRS.cur?CRS.cur.id:null};cmpSave(S);
  cmpResShow(null,'start')}
-function cmpStageNewOLD(sel){let list=[];
- if(sel.src==='mine'){const ids=sel.pick.filter(id=>CRS.list.some(q=>q.id===id));if(ids.length<3||ids.length>5)return say('Coche de 3 à 5 parcours.');
-  list=ids.map(id=>{const q=CRS.list.find(c=>c.id===id);return{id,name:q.name,kind:'race',km:q.km}});list[0].kind='clm'}
- else{const len={c:1,m:1.45,l:2.4}[sel.len]||1.45,plan=[['Contre-la-montre',10,.006,true,'clm'],['Plat',22,.004,true,'race'],['Vallonnée',24,.022,true,'race'],['Montagne',22,.05,false,'race'],['Vallonnée',26,.02,true,'race']].slice(0,sel.ns);
-  const base=CRS.list.length;for(let i=0;i<plan.length;i++){const[t,km,r,loop,kind]=plan[i],k2=Math.round(km*len);let g=null;try{g=crsGenerate({name:'🏆 Étape '+(i+1)+' · '+t,km:k2,dp:Math.round(k2*1000*r),loop,seed:(Date.now()%90000)+i*131+7})}catch(e){console.warn(e)}
-   if(!g||!g.c)return say('Création des étapes impossible.');CRS.list.push(g.c);list.push({id:g.c.id,name:g.c.name,kind,km:g.c.km})}
-  try{localStorage.v3crs=JSON.stringify(CRS.list)}catch(e){CRS.list.splice(base);return say('Stockage plein : supprime des parcours dans « Mes parcours ».')}}
- const S={name:'Tour VCT '+new Date().toLocaleDateString('fr-FR'),seed:(Date.now()%100000)+11,diff:sel.diff,list,i:0,gc:{},pts:{},kom:{},over:false,prevCrs:CRS.cur?CRS.cur.id:null};cmpSave(S);
-
- cmpResShow(null,'start')}
 function cmpStageGo(){const S=cmpLoad();if(!S||S.over)return cmpOpen();const st=S.list[S.i];if(!CRS.list.some(q=>q.id===st.id))return say('Parcours de l\'étape introuvable (supprimé ?).');
  const prev=CRS.cur?CRS.cur.id:null;CMP.prev=CMP.prevKeep||{w:WORLDK,a:SET.spAmb,crs:S.prevCrs||prev};CMP.prevKeep=null;
  if(!CRS.cur||CRS.cur.id!==st.id)crsSwitch(st.id);
@@ -9162,11 +9037,6 @@ function rideGraphCanvas(R,S,A){const sea=R.mode==='wk',p=R.pts,n=p.length,W=120
  g.strokeStyle='#f0cf73';g.setLineDash([8,6]);g.lineWidth=1.5;g.beginPath();g.moveTo(x0,Y(FTP));g.lineTo(x1,Y(FTP));g.stroke();g.setLineDash([]);g.textAlign='right';g.fillStyle='#f0cf73';g.font='700 15px '+F;g.fillText('FTP '+FTP+' W',x1,Y(FTP)-6);
  g.textAlign='left';g.fillStyle='#978e7f';g.font='500 16px '+F;g.fillText(sea&&R.bl?'Blocs prévus (couleur de zone) · ligne blanche : puissance réelle':'Puissance par zone · altitude en gris',x0,y0-12);
  g.textAlign='right';g.fillText('Virtual Cycling Training',W-30,H-20);return k}
-function rideMailText(R,S,A){const sea=R.mode==='wk',p=R.pts,kc=Math.round(p.reduce((a,q)=>a+(q.pw||0),0)/(.24*4184)),d=new Date(R.t0),nm=(R.wkn||R.n||(ROUTE?ROUTE.name:COURSE?COURSE.name:'Sortie'));
- const L=[(sea?'Séance : ':'Sortie : ')+nm,d.toLocaleString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}),'',
-  'Distance : '+nf(S.km,1)+' km','Temps : '+fmt(S.el),'Dénivelé + : '+S.asc+' m','Puissance moyenne : '+S.ap+' W'+(A&&A.np?' · normalisée '+A.np+' W':'')+(A&&A.mx?' · maxi '+A.mx+' W':''),'Énergie : '+nf(kc)+' kcal'];
- if(A&&A.tss)L.push('Charge (TSS) : '+A.tss+(A.ifv?' · IF '+nf(A.ifv,2):''));if(A&&A.ahr)L.push('Cardio : '+A.ahr+' bpm moy. · '+A.mhr+' max');if(A&&A.acad)L.push('Cadence moyenne : '+A.acad+' tr/min');
- L.push('FTP : '+FTP+' W','','Envoyé depuis Virtual Cycling Training');return L.join('\n')}
 function dlBlob(b,name){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
 function mailRide(R,S){let A=null;try{A=analyzeRide(R.pts)}catch(e){}
  const base=fitName(R,R.wkn||R.n||'').replace(/\.fit$/,''),sub=(R.mode==='wk'?'Séance ':'Sortie ')+(R.wkn||R.n||'')+' · '+new Date(R.t0).toLocaleDateString('fr-FR')+' · '+nf(S.km,1)+' km';
