@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · am';const ERRL=[];
+const VCT_VER='27/11/2026 · an';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -1147,7 +1147,7 @@ addEventListener('unhandledrejection',e=>{const r=e.reason;errNote('promesse : '
 // sont rangées sous « p:<id>:<clé> ». Le changement de compte se fait AU DÉBUT du chargement suivant (sessionStorage.v3pnext), avant toute lecture :
 // ce que l'ancienne page écrit en partant (sortie en cours…) reste ainsi dans le bon compte. Historique complet des sorties : une base IndexedDB par compte.
 // Partagé entre les comptes : la liste des comptes, la qualité graphique, le dernier home trainer, le diagnostic, le fond de carte, le film d'ouverture.
-const PROF=(()=>{const SH=new Set(['v3prof','v3q2','v3tr','v3diag','v3mrb','v3mrv','v3hwt','v3intro']),P={list:[],cur:''};
+const PROF=(()=>{const SH=new Set(['v3prof','v3q2','v3tr','v3diag','v3mrb','v3mrv','v3hwt','v3intro','v3cast','v3castrelay']),P={list:[],cur:''};
  const own=k=>!SH.has(k)&&!/^p:/.test(k);
  try{Object.assign(P,JSON.parse(localStorage.v3prof||'{}'))}catch(e){}
  if(!Array.isArray(P.list)||!P.list.length){P.list=[{id:'p1',name:'Compte 1',col:0,t:Date.now()}];P.cur='p1'}
@@ -1184,7 +1184,7 @@ let NETD={E:[]};// rempli par netSrc() à partir du parcours actif
 // ====================================================================
 const T=THREE;T.ColorManagement.enabled=true;
 const $=id=>document.getElementById(id);
-const say=m=>{if(CAST.fwd)try{castSend({t:'say',m:String(m).slice(0,200)})}catch(e){}const st=$('st');if(st)st.textContent=m;const t=$('toast');if(!t)return;t.textContent=m;t.style.display='block';clearTimeout(say.t);say.t=setTimeout(()=>t.style.display='none',5000)};
+const say=m=>{const st=$('st');if(st)st.textContent=m;const t=$('toast');if(!t)return;t.textContent=m;t.style.display='block';clearTimeout(say.t);say.t=setTimeout(()=>t.style.display='none',5000)};
 const V=(x,y,z)=>new T.Vector3(x,y,z),UP=V(0,1,0);
 const clamp=(x,a,b)=>x<a?a:x>b?b:x,lerp=(a,b,t)=>a+(b-a)*t;
 const sm=(a,b,x)=>{x=(x-a)/(b-a);x=x<0?0:x>1?1:x;return x*x*(3-2*x)};
@@ -1900,7 +1900,7 @@ function advTick(now,hm,dt){ADVG.visible=!hm&&!VEL.on;if(!ROUTE||!COURSE)return;
 
 
 // résolution de rendu × 0,8 pour toutes les qualités (le sol, qui coûte le plus, se colorie pixel par pixel)
-const AQ={t:performance.now(),lo:0,hi:0,max:QK,fail:{},fps:0,n:0},DPRS={lo:0,hi:0,t:0},RES_K=.8,PRMAX=()=>Math.min(devicePixelRatio||1,QP.dpr)*RES_K;let PR=PRMAX();ren.setPixelRatio(PR);
+const AQ={t:performance.now(),lo:0,hi:0,max:QK,fail:{},fps:0,n:0},DPRS={lo:0,hi:0,t:0},RES_K=.8,PRMAX=()=>Math.min(devicePixelRatio||1,QP.dpr*((typeof CAST!=='undefined'&&CAST.fwd&&SET.castQ)||1))*RES_K;let PR=PRMAX();ren.setPixelRatio(PR);
 
 const HL=new T.HemisphereLight(0xcfe3ff,0x56603c,.62);sc.add(HL);
 const SUNL=new T.DirectionalLight(0xfff0d8,1.55);sc.add(SUNL,SUNL.target);
@@ -5764,99 +5764,287 @@ function roulRender(){const box=document.querySelector('#s-roul .cards');box.inn
  hcard(box,'✨ Créer un parcours','Parcours imaginaire à ta mesure (distance, dénivelé, boucle) à rouler dans le monde 🦖 Aventure',genCourseOpen);
  hcard(box,'📚 Mes parcours',CRS.list.length?CRS.list.length+' parcours importé'+(CRS.list.length>1?'s':''):'Aucun parcours pour l\'instant',crsMenu);
  hcard(box,'🤖 Exploration','Pilote automatique sur le parcours choisi',()=>courseThen(()=>nav('explore'),'exploration'))}
-// ====================== cast téléphone → tablette (27 nov. 2026, demande de Cyril : « pour tester si c'est mieux ») ======================
-// Le TÉLÉPHONE calcule la 3D et envoie l'image en direct (WebRTC, canvas.captureStream) ; la TABLETTE affiche la vidéo, se connecte au home trainer
-// (Bluetooth) et renvoie puissance / cadence / cardio au téléphone, qui lui renvoie les commandes de résistance (pente, ERG).
-// Pas de serveur : les deux appareils échangent un code (copier / coller ou partager), puis la liaison est directe sur le réseau local (ou point d'accès du téléphone).
-const CASTCFG={ice:[{urls:'stun:stun.l.google.com:19302'}]};
+// ====================== cast téléphone ⇄ tablette, v2 (27 nov. 2026, demande de Cyril : « affichage identique et interactif, tout piloter depuis la tablette, un code unique et permanent ») ======================
+// Le TÉLÉPHONE fait tout tourner (3D, simulation, interface). La TABLETTE est un écran à distance :
+//  • la 3D arrive en vidéo (WebRTC, canvas.captureStream) ;
+//  • l'interface (HUD, menus, bandeaux, classements…) est COPIÉE en direct dans un cadre de la taille de l'écran du téléphone (miroir du DOM : MutationObserver),
+//    puis agrandie pour remplir la tablette ; les canvas 2D (mini-carte, profil, graphiques) arrivent en images ;
+//  • tout toucher / glisser / pincer / molette / clavier de la tablette est rejoué sur le téléphone (événements pointeur rejoués à la même position) ;
+//  • le home trainer et la ceinture se branchent sur la TABLETTE (Bluetooth) : elle envoie puissance / cadence / cardio, le téléphone renvoie les commandes de résistance.
+// Connexion : un CODE PERMANENT (12 caractères, saisi une fois sur chaque appareil) sert de « salle » sur un relais public (ntfy.sh) : les offres WebRTC y passent
+// CHIFFRÉES (AES-GCM, clé dérivée du code) ; ensuite tout est direct entre les deux appareils. Repli : échange manuel de codes (sans serveur).
+const CASTCFG={ice:[{urls:'stun:stun.l.google.com:19302'}],relay:(()=>{try{return localStorage.v3castrelay||'https://ntfy.sh'}catch(e){return'https://ntfy.sh'}})()};
+var CASTS=(()=>{try{return JSON.parse(localStorage.v3cast||'{}')||{}}catch(e){return{}}})();// {code, role:'host'|'view', auto}
+function castSave(){try{localStorage.v3cast=JSON.stringify(CASTS)}catch(e){}}
+const CAST_AL='23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+function castNewCode(){const a=new Uint8Array(12);crypto.getRandomValues(a);let s='';for(const b of a)s+=CAST_AL[b%CAST_AL.length];return s}
+function castFmt(c){return (c||'').replace(/(.{4})(?=.)/g,'$1-')}
+function castNorm(t){return (t||'').toUpperCase().replace(/[^A-Z0-9]/g,'')}
+function castCodeOk(c){return c.length===12&&[...c].every(x=>CAST_AL.indexOf(x)>=0)}
 function castB64(u){let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function castUnb64(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';const s=atob(t),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u}
-async function castPack(o){const j=JSON.stringify(o);try{const cs=new CompressionStream('deflate-raw'),w=cs.writable.getWriter();w.write(new TextEncoder().encode(j));w.close();return 'VCT2.'+castB64(new Uint8Array(await new Response(cs.readable).arrayBuffer()))}catch(e){return 'VCT1.'+btoa(unescape(encodeURIComponent(j)))}}
+async function castZip(u8,dec){const s=dec?new DecompressionStream('deflate-raw'):new CompressionStream('deflate-raw'),w=s.writable.getWriter();w.write(u8);w.close();return new Uint8Array(await new Response(s.readable).arrayBuffer())}
+// codes manuels (repli sans relais)
+async function castPack(o){const j=JSON.stringify(o);try{return 'VCT2.'+castB64(await castZip(new TextEncoder().encode(j)))}catch(e){return 'VCT1.'+btoa(unescape(encodeURIComponent(j)))}}
 async function castUnpack(t){t=(t||'').replace(/\s+/g,'');const m=t.match(/VCT([12])\.([\w\-+\/=]+)/);if(!m)throw new Error('code non reconnu');
- if(m[1]==='1')return JSON.parse(decodeURIComponent(escape(atob(m[2]))));
- const ds=new DecompressionStream('deflate-raw'),w=ds.writable.getWriter();w.write(castUnb64(m[2]));w.close();return JSON.parse(await new Response(ds.readable).text())}
+ if(m[1]==='1')return JSON.parse(decodeURIComponent(escape(atob(m[2]))));return JSON.parse(new TextDecoder().decode(await castZip(castUnb64(m[2]),true)))}
 function castIceDone(pc){return new Promise(ok=>{if(pc.iceGatheringState==='complete')return ok();const f=()=>{if(pc.iceGatheringState==='complete'){pc.removeEventListener('icegatheringstatechange',f);ok()}};pc.addEventListener('icegatheringstatechange',f);setTimeout(ok,5000)})}
-function castSend(o){try{if(CAST.ch&&CAST.ch.readyState==='open')CAST.ch.send(JSON.stringify(o))}catch(e){}}
-// ---- fenêtre de dialogue (indépendante de mod()) ----
-function castDlg(h,bind){let d=$('castd');if(!d){d=document.createElement('div');d.id='castd';d.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(10,9,8,.94);color:#f4efe6;font:15px/1.45 system-ui,sans-serif;overflow:auto;padding:16px;display:flex;justify-content:center';document.body.append(d)}
- d.innerHTML='<div style="max-width:560px;width:100%">'+h+'</div>';d.style.display='flex';if(bind)bind(d);return d}
-function castDlgClose(){const d=$('castd');if(d)d.style.display='none'}
-const castBtn='display:block;width:100%;margin:8px 0;padding:12px;border-radius:12px;border:1px solid #3a342c;background:#27241f;color:#f4efe6;font-size:15px;text-align:left';
-const castBtnOn='display:block;width:100%;margin:8px 0;padding:12px;border-radius:12px;border:0;background:#f0cf73;color:#1c1a17;font-weight:700;font-size:15px';
-const castTa='width:100%;height:86px;margin:6px 0;border-radius:10px;border:1px solid #3a342c;background:#15130f;color:#f4efe6;font:11px monospace;padding:8px;box-sizing:border-box';
-function castPanel(){
- castDlg('<h2 style="margin:4px 0 8px">📡 Cast téléphone → tablette</h2><p>Le <b>téléphone calcule la 3D</b> et envoie l\'image ; la <b>tablette affiche</b>, se connecte au <b>home trainer</b> et au cardio. Sans serveur : les deux appareils échangent un code, puis la liaison est directe.</p><p style="color:#e9a178">À faire : mêmes Wi-Fi pour les deux (le plus fiable : le <b>point d\'accès du téléphone</b>, la tablette s\'y connecte), appli ouverte dans Chrome sur les deux, Bluetooth du home trainer sur la <b>tablette</b>.</p>'
-  +'<button id="cs1" style="'+castBtn+'">📺 <b>Cette tablette</b> : écran + home trainer</button><button id="cs2" style="'+castBtn+'">📱 <b>Ce téléphone</b> : calcule la 3D</button><button id="cs0" style="'+castBtn+'">✕ Fermer</button>',d=>{
-  $('cs1').onclick=castViewerStart;$('cs2').onclick=castHostStart;$('cs0').onclick=castDlgClose})}
-function castMake(){castStop(true);const pc=new RTCPeerConnection({iceServers:CASTCFG.ice});CAST.pc=pc;
- pc.onconnectionstatechange=()=>{const s=pc.connectionState;CAST.state=s;if(CAST.onstate)CAST.onstate(s);if(s==='failed'||s==='closed')castLost()};return pc}
-function castLost(){if(CAST.host){CAST.fwd=false;conn=false;pw=0;cad=0;say('📡 Cast : liaison avec la tablette perdue')}if(CAST.view&&$('castv'))$('castvs').textContent='Liaison perdue'}
-function castStop(quiet){clearInterval(CAST.t1);clearInterval(CAST.t2);try{CAST.ch&&CAST.ch.close()}catch(e){}try{CAST.pc&&CAST.pc.close()}catch(e){}
- if(CAST.host){CAST.fwd=false;if(!quiet){conn=false;pw=0;cad=0}const b=$('casth');if(b)b.remove()}
- if(CAST.view){const v=$('castv');if(v)v.remove();document.body.classList.remove('castv')}CAST.onstate=null;
- CAST.pc=CAST.ch=null;CAST.host=CAST.view=false;CAST.state=''}
-// ---- TABLETTE (spectateur) : crée l'offre ----
-async function castViewerStart(){
- castDlg('<h2>📺 Tablette : étape 1/3</h2><p>Préparation du code…</p>');
- let pc;try{pc=castMake();CAST.view=true;pc.addTransceiver('video',{direction:'recvonly'});const ch=pc.createDataChannel('vct');castChan(ch);
-  await pc.setLocalDescription(await pc.createOffer());await castIceDone(pc)}catch(e){CAST.view=false;castDlg('<p>⚠️ '+esc(e.message)+'</p><button id="cb" style="'+castBtn+'">Retour</button>',()=>$('cb').onclick=castPanel);return}
- const code=await castPack({k:'offer',s:pc.localDescription.sdp});
- castDlg('<h2>📺 Tablette : étapes 1 et 2 sur 3</h2><p><b>1.</b> Copie ce code et envoie-le au téléphone (message à toi-même, Keep, mail…) :</p><textarea id="cto" readonly style="'+castTa+'"></textarea><button id="cco" style="'+castBtn+'">📋 Copier le code</button>'
-  +'<p><b>2.</b> Sur le téléphone : <i>Réglages → 📡 Cast → Ce téléphone</i>, colle ce code, puis copie la <b>réponse</b> et colle-la ici :</p><textarea id="cti" placeholder="Code réponse du téléphone (VCT2.…)" style="'+castTa+'"></textarea><div id="cte" style="color:#ff8a6a;min-height:20px"></div><button id="cgo" style="'+castBtnOn+'">▶ Connecter</button><button id="cx" style="'+castBtn+'">✕ Annuler</button>',d=>{
-  $('cto').value=code;$('cco').onclick=async()=>{try{await navigator.clipboard.writeText(code);$('cco').textContent='✅ Copié'}catch(e){$('cto').select();document.execCommand('copy');$('cco').textContent='✅ Copié (ou copie à la main)'}};
-  $('cx').onclick=()=>{castStop();castDlgClose()};
-  $('cgo').onclick=async()=>{try{const o=await castUnpack($('cti').value);if(o.k!=='answer')throw new Error('ce n\'est pas le code réponse');$('cte').textContent='Connexion…';await pc.setRemoteDescription({type:'answer',sdp:o.s});castViewUI()}catch(e){$('cte').textContent='⚠️ '+e.message}}})}
-// ---- téléphone (hôte) : reçoit l'offre, renvoie la réponse ----
-function castHostStart(){
- castDlg('<h2>📱 Téléphone : calcule la 3D</h2><p><b>1.</b> Sur la tablette : <i>Réglages → 📡 Cast → Cette tablette</i>, copie le code et colle-le ici :</p><textarea id="cti" placeholder="Code de la tablette (VCT2.…)" style="'+castTa+'"></textarea><div id="cte" style="color:#ff8a6a;min-height:20px"></div><button id="cgo" style="'+castBtnOn+'">Créer la réponse</button><button id="cx" style="'+castBtn+'">✕ Annuler</button>',d=>{
-  $('cx').onclick=()=>{castStop();castDlgClose()};
-  $('cgo').onclick=async()=>{try{const o=await castUnpack($('cti').value);if(o.k!=='offer')throw new Error('ce n\'est pas le code de la tablette');$('cte').textContent='Préparation…';
-   const pc=castMake();CAST.host=true;pc.ondatachannel=e=>castChan(e.channel);
-   const st=ren.domElement.captureStream(30),tr=st.getVideoTracks()[0];try{tr.contentHint='motion'}catch(e){}
-   await pc.setRemoteDescription({type:'offer',sdp:o.s});
-   const tc=pc.getTransceivers().find(t=>t.receiver&&t.receiver.track&&t.receiver.track.kind==='video');if(!tc)throw new Error('offre sans vidéo');tc.direction='sendonly';await tc.sender.replaceTrack(tr);
-   try{const p=tc.sender.getParameters();if(!p.encodings||!p.encodings.length)p.encodings=[{}];p.encodings[0].maxBitrate=8e6;p.encodings[0].maxFramerate=30;p.degradationPreference='maintain-framerate';await tc.sender.setParameters(p)}catch(e){}
-   await pc.setLocalDescription(await pc.createAnswer());await castIceDone(pc);
-   const code=await castPack({k:'answer',s:pc.localDescription.sdp});
-   castDlg('<h2>📱 Téléphone : étape 2</h2><p><b>2.</b> Copie ce code <b>réponse</b> et colle-le sur la tablette (champ « Code réponse »), puis touche « Connecter » :</p><textarea id="cto" readonly style="'+castTa+'"></textarea><button id="cco" style="'+castBtn+'">📋 Copier</button><button id="csh" style="'+castBtn+'">📤 Partager…</button><p style="font-size:13px;opacity:.85">Ensuite choisis ton parcours et lance la sortie <b>sur le téléphone</b> : la tablette affiche l\'image et fournit la puissance.</p><button id="cx" style="'+castBtn+'">✕ Fermer (le cast continue)</button>',()=>{
-    $('cto').value=code;$('cco').onclick=async()=>{try{await navigator.clipboard.writeText(code);$('cco').textContent='✅ Copié'}catch(e){$('cto').select();document.execCommand('copy')}};
-    $('csh').onclick=()=>{if(navigator.share)navigator.share({text:code}).catch(()=>{});else $('cco').click()};$('cx').onclick=castDlgClose});
-   CAST.onstate=s=>{castHostBadge();if(s==='connected')castDlgClose()};castHostBadge()}catch(e){CAST.host=false;$('cte').textContent='⚠️ '+e.message}}})}
-function castHostBadge(){let b=$('casth');if(!b){b=document.createElement('div');b.id='casth';b.style.cssText='position:fixed;left:8px;top:8px;z-index:9000;padding:4px 10px;border-radius:14px;background:rgba(15,14,13,.75);color:#f0cf73;font:12px system-ui;pointer-events:auto';b.onclick=()=>mod('📡 Cast vers la tablette<br><small>'+esc(CAST.state||'')+'</small>',[['Arrêter le cast',()=>castStop()],['Fermer',()=>{}]]);document.body.append(b)}
- b.textContent='📡 Cast · '+({connected:'tablette connectée',connecting:'connexion…',new:'en attente',failed:'échec',disconnected:'coupé'}[CAST.state]||CAST.state||'')+(CAST.fps?' · '+CAST.fps:'')}
-// ---- canal de données ----
-function castChan(ch){CAST.ch=ch;ch.onopen=()=>{
-  if(CAST.host){CAST.fwd=true;conn=true;IBT=performance.now();say('📡 Cast : tablette connectée');CAST.t1=setInterval(()=>{castSend(castHud());castHostBadge()},250);CAST.t2=setInterval(castHostStats,2000)}
-  if(CAST.view){CAST.t1=setInterval(()=>castSend({t:'st',c:conn?1:0,p:Math.round(pw),k:Math.round(cad),h:hr|0,ck:CADOK?1:0,cp:cp?1:0,pr:PRNG,b:HRBELT?1:0}),125);CAST.t2=setInterval(castViewStats,2000)}};
+// ---- relais : salle dérivée du code, messages chiffrés ----
+async function castKeys(){if(CAST.k&&CAST.kc===CASTS.code)return CAST.k;const c=CASTS.code,en=new TextEncoder(),sb=window.crypto&&crypto.subtle;
+ if(!sb)throw new Error('chiffrement indisponible ici (ouvre la version en ligne, en https) : utilise la connexion manuelle');
+ const th=new Uint8Array(await sb.digest('SHA-256',en.encode('vct-cast-salle:'+c))),topic='vct'+[...th].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,30);
+ const km=await sb.importKey('raw',en.encode(c),'PBKDF2',false,['deriveKey']),key=await sb.deriveKey({name:'PBKDF2',salt:en.encode('vct-cast-cle-v1'),iterations:60000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+ CAST.k={topic,key};CAST.kc=c;return CAST.k}
+async function castEnc(o){const{key}=await castKeys(),z=await castZip(new TextEncoder().encode(JSON.stringify(o))),iv=crypto.getRandomValues(new Uint8Array(12)),ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,z)),u=new Uint8Array(12+ct.length);u.set(iv);u.set(ct,12);return castB64(u)}
+async function castDec(s){const{key}=await castKeys(),u=castUnb64(s.trim());return JSON.parse(new TextDecoder().decode(await castZip(new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:u.slice(0,12)},key,u.slice(12))),true)))}
+async function castPub(txt){const{topic}=await castKeys(),r=await fetch(CASTCFG.relay+'/'+topic,{method:'POST',body:txt});if(!r.ok)throw new Error('relais : '+r.status)}
+async function castSubStart(cb){castSubStop();const{topic}=await castKeys();let warned=false;
+ const es=new EventSource(CASTCFG.relay+'/'+topic+'/sse?since=3m');CAST.es=es;
+ const h=e=>{try{const m=JSON.parse(e.data);if(m.event==='message'&&m.message)cb(m.message)}catch(x){}};es.addEventListener('message',h);
+ es.onopen=()=>{CAST.relayOk=true;warned=false};es.onerror=()=>{if(!warned){warned=true;castStatus('Relais injoignable (Internet ?) — réessai automatique')}}}
+function castSubStop(){try{CAST.es&&CAST.es.close()}catch(e){}CAST.es=null}
+function castStatus(t){CAST.msg=t;castUiRefresh()}
+// ---- liaison WebRTC ----
+function castClosePc(){clearInterval(CAST.t1);clearInterval(CAST.t2);clearInterval(CAST.t3);clearInterval(CAST.rt);clearTimeout(CAST.rt);try{CAST.ch&&(CAST.ch.onclose=null);CAST.ch&&CAST.ch.close()}catch(e){}try{CAST.pc&&(CAST.pc.onconnectionstatechange=null);CAST.pc&&CAST.pc.close()}catch(e){}CAST.pc=CAST.ch=null;CAST.state='';CM.on&&cmStop()}
+function castMake(){castClosePc();const pc=new RTCPeerConnection({iceServers:CASTCFG.ice});CAST.pc=pc;
+ pc.onconnectionstatechange=()=>{const s=pc.connectionState;if(pc!==CAST.pc)return;CAST.state=s;castUiRefresh();if(s==='connected'){castStatus('Connecté');CASTS.auto=CASTS.auto!==false;castSave()}if(s==='failed'||s==='closed'||s==='disconnected')castLost()};return pc}
+function castLost(){if(CAST.lostT)return;CAST.lostT=setTimeout(()=>{CAST.lostT=0;const s=CAST.pc&&CAST.pc.connectionState;if(s==='connected')return;
+  if(CAST.host){CAST.fwd=false;castQApply();conn=false;pw=0;cad=0;CM.on&&cmStop();castStatus('Tablette déconnectée — en attente…')}
+  else if(CAST.view){castStatus('Liaison perdue — reconnexion…');setTimeout(()=>{if(CAST.view&&CAST.retry)CAST.retry()},1500)}},s0());function s0(){return CAST.view?4000:1500}}
+function castStop(quiet){castClosePc();castSubStop();CAST.run=(CAST.run||0)+1;clearTimeout(CAST.lostT);CAST.lostT=0;
+ if(CAST.host){CAST.fwd=false;castQApply();if(!quiet){conn=false;pw=0;cad=0}const b=$('casth');if(b)b.remove()}
+ if(CAST.view)castStageKill();
+ CAST.host=CAST.view=false;CAST.retry=null;CAST.msg=''}
+function castSend(o){const s=typeof o==='string'?o:JSON.stringify(o),ch=CAST.ch;if(!ch||ch.readyState!=='open')return false;
+ try{if(s.length<=15000)ch.send(s);else{const id=(CAST.cid=(CAST.cid||0)+1),n=Math.ceil(s.length/15000);for(let i=0;i<n;i++)ch.send(JSON.stringify({t:'ch',id,i,n,s:s.slice(i*15000,(i+1)*15000)}))}return true}catch(e){return false}}
+function castChan(ch){CAST.ch=ch;ch.onopen=()=>{CAST.rx=Date.now();
+  if(CAST.host){CAST.fwd=true;castQApply();IBT=performance.now();castStatus('Tablette connectée');CAST.t1=setInterval(castHostBadge,1500);CAST.t2=setInterval(castHostStats,2000);cmStart()}
+  if(CAST.view){castSend({t:'rs',w:innerWidth,h:innerHeight});CAST.t1=setInterval(castViewSt,125);CAST.t2=setInterval(castViewStats,2000)}};
  ch.onclose=()=>castLost();
  ch.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}
-  if(CAST.host){if(m.t==='st'){conn=!!m.c;pw=m.p||0;cad=m.k||0;hr=m.h||0;CADOK=!!m.ck;PRNG=m.pr||null;HRBELT=!!m.b;IBT=performance.now();TRW=0}}
-  else if(CAST.view){if(m.t==='cp'&&cp)wcp(m.a);else if(m.t==='hud')castViewHud(m);else if(m.t==='say')castViewSay(m.m)}}}
-function castHud(){const g=id=>{const e=$(id);return e?e.textContent:''};return{t:'hud',m:mode,s:g('vs'),p:g('vp'),c:g('vc'),g:g('vg'),h:g('vh'),d:g('vd'),r:g('vr'),a:g('va'),tm:g('vt'),z:g('zzn')+' '+g('zzp')}}
-async function castHostStats(){try{const sd=CAST.pc.getSenders().find(s=>s.track&&s.track.kind==='video');if(!sd)return;const r=await sd.getStats();r.forEach(x=>{if(x.type==='outbound-rtp'&&x.kind==='video'&&x.framesPerSecond!=null)CAST.fps=Math.round(x.framesPerSecond)+' img/s '+(x.frameWidth||'')+'×'+(x.frameHeight||'')})}catch(e){}}
-// ---- affichage sur la tablette ----
-function castViewUI(){castDlgClose();let o=$('castv');if(o)o.remove();o=document.createElement('div');o.id='castv';
- o.style.cssText='position:fixed;inset:0;z-index:99990;background:#000;color:#f4efe6;font-family:system-ui,sans-serif;touch-action:manipulation';
- o.innerHTML='<video id="castvv" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000"></video>'
-  +'<div id="castvh" style="position:absolute;left:10px;top:10px;padding:8px 14px;border-radius:14px;background:rgba(15,14,13,.55);display:none"><div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap"><span><b id="cv-s" style="font-size:34px">0</b> km/h</span><span><b id="cv-p" style="font-size:34px;color:#f0cf73">0</b> W</span><span><b id="cv-c" style="font-size:24px">0</b> tr/min</span><span><b id="cv-h" style="font-size:24px">–</b> bpm</span><span><b id="cv-g" style="font-size:24px">0</b> %</span></div><div style="font-size:15px;opacity:.9;margin-top:2px"><span id="cv-d">0</span> km · reste <span id="cv-r">0</span> km · <span id="cv-a">0</span> m · <span id="cv-t">0:00</span> · <span id="cv-z"></span></div></div>'
-  +'<div id="castvs" style="position:absolute;left:10px;bottom:8px;font-size:12px;opacity:.75">Connexion…</div><div id="castvm" style="position:absolute;left:50%;top:14px;transform:translateX(-50%);padding:8px 16px;border-radius:12px;background:rgba(15,14,13,.8);display:none;max-width:70%;text-align:center"></div>'
-  +'<div style="position:absolute;right:10px;top:10px;display:flex;gap:8px"><button id="cvb1" style="'+castBtn+'width:auto;margin:0;padding:8px 12px">🚴 Home trainer</button><button id="cvb2" style="'+castBtn+'width:auto;margin:0;padding:8px 12px">❤️ Cardio</button><button id="cvb3" style="'+castBtn+'width:auto;margin:0;padding:8px 12px">✕</button></div>';
- document.body.append(o);document.body.classList.add('castv');if(!$('castcss')){const st=document.createElement('style');st.id='castcss';st.textContent='body.castv #res,body.castv #toast{z-index:999999}';document.head.append(st)}
- CAST.pc.ontrack=e=>{const v=$('castvv');v.srcObject=e.streams&&e.streams[0]?e.streams[0]:new MediaStream([e.track]);v.play().catch(()=>{})};
- try{const r=CAST.pc.getReceivers().find(x=>x.track&&x.track.kind==='video');if(r){const v=$('castvv');v.srcObject=new MediaStream([r.track])}}catch(e){}
- $('cvb1').onclick=connect;$('cvb2').onclick=connectHR;$('cvb3').onclick=()=>{castStop();castDlgClose()};
- CAST.onstate=s=>{if(!$('castvs'))return;$('castvs').textContent=({connected:'Connecté au téléphone',connecting:'Connexion…',failed:'Liaison échouée',disconnected:'Liaison coupée'}[s]||s)+(CAST.vst?' · '+CAST.vst:'')};
- try{fsEnter()}catch(e){}}
-function castViewHud(m){const h=$('castvh');if(!h)return;h.style.display='block';const set=(i,t)=>{const e=$(i);if(e)e.textContent=t};set('cv-s',m.s);set('cv-p',m.p);set('cv-c',m.c);set('cv-h',m.h);set('cv-g',m.g);set('cv-d',m.d);set('cv-r',m.r);set('cv-a',m.a);set('cv-t',m.tm);set('cv-z',m.z||'')}
-function castViewSay(t){const e=$('castvm');if(!e)return;e.textContent=t;e.style.display='block';clearTimeout(castViewSay.t);castViewSay.t=setTimeout(()=>e.style.display='none',5000)}
-async function castViewStats(){try{const r=await CAST.pc.getStats();let fps=0,w=0,h=0,jb=0,codec='',cid='';const cs={};r.forEach(x=>{if(x.type==='codec')cs[x.id]=x.mimeType});
-  r.forEach(x=>{if(x.type==='inbound-rtp'&&x.kind==='video'){fps=Math.round(x.framesPerSecond||0);w=x.frameWidth;h=x.frameHeight;if(x.jitterBufferEmittedCount)jb=Math.round(x.jitterBufferDelay/x.jitterBufferEmittedCount*1000);cid=x.codecId}});
-  codec=(cs[cid]||'').replace('video/','');CAST.vst=fps+' img/s · '+w+'×'+h+' · '+codec+' · tampon '+jb+' ms';const e=$('castvs');if(e)e.textContent='Connecté au téléphone · '+CAST.vst}catch(e){}}
-function castViewTick(){}
+  if(CAST.view){CAST.rq=(CAST.rq||Promise.resolve()).then(()=>castOnMsg(m)).catch(()=>{})}else castOnMsg(m)}}
+async function castOnMsg(m){CAST.rx=Date.now();
+ if(m.t==='ch'){const q=CAST.chb||(CAST.chb={}),b=q[m.id]||(q[m.id]={n:m.n,p:[],c:0});if(b.p[m.i]===undefined){b.p[m.i]=m.s;b.c++}if(b.c===b.n){delete q[m.id];let j;try{j=JSON.parse(b.p.join(''))}catch(e){return}return castOnMsg(j)}return}
+ if(m.t==='z'){let j;try{j=JSON.parse(new TextDecoder().decode(await castZip(castUnb64(m.b),true)))}catch(e){return}return castOnMsg(j)}
+ if(CAST.host){
+  if(m.t==='st'){conn=!!m.c;pw=m.p||0;cad=m.k||0;hr=m.h||0;CADOK=!!m.ck;PRNG=m.pr||null;HRBELT=!!m.b;IBT=performance.now();TRW=0;
+   if(m.hn!==undefined&&CAST.hn!==m.hn){CAST.hn=m.hn;const h=$('h1');if(h)h.textContent=m.hn?m.hn+' (via la tablette)':'Home trainer non connecté (tablette)';const b=$('bC');if(b){b.classList.toggle('on',!!m.c);b.textContent=m.c?'Connecté':'Appairer'}}}
+  else if(m.t==='in')ciRun(m);
+ }else if(CAST.view){
+  if(m.t==='cp'){if(cp)wcp(m.a)}else if(m.t==='init')castStageInit(m);else if(m.t==='ui')castStageOps(m.o);else if(m.t==='cv')castStageCanvas(m);else if(m.t==='sz')castStageSize(m.w,m.h)}}
+// ======== HÔTE (téléphone) : miroir du DOM ========
+const CM={on:false,ids:new WeakMap(),nodes:new Map(),next:1,pk:new Set(),pa:new Map(),pt:new Set(),rm:new Set(),sig:new Map(),al:new WeakMap(),tx:new WeakMap(),val:new WeakMap(),cv:new WeakMap(),mo:null,tm:0,tk:0,q:Promise.resolve(),sz:''};
+const CM_SKIP=new Set(['script','style','link','meta','noscript','iframe','video','audio','object','embed','template']);
+function cmSkip(n){return CM_SKIP.has(n.localName)||n.id==='castd'||n.id==='casth'||n.id==='castv'||n.id==='castcss'}
+function cmId(n){let i=CM.ids.get(n);if(!i){i=CM.next++;CM.ids.set(n,i)}CM.nodes.set(i,n);return i}
+function cmAttrs(n){const a={};for(const at of n.attributes){const k=at.name;if(k.length>2&&k[0]==='o'&&k[1]==='n')continue;a[k]=at.value}return a}
+function cmSer(n){
+ if(n.nodeType===3){CM.tx.set(n,n.data);return{i:cmId(n),v:n.data}}
+ if(n.nodeType!==1||cmSkip(n))return null;
+ const o={i:cmId(n),n:n.localName};if(n.namespaceURI!=='http://www.w3.org/1999/xhtml')o.ns=n.namespaceURI;
+ o.a=cmAttrs(n);const t=o.n;CM.al.set(n,Object.assign({},o.a));
+ if(n===ren.domElement){o.n='div';o.gl=1;delete o.a.width;delete o.a.height;return o}
+ if(t==='canvas'){o.cv=1;CM.cv.delete(n);return o}
+ const c=[];for(const k of n.childNodes){const s=cmSer(k);if(s)c.push(s)}if(c.length)o.c=c;
+ if(t==='input'||t==='textarea'||t==='select'){o.p={v:n.value,c:n.checked};CM.val.set(n,n.value+'|'+n.checked)}
+ return o}
+function cmSend(m){CM.q=CM.q.then(async()=>{let s=JSON.stringify(m);if(s.length>3000)s=JSON.stringify({t:'z',b:castB64(await castZip(new TextEncoder().encode(s)))});castSend(s)}).catch(()=>{})}
+function cmForget(n){if(n.nodeType!==1&&n.nodeType!==3)return;const i=CM.ids.get(n);if(i&&!n.isConnected)CM.nodes.delete(i);for(const k of n.childNodes||[])cmForget(k)}
+function cmInit(){CM.ids=new WeakMap();CM.nodes=new Map();CM.next=1;CM.sig.clear();CM.al=new WeakMap();CM.tx=new WeakMap();CM.val=new WeakMap();CM.cv=new WeakMap();CM.pk.clear();CM.pa.clear();CM.pt.clear();CM.rm.clear();
+ const h=document.documentElement,b=document.body,css=[...document.querySelectorAll('style')].map(s=>s.textContent);
+ cmSend({t:'init',vw:h.clientWidth,vh:h.clientHeight,h:{i:cmId(h),a:cmAttrs(h)},b:cmSer(b),css});CM.sz=h.clientWidth+'x'+h.clientHeight}
+function cmStart(){if(CM.on)return;CM.on=true;
+ if(!CM.pc0){CM.pc0=Element.prototype.setPointerCapture;CM.rc0=Element.prototype.releasePointerCapture;
+  Element.prototype.setPointerCapture=function(id){try{CM.pc0.call(this,id)}catch(e){}};Element.prototype.releasePointerCapture=function(id){try{CM.rc0.call(this,id)}catch(e){}}}// pointeurs rejoués : pas de capture réelle
+ CM.mo=new MutationObserver(rs=>{const hd=document.head;for(const r of rs){const t=r.target;if(hd&&hd.contains(t))continue;
+   if(r.type==='childList'){CM.pk.add(t);for(const n of r.removedNodes)CM.rm.add(n)}
+   else if(r.type==='attributes'){let s=CM.pa.get(t);if(!s)CM.pa.set(t,s=new Set());s.add(r.attributeName)}
+   else CM.pt.add(t)}
+  if(!CM.tm)CM.tm=setTimeout(cmFlush,100)});
+ CM.mo.observe(document.documentElement,{subtree:true,childList:true,attributes:true,characterData:true});
+ cmInit();CM.tk=setInterval(cmTick,125)}
+function cmStop(){if(!CM.on)return;CM.on=false;try{CM.mo.disconnect()}catch(e){}clearTimeout(CM.tm);CM.tm=0;clearInterval(CM.tk);
+ if(CM.pc0){Element.prototype.setPointerCapture=CM.pc0;Element.prototype.releasePointerCapture=CM.rc0;CM.pc0=null}}
+function cmFlush(){CM.tm=0;if(!CM.on)return;if(CAST.ch&&CAST.ch.bufferedAmount>3e6){CM.tm=setTimeout(cmFlush,200);return}
+ for(const n of CM.rm)cmForget(n);CM.rm.clear();
+ let K=[...CM.pk].filter(n=>n.isConnected&&CM.ids.has(n));CM.pk.clear();K=K.filter(n=>!K.some(p=>p!==n&&p.contains(n)));
+ const o=[],inK=n=>K.some(p=>p.contains(n));
+ for(const p of K){const c=[];for(const k of p.childNodes){const s=cmSer(k);if(s)c.push(s)}const sg=JSON.stringify(c),id=CM.ids.get(p);if(CM.sig.get(id)===sg)continue;CM.sig.set(id,sg);for(const d of p.querySelectorAll('*')){const di=CM.ids.get(d);if(di)CM.sig.delete(di)}o.push({k:'k',id,c})}
+ for(const[n,names]of CM.pa){if(!n.isConnected||!CM.ids.has(n)||inK(n))continue;let last=CM.al.get(n);if(!last)CM.al.set(n,last={});const d={};let any=false;
+  for(const k of names){if(k.length>2&&k[0]==='o'&&k[1]==='n')continue;const v=n.getAttribute(k);if(last[k]!==v){last[k]=v;d[k]=v;any=true}}if(any)o.push({k:'a',id:CM.ids.get(n),a:d})}
+ CM.pa.clear();
+ for(const n of CM.pt){if(!n.isConnected||!CM.ids.has(n)||inK(n))continue;if(CM.tx.get(n)===n.data)continue;CM.tx.set(n,n.data);o.push({k:'t',id:CM.ids.get(n),v:n.data})}CM.pt.clear();
+ if(o.length)cmSend({t:'ui',o})}
+function cmTick(){if(!CM.on||!CAST.ch||CAST.ch.readyState!=='open')return;
+ const h=document.documentElement,sz=h.clientWidth+'x'+h.clientHeight;if(sz!==CM.sz){CM.sz=sz;cmSend({t:'sz',w:h.clientWidth,h:h.clientHeight})}
+ for(const e of document.querySelectorAll('input,textarea,select')){if(!CM.ids.has(e))continue;const v=e.value+'|'+e.checked;if(CM.val.get(e)!==v){CM.val.set(e,v);cmSend({t:'ui',o:[{k:'v',id:CM.ids.get(e),v:e.value,c:e.checked}]})}}
+ if(CAST.ch.bufferedAmount>1.5e6)return;const now=performance.now();
+ for(const c of document.querySelectorAll('canvas')){if(c===ren.domElement||!CM.ids.has(c))continue;let st=CM.cv.get(c);if(!st)CM.cv.set(c,st={t:0,iv:250,last:''});if(now<st.t)continue;
+  const r=c.getBoundingClientRect();if(r.width<2||r.height<2||c.width<2||c.height<2){st.t=now+400;continue}
+  const t0=performance.now();let u='';try{u=c.closest('#c3d')?c.toDataURL('image/jpeg',.6):c.toDataURL('image/png')}catch(e){st.t=now+2000;continue}
+  st.iv=Math.max(250,(performance.now()-t0)*8);st.t=now+st.iv;if(u===st.last)continue;st.last=u;cmSend({t:'cv',id:CM.ids.get(c),u,w:c.width,h:c.height})}}
+// ---- événements rejoués sur le téléphone ----
+const CI={ptr:new Map()};
+function ciRun(m){try{const e=m.e,x=m.x,y=m.y;
+ if(e==='input'||e==='change'){const n=CM.nodes.get(m.id);if(!n)return;if(n.type==='checkbox'||n.type==='radio')n.checked=!!m.c;else n.value=m.v;CM.val.set(n,n.value+'|'+n.checked);n.dispatchEvent(new Event(e,{bubbles:true}));return}
+ if(e==='keydown'||e==='keyup'){const t=document.activeElement&&document.activeElement!==document.body?document.activeElement:document;t.dispatchEvent(new KeyboardEvent(e,{key:m.key,code:m.code,ctrlKey:!!m.ctrl,shiftKey:!!m.shift,altKey:!!m.alt,metaKey:!!m.meta,bubbles:true,cancelable:true}));return}
+ let tg;
+ if(e==='pointerdown'){tg=document.elementFromPoint(x,y)||document.body;CI.ptr.set(m.pid,tg)}
+ else if(e.startsWith('pointer')){tg=CI.ptr.get(m.pid)||document.elementFromPoint(x,y)||document.body;if(e==='pointerup'||e==='pointercancel')CI.ptr.delete(m.pid)}
+ else tg=document.elementFromPoint(x,y)||document.body;
+ let ev;const base={bubbles:true,cancelable:true,composed:true,clientX:x,clientY:y,screenX:x,screenY:y,view:window};
+ if(e.startsWith('pointer'))ev=new PointerEvent(e,Object.assign(base,{pointerId:m.pid,pointerType:m.pt||'touch',isPrimary:m.ip!==false,button:m.b||0,buttons:m.bs||0,pressure:m.p||0,width:1,height:1}));
+ else if(e==='wheel')ev=new WheelEvent('wheel',Object.assign(base,{deltaX:m.dx,deltaY:m.dy,deltaMode:m.dm||0}));
+ else ev=new MouseEvent(e,Object.assign(base,{button:m.b||0,detail:m.d||1}));
+ tg.dispatchEvent(ev)}catch(er){console.warn('cast : événement rejoué',er)}}
+// ======== HÔTE : connexion ========
+async function castHostAccept(sdp){const pc=castMake();CAST.host=true;pc.ondatachannel=e=>castChan(e.channel);
+ const st=ren.domElement.captureStream(30),tr=st.getVideoTracks()[0];try{tr.contentHint='motion'}catch(e){}
+ await pc.setRemoteDescription({type:'offer',sdp});
+ const tc=pc.getTransceivers().find(t=>t.receiver&&t.receiver.track&&t.receiver.track.kind==='video');if(!tc)throw new Error('offre sans vidéo');tc.direction='sendonly';await tc.sender.replaceTrack(tr);
+ try{const p=tc.sender.getParameters();if(!p.encodings||!p.encodings.length)p.encodings=[{}];p.encodings[0].maxBitrate=8e6;p.encodings[0].maxFramerate=30;p.degradationPreference='maintain-framerate';await tc.sender.setParameters(p)}catch(e){}
+ await pc.setLocalDescription(await pc.createAnswer());await castIceDone(pc);return pc.localDescription.sdp}
+async function castHostListen(){
+ if(!CASTS.code)return castPanel();
+ CASTS.role='host';castSave();
+ if(CAST.view)castStop(true);
+ CAST.host=true;CAST.seen=CAST.seen||new Set();
+ try{await castKeys()}catch(e){castStatus(e.message);return}
+ castStatus('En attente de la tablette… (même code sur la tablette)');castHostBadge();
+ await castSubStart(async txt=>{let o;try{o=await castDec(txt)}catch(e){return}
+  if(o.k!=='offer'||CAST.seen.has(o.s)||Math.abs(Date.now()-o.t)>300000)return;
+  if(CAST.pc&&CAST.state==='connected'&&Date.now()-(CAST.rx||0)<4000)return;// liaison saine : on ne la remplace pas
+  CAST.seen.add(o.s);
+  try{castStatus('Offre reçue : connexion…');const sdp=await castHostAccept(o.sdp);await castPub(await castEnc({k:'answer',s:o.s,t:Date.now(),sdp}))}catch(e){castStatus('Erreur : '+e.message)}})}
+function castHostBadge(){if(!CAST.host)return;let b=$('casth');if(!b){b=document.createElement('div');b.id='casth';b.style.cssText='position:fixed;left:8px;top:8px;z-index:9000;padding:4px 10px;border-radius:14px;background:rgba(15,14,13,.75);color:#f0cf73;font:12px system-ui;pointer-events:auto';b.onclick=()=>castPanel();document.body.append(b)}
+ b.textContent='📡 '+({connected:'tablette connectée',connecting:'connexion…',new:'en attente',failed:'échec',disconnected:'coupé'}[CAST.state]||'en attente de la tablette')+(CAST.fps?' · '+CAST.fps:'')}
+async function castHostStats(){try{const sd=CAST.pc.getSenders().find(s=>s.track&&s.track.kind==='video');if(!sd)return;(await sd.getStats()).forEach(x=>{if(x.type==='outbound-rtp'&&x.kind==='video'&&x.framesPerSecond!=null)CAST.fps=Math.round(x.framesPerSecond)+' img/s '+(x.frameWidth||'')+'×'+(x.frameHeight||'')})}catch(e){}}
+// ======== TABLETTE (écran à distance) ========
+var CV={nodes:new Map(),id:new WeakMap(),vw:0,vh:0};
+function castViewSt(){const h=$('h1');castSend({t:'st',c:conn?1:0,p:Math.round(pw),k:Math.round(cad),h:hr|0,ck:CADOK?1:0,cp:cp?1:0,pr:PRNG,b:HRBELT?1:0,hn:conn&&h?h.textContent:''})}
+async function castViewerConnect(){
+ if(!CASTS.code)return castPanel();
+ CASTS.role='view';castSave();
+ if(CAST.host)castStop(true);
+ try{if(typeof IN!=='undefined'&&IN.on)introEnd()}catch(e){}
+ castClosePc();CAST.view=true;CAST.run=(CAST.run||0)+1;const my=CAST.run;castStageBuild();
+ try{await castKeys()}catch(e){castStatus(e.message);return}
+ const attempt=async()=>{if(CAST.run!==my||!CAST.view)return;
+  try{castStatus('Recherche du téléphone…');const pc=castMake();pc.addTransceiver('video',{direction:'recvonly'});castChan(pc.createDataChannel('vct'));
+   pc.ontrack=e=>{const v=$('castvv');if(v){v.srcObject=e.streams&&e.streams[0]?e.streams[0]:new MediaStream([e.track]);v.play().catch(()=>{})}};
+   await pc.setLocalDescription(await pc.createOffer());await castIceDone(pc);if(CAST.run!==my||pc!==CAST.pc)return;
+   const sid=Math.random().toString(16).slice(2,10);CAST.sid=sid;const msg=await castEnc({k:'offer',s:sid,t:Date.now(),sdp:pc.localDescription.sdp});
+   const pub=()=>castPub(msg).catch(e=>castStatus('Relais injoignable : '+e.message+' — vérifie Internet'));await pub();
+   await castSubStart(async txt=>{try{const o=await castDec(txt);if(o.k==='answer'&&o.s===CAST.sid&&pc.signalingState==='have-local-offer'){await pc.setRemoteDescription({type:'answer',sdp:o.sdp});castStatus('Connexion…')}}catch(e){}});
+   let n=0;const sch=[10000,20000,40000,60000],again=()=>{if(CAST.run!==my||pc!==CAST.pc||pc.signalingState!=='have-local-offer')return;
+    if(n>=sch.length){castStatus('Téléphone introuvable : ouvre l\'appli sur le téléphone, Réglages → Cast → « Téléphone », même code. Puis touche Réessayer.');return}
+    CAST.rt=setTimeout(()=>{if(CAST.run!==my||pc!==CAST.pc||pc.signalingState!=='have-local-offer')return;pub();again()},sch[n++])};again()
+  }catch(e){castStatus('Erreur : '+e.message)}};
+ CAST.retry=attempt;attempt()}
+function castStageBuild(){castStageKill();const o=document.createElement('div');o.id='castv';o.style.cssText='position:fixed;inset:0;z-index:99990;background:#000;color:#f4efe6;font-family:system-ui,sans-serif;overflow:hidden;touch-action:manipulation';
+ o.innerHTML='<div id="castst" style="position:absolute;left:0;top:0;transform-origin:0 0;display:none"><video id="castvv" autoplay playsinline muted style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:fill;background:#000"></video><iframe id="castif" style="position:absolute;left:0;top:0;width:100%;height:100%;border:0;background:transparent"></iframe></div>'
+  +'<div id="castw" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px"><div><div style="font-size:42px">📡</div><div id="castwm" style="margin:10px 0;opacity:.9">Connexion…</div><div style="opacity:.6;font-size:13px">Code '+castFmt(CASTS.code||'')+'</div><button id="castwr" style="'+castBtn+'width:auto;display:inline-block;margin-top:14px">↻ Réessayer</button> <button id="castwx" style="'+castBtn+'width:auto;display:inline-block">✕ Quitter</button></div></div>'
+  +'<button id="castgb" style="position:absolute;left:4px;top:50%;margin-top:-17px;z-index:5;width:34px;height:34px;border-radius:17px;border:0;background:rgba(15,14,13,.55);color:#f4efe6;font-size:16px;opacity:.5">⚙</button>'
+  +'<div id="castgp" style="position:absolute;left:44px;top:50%;transform:translateY(-50%);z-index:5;display:none;padding:8px;border-radius:12px;background:rgba(15,14,13,.92);min-width:210px"><button id="castb1" style="'+castBtn+'margin:4px 0">🚴 Home trainer</button><button id="castb2" style="'+castBtn+'margin:4px 0">❤️ Cardio</button><button id="castb3" style="'+castBtn+'margin:4px 0">↻ Reconnecter</button><button id="castb4" style="'+castBtn+'margin:4px 0">✕ Quitter le cast</button><div id="castvs" style="font-size:11px;opacity:.7;margin-top:4px"></div></div>';
+ document.body.append(o);document.body.classList.add('castv');
+ if(!$('castcss')){const st=document.createElement('style');st.id='castcss';st.textContent='body.castv #res,body.castv #toast{z-index:999999}';document.head.append(st)}
+ $('castgb').onclick=()=>{const p=$('castgp');p.style.display=p.style.display==='none'?'block':'none'};
+ $('castb1').onclick=connect;$('castb2').onclick=connectHR;$('castb3').onclick=()=>{$('castgp').style.display='none';CAST.retry&&CAST.retry()};$('castb4').onclick=$('castwx').onclick=()=>{castStop();CASTS.auto=CASTS.auto;castSave()};$('castwr').onclick=()=>CAST.retry&&CAST.retry();
+ addEventListener('resize',castStageFit);try{fsEnter()}catch(e){}}
+function castStageKill(){const v=$('castv');if(v)v.remove();document.body.classList.remove('castv');removeEventListener('resize',castStageFit);CV.nodes=new Map();CV.id=new WeakMap();CV.vw=CV.vh=0}
+function castUiRefresh(){const m=$('castwm');if(m&&CAST.msg)m.textContent=CAST.msg;const s=$('castvs');if(s)s.textContent=(CAST.msg||'')+(CAST.vst?' · '+CAST.vst:'');if(CAST.host)castHostBadge();if($('castd')&&$('castd').style.display!=='none'&&CAST.pnl)castPanelDraw()}
+function castStageSize(w,h){CV.vw=w;CV.vh=h;castStageFit()}
+function castStageFit(){const st=$('castst');if(!st||!CV.vw)return;const s=Math.min(innerWidth/CV.vw,innerHeight/CV.vh);st.style.width=CV.vw+'px';st.style.height=CV.vh+'px';st.style.transform='scale('+s+')';st.style.left=Math.round((innerWidth-CV.vw*s)/2)+'px';st.style.top=Math.round((innerHeight-CV.vh*s)/2)+'px'}
+function castStageInit(m){const f=$('castif');if(!f)return;CV.nodes=new Map();CV.id=new WeakMap();CV.vw=m.vw;CV.vh=m.vh;
+ const css=(m.css||[]).map(c=>'<style>'+c.replace(/<\/style/gi,'<\\/style')+'</style>').join('')+'<style>html,body{background:transparent!important}</style>';
+ f.onload=()=>{const d=f.contentDocument;try{for(const k in m.h.a)d.documentElement.setAttribute(k,m.h.a[k])}catch(e){}CV.nodes.set(m.h.i,d.documentElement);CV.id.set(d.documentElement,m.h.i);
+  for(const k in m.b.a)try{d.body.setAttribute(k,m.b.a[k])}catch(e){}CV.nodes.set(m.b.i,d.body);CV.id.set(d.body,m.b.i);
+  for(const c of m.b.c||[]){const n=castMk(d,c);if(n)d.body.append(n)}castFixSel(d.body);castBind(d);
+  $('castst').style.display='block';$('castw').style.display='none';castStageFit()};
+ f.srcdoc='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+css+'</head><body></body></html>'}
+function castMk(d,o){if(o.n===undefined){const t=d.createTextNode(o.v);CV.nodes.set(o.i,t);CV.id.set(t,o.i);return t}
+ let e;try{e=o.ns?d.createElementNS(o.ns,o.n):d.createElement(o.n)}catch(x){return null}
+ for(const k in o.a){try{e.setAttribute(k,o.a[k])}catch(x){}}
+ CV.nodes.set(o.i,e);CV.id.set(e,o.i);
+ for(const c of o.c||[]){const n=castMk(d,c);if(n)e.append(n)}
+ if(o.p){if(e.localName==='select'){e.value=o.p.v}else{e.value=o.p.v;if('checked' in e)e.checked=o.p.c}}
+ return e}
+function castFixSel(root){root.querySelectorAll&&root.querySelectorAll('select').forEach(s=>{})}
+function castFree(n){const i=CV.id.get(n);if(i)CV.nodes.delete(i);for(const k of n.childNodes||[])castFree(k)}
+function castStageOps(os){const d=$('castif')&&$('castif').contentDocument;if(!d)return;
+ for(const o of os){const n=CV.nodes.get(o.id);if(!n)continue;
+  if(o.k==='k'){const old=[...n.childNodes];old.forEach(castFree);const nn=[];for(const c of o.c){const x=castMk(d,c);if(x)nn.push(x)}n.replaceChildren(...nn)}
+  else if(o.k==='a'){for(const k in o.a){try{if(o.a[k]===null)n.removeAttribute(k);else n.setAttribute(k,o.a[k])}catch(x){}}}
+  else if(o.k==='t'){n.data=o.v}
+  else if(o.k==='v'){if(d.activeElement!==n){if(n.type==='checkbox'||n.type==='radio')n.checked=!!o.c;else n.value=o.v}}}}
+function castStageCanvas(m){const d=$('castif')&&$('castif').contentDocument;const c=d&&CV.nodes.get(m.id);if(!c||c.localName!=='canvas')return;const im=new Image();im.onload=()=>{try{if(c.width!==m.w)c.width=m.w;if(c.height!==m.h)c.height=m.h;const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);x.drawImage(im,0,0)}catch(e){}};im.src=m.u}
+// événements de la tablette → téléphone
+function castBind(d){const send=o=>castSend(Object.assign({t:'in'},o));let pend={},raf=0;
+ const flush=()=>{raf=0;const p=pend;pend={};for(const k in p)send(p[k])};
+ const loc=t=>t&&t.closest&&t.closest('#bC,#bHR');// Bluetooth : toujours sur la tablette
+ const P=e=>({e:e.type,x:e.clientX,y:e.clientY,pid:e.pointerId,pt:e.pointerType,b:e.button,bs:e.buttons,p:e.pressure,ip:e.isPrimary});
+ for(const ty of ['pointerdown','pointerup','pointercancel']){d.addEventListener(ty,e=>{if(loc(e.target))return;if(raf){cancelAnimationFrame(raf);flush()}send(P(e))},true)}
+ d.addEventListener('pointermove',e=>{if(!e.buttons&&e.pointerType==='touch')return;pend.pm=P(e);if(!raf)raf=requestAnimationFrame(flush)},true);
+ d.addEventListener('click',e=>{const l=loc(e.target);if(l){e.preventDefault();if(l.id==='bC')connect();else connectHR();return}if(e.target.closest&&e.target.closest('a'))e.preventDefault();if(raf){cancelAnimationFrame(raf);flush()}send({e:'click',x:e.clientX,y:e.clientY,b:e.button,d:e.detail})},true);
+ d.addEventListener('dblclick',e=>{if(loc(e.target))return;send({e:'dblclick',x:e.clientX,y:e.clientY,b:e.button,d:2})},true);
+ d.addEventListener('wheel',e=>{if(loc(e.target))return;e.preventDefault();send({e:'wheel',x:e.clientX,y:e.clientY,dx:e.deltaX,dy:e.deltaY,dm:e.deltaMode})},{capture:true,passive:false});
+ d.addEventListener('submit',e=>e.preventDefault(),true);
+ for(const ty of ['input','change'])d.addEventListener(ty,e=>{const el=e.target,id=CV.id.get(el);if(!id||loc(el))return;send({e:ty,id,v:el.value,c:!!el.checked})},true);
+ for(const ty of ['keydown','keyup'])d.addEventListener(ty,e=>{const t=e.target;if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;send({e:ty,key:e.key,code:e.code,ctrl:e.ctrlKey,shift:e.shiftKey,alt:e.altKey,meta:e.metaKey})},true);
+ addEventListener('keydown',e=>{if(e.key==='Escape'&&CAST.view)$('castgp')&&($('castgp').style.display='block')})}
+async function castViewStats(){try{if(!CAST.pc)return;const r=await CAST.pc.getStats();let fps=0,w=0,h=0,jb=0,cid='';const cs={};r.forEach(x=>{if(x.type==='codec')cs[x.id]=x.mimeType});
+ r.forEach(x=>{if(x.type==='inbound-rtp'&&x.kind==='video'){fps=Math.round(x.framesPerSecond||0);w=x.frameWidth;h=x.frameHeight;if(x.jitterBufferEmittedCount)jb=Math.round(x.jitterBufferDelay/x.jitterBufferEmittedCount*1000);cid=x.codecId}});
+ CAST.vst=fps+' img/s · '+w+'×'+h+' · '+(cs[cid]||'').replace('video/','')+' · tampon '+jb+' ms';castUiRefresh()}catch(e){}}
+// ======== fenêtre de réglage ========
+function castDlg(h,bind){let d=$('castd');if(!d){d=document.createElement('div');d.id='castd';d.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(10,9,8,.96);color:#f4efe6;font:15px/1.45 system-ui,sans-serif;overflow:auto;padding:16px;display:flex;justify-content:center';document.body.append(d)}
+ d.innerHTML='<div style="max-width:580px;width:100%">'+h+'</div>';d.style.display='flex';if(bind)bind(d);return d}
+function castDlgClose(){const d=$('castd');if(d)d.style.display='none';CAST.pnl=false}
+const castBtn='display:block;width:100%;margin:8px 0;padding:12px;border-radius:12px;border:1px solid #3a342c;background:#27241f;color:#f4efe6;font-size:15px;text-align:left;';
+const castBtnOn='display:block;width:100%;margin:8px 0;padding:12px;border-radius:12px;border:0;background:#f0cf73;color:#1c1a17;font-weight:700;font-size:15px;';
+const castTa='width:100%;height:86px;margin:6px 0;border-radius:10px;border:1px solid #3a342c;background:#15130f;color:#f4efe6;font:11px monospace;padding:8px;box-sizing:border-box';
+function castQApply(){try{PR=PRMAX();ren.setPixelRatio(PR);rs()}catch(e){}}
+function castPanel(){CAST.pnl=true;castPanelDraw()}
+function castPanelDraw(){const code=CASTS.code,role=CASTS.role;
+ castDlg('<h2 style="margin:4px 0 8px">📡 Cast téléphone ⇄ tablette</h2><p>Le <b>téléphone</b> calcule tout (3D, parcours, séance). La <b>tablette</b> affiche <b>la même chose</b>, tu la touches comme le téléphone, et elle se branche au <b>home trainer</b>.</p>'
+  +'<div style="background:#1c1a17;border:1px solid #3a342c;border-radius:12px;padding:12px;margin:10px 0"><div style="opacity:.7;font-size:13px">Code permanent (le même sur les deux appareils, à saisir une seule fois)</div><div style="font:700 26px monospace;letter-spacing:2px;margin:6px 0;color:#f0cf73">'+(code?castFmt(code):'— aucun —')+'</div>'
+  +'<button id="cd1" style="'+castBtn+'display:inline-block;width:auto;margin:2px 4px 2px 0">'+(code?'📋 Copier':'✨ Créer mon code')+'</button><button id="cd2" style="'+castBtn+'display:inline-block;width:auto;margin:2px 4px 2px 0">✏️ Saisir un code</button>'+(code?'<button id="cd3" style="'+castBtn+'display:inline-block;width:auto;margin:2px 0">🔄 Nouveau code</button>':'')+'</div>'
+  +(code?'<button id="cr1" style="'+(role==='view'?castBtnOn:castBtn)+'">📺 <b>Cette tablette</b> : écran + home trainer'+(CAST.view?' <small>(actif)</small>':'')+'</button><button id="cr2" style="'+(role==='host'?castBtnOn:castBtn)+'">📱 <b>Ce téléphone</b> : calcule la 3D'+(CAST.host?' <small>(en écoute)</small>':'')+'</button>'
+   +'<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="cau" '+(CASTS.auto!==false?'checked':'')+'> Se connecter automatiquement au lancement (selon le rôle choisi)</label>':'')
+  +'<div style="margin:8px 0">Netteté de l\'image (sur le téléphone, pendant le cast) : '+[[1,'Normale'],[1.6,'Haute'],[2.4,'Max']].map(([v,n])=>'<button data-cq="'+v+'" style="'+((SET.castQ||1)===v?castBtnOn:castBtn)+'display:inline-block;width:auto;margin:2px 4px 2px 0;padding:8px 12px">'+n+'</button>').join('')+'<div style="font-size:12px;opacity:.7">Plus net = plus lourd pour le téléphone (la résolution baisse toute seule si les images/s chutent).</div></div>'
+  +'<div id="cst" style="min-height:22px;color:#e9a178;margin:6px 0">'+esc(CAST.msg||'')+'</div>'
+  +'<p style="font-size:12.5px;opacity:.7">Les messages de connexion passent par le relais public ntfy.sh, <b>chiffrés</b> avec ton code (personne d\'autre ne peut les lire) ; l\'image et les commandes vont ensuite <b>directement</b> d\'un appareil à l\'autre. Même Wi-Fi recommandé (ou point d\'accès du téléphone). Touche une fois l\'écran du téléphone après la connexion pour autoriser le son.</p>'
+  +'<button id="cm1" style="'+castBtn+'">🔧 Connexion manuelle (sans relais ni code permanent)</button><button id="cx" style="'+castBtn+'">✕ Fermer</button>',d=>{
+  $('cx').onclick=castDlgClose;
+  $('cd1').onclick=async()=>{if(!CASTS.code){CASTS.code=castNewCode();castSave();castPanelDraw();return}try{await navigator.clipboard.writeText(castFmt(CASTS.code));$('cd1').textContent='✅ Copié'}catch(e){}};
+  $('cd2').onclick=()=>{const v=prompt('Code à 12 caractères (ex. K7M2-QX9P-4TWD) :','');if(v==null)return;const c=castNorm(v);if(!castCodeOk(c)){CAST.msg='Code invalide (12 caractères : lettres et chiffres, sans 0 / 1 / I / L / O)';castPanelDraw();return}CASTS.code=c;castSave();castStop(true);CAST.k=null;CAST.msg='Code enregistré';castPanelDraw()};
+  if($('cd3'))$('cd3').onclick=()=>{if(!confirm('Créer un nouveau code ? Il faudra le ressaisir sur l\'autre appareil.'))return;castStop(true);CASTS.code=castNewCode();CAST.k=null;castSave();castPanelDraw()};
+  if($('cr1'))$('cr1').onclick=()=>{castDlgClose();castViewerConnect()};
+  if($('cr2'))$('cr2').onclick=()=>{castHostListen();castPanelDraw()};
+  if($('cau'))$('cau').onchange=e=>{CASTS.auto=e.target.checked;castSave()};
+  d.querySelectorAll('[data-cq]').forEach(b=>b.onclick=()=>{SET.castQ=+b.dataset.cq;ssave();castQApply();castPanelDraw()});
+  $('cm1').onclick=castManual})}
+// ---- connexion manuelle (repli, sans relais) ----
+function castManual(){CAST.pnl=false;castDlg('<h2>🔧 Connexion manuelle</h2><p>Sans relais : on échange deux codes à la main.</p><button id="m1" style="'+castBtn+'">📺 <b>Cette tablette</b> : créer le code d\'offre</button><button id="m2" style="'+castBtn+'">📱 <b>Ce téléphone</b> : coller le code de la tablette</button><button id="mb" style="'+castBtn+'">← Retour</button>',()=>{$('mb').onclick=castPanel;$('m1').onclick=castManualView;$('m2').onclick=castManualHost})}
+async function castManualView(){castDlg('<p>Préparation du code…</p>');let pc;
+ try{castClosePc();CAST.view=true;CAST.run=(CAST.run||0)+1;pc=castMake();pc.addTransceiver('video',{direction:'recvonly'});castChan(pc.createDataChannel('vct'));
+  pc.ontrack=e=>{const v=$('castvv');if(v){v.srcObject=e.streams&&e.streams[0]?e.streams[0]:new MediaStream([e.track]);v.play().catch(()=>{})}};
+  await pc.setLocalDescription(await pc.createOffer());await castIceDone(pc)}catch(e){CAST.view=false;castDlg('<p>⚠️ '+esc(e.message)+'</p><button id="cb" style="'+castBtn+'">Retour</button>',()=>$('cb').onclick=castManual);return}
+ const code=await castPack({k:'offer',s:pc.localDescription.sdp});
+ castDlg('<h2>📺 Tablette : code d\'offre</h2><p><b>1.</b> Copie ce code et envoie-le au téléphone :</p><textarea id="cto" readonly style="'+castTa+'"></textarea><button id="cco" style="'+castBtn+'">📋 Copier</button><p><b>2.</b> Colle ici le code <b>réponse</b> du téléphone :</p><textarea id="cti" style="'+castTa+'"></textarea><div id="cte" style="color:#ff8a6a;min-height:20px"></div><button id="cgo" style="'+castBtnOn+'">▶ Connecter</button><button id="cx" style="'+castBtn+'">✕ Annuler</button>',()=>{
+  $('cto').value=code;$('cco').onclick=async()=>{try{await navigator.clipboard.writeText(code);$('cco').textContent='✅ Copié'}catch(e){$('cto').select();document.execCommand('copy')}};
+  $('cx').onclick=()=>{castStop();castDlgClose()};
+  $('cgo').onclick=async()=>{try{const o=await castUnpack($('cti').value);if(o.k!=='answer')throw new Error('ce n\'est pas le code réponse');await pc.setRemoteDescription({type:'answer',sdp:o.s});castDlgClose();castStageBuild();CAST.retry=null;pc.ontrack=e=>{const v=$('castvv');if(v){v.srcObject=e.streams&&e.streams[0]?e.streams[0]:new MediaStream([e.track]);v.play().catch(()=>{})}};try{const r=pc.getReceivers().find(x=>x.track&&x.track.kind==='video');if(r)$('castvv').srcObject=new MediaStream([r.track])}catch(e){}}catch(e){$('cte').textContent='⚠️ '+e.message}}})}
+function castManualHost(){castDlg('<h2>📱 Téléphone</h2><p>Colle le code d\'offre de la tablette :</p><textarea id="cti" style="'+castTa+'"></textarea><div id="cte" style="color:#ff8a6a;min-height:20px"></div><button id="cgo" style="'+castBtnOn+'">Créer la réponse</button><button id="cx" style="'+castBtn+'">✕ Annuler</button>',()=>{
+ $('cx').onclick=()=>{castStop();castDlgClose()};
+ $('cgo').onclick=async()=>{try{const o=await castUnpack($('cti').value);if(o.k!=='offer')throw new Error('ce n\'est pas le code de la tablette');$('cte').textContent='Préparation…';
+  castStop(true);const sdp=await castHostAccept(o.s),code=await castPack({k:'answer',s:sdp});castHostBadge();
+  castDlg('<h2>📱 Téléphone : code réponse</h2><p>Copie ce code et colle-le sur la tablette, puis « Connecter » :</p><textarea id="cto" readonly style="'+castTa+'"></textarea><button id="cco" style="'+castBtn+'">📋 Copier</button><button id="csh" style="'+castBtn+'">📤 Partager…</button><button id="cx" style="'+castBtn+'">✕ Fermer (le cast continue)</button>',()=>{
+   $('cto').value=code;$('cco').onclick=async()=>{try{await navigator.clipboard.writeText(code);$('cco').textContent='✅ Copié'}catch(e){$('cto').select();document.execCommand('copy')}};$('csh').onclick=()=>{if(navigator.share)navigator.share({text:code}).catch(()=>{});else $('cco').click()};$('cx').onclick=castDlgClose})}catch(e){CAST.host=false;$('cte').textContent='⚠️ '+e.message}}})}
+function castAuto(){try{if(!CASTS.code||CASTS.auto===false||!CASTS.role)return;if(CASTS.role==='host')castHostListen();else if(CASTS.role==='view')castViewerConnect()}catch(e){console.warn('cast auto',e)}}
 function regRender(){const box=document.querySelector('#s-reg .cards');box.innerHTML='';
  hcard(box,'🎬 Film d\'ouverture','Au lancement : '+(localStorage.v3intro==='0'?'non':'oui')+' · touche pour revoir ou changer',()=>mod('Film d\'ouverture « le grand dézoom »<br><small>Environ 20 s au lancement, avant le choix du compte. Toucher l\'écran pour passer.</small>',[['▶ Revoir maintenant',()=>{showScr('s-main');nav('home');introStart()}],[(localStorage.v3intro==='0'?'✅ Activer':'⏸ Désactiver')+' au lancement',()=>{try{localStorage.v3intro=localStorage.v3intro==='0'?'1':'0'}catch(e){}regRender()}],['Fermer',()=>{}]]));
  hcard(box,'👥 Comptes','Compte actif : '+esc(PROF.me().name)+' · '+PROF.list.length+' compte'+(PROF.list.length>1?'s':'')+' · changer, créer, modifier',()=>accOpen());
- hcard(box,'📡 Cast téléphone → tablette',CAST.view?'Tablette : écran actif':CAST.host?'Téléphone : cast actif ('+(CAST.state||'attente')+')':'Le téléphone calcule la 3D, la tablette affiche et pilote le home trainer (test)',castPanel);
+ hcard(box,'📡 Cast téléphone → tablette',CAST.view?'Tablette : écran à distance actif':CAST.host?'Téléphone : cast actif ('+(CAST.state||'attente')+')':(CASTS.code?'Code '+castFmt(CASTS.code)+' · ':'')+'Le téléphone calcule, la tablette affiche et pilote',castPanel);
  hcard(box,'🔌 Matériel',(conn?'Home trainer connecté':'Home trainer non connecté')+' · '+(hr?'cardio connectée':'cardio non connectée'),()=>showScr('s-hw'));
  hcard(box,'🟧 Strava',STR.id&&STR.ref?'Connecté'+(STR.who?' · '+esc(STR.who):'')+' · '+GS.strv.length+' sortie'+(GS.strv.length>1?'s':'')+' envoyée'+(GS.strv.length>1?'s':''):'Non connecté · touche ici pour relier ton compte',()=>stravaPanel(()=>regRender()));
  hcard(box,'👕 Vestiaire','Maillots, casque, lunettes, couleurs du vélo, roues',()=>{kitRender();showScr('s-kit')});
@@ -14506,7 +14694,7 @@ const _PS2={},_PS3={};
  // dernier parcours choisi (ou ancien GPX) ; sinon le monde attend qu'un parcours soit choisi
  let okC=false;try{for(const k of['v3gpxe','v3gpxn','v3gpx'])delete localStorage[k];if(CRS.cur)okC=setCourse(NET.E.map(E=>[E.id,1]),CRS.cur.name)}catch(e){console.warn('parcours',e)}
  if(!okC)ldSet('crs','Aucun parcours : Rouler → Importer un GPX',0);
- afterAcc(recOfferSaved);netCheck();{const b=$('boot');if(b){if(IN.on)b.remove();else{b.style.opacity=0;b.style.pointerEvents='none';setTimeout(()=>b.remove(),600)}}}try{if(localStorage.v3diag==='1')diagStart()}catch(e){}requestAnimationFrame(loop);try{introGo()}catch(e){console.warn('film',e)}if(PROF.switched)setTimeout(()=>say('Compte : '+PROF.me().name),1500);if(PROF.err)setTimeout(()=>say(PROF.err),1500)}
+ afterAcc(recOfferSaved);netCheck();{const b=$('boot');if(b){if(IN.on)b.remove();else{b.style.opacity=0;b.style.pointerEvents='none';setTimeout(()=>b.remove(),600)}}}try{if(localStorage.v3diag==='1')diagStart()}catch(e){}requestAnimationFrame(loop);try{introGo()}catch(e){console.warn('film',e)}try{setTimeout(castAuto,3500)}catch(e){}if(PROF.switched)setTimeout(()=>say('Compte : '+PROF.me().name),1500);if(PROF.err)setTimeout(()=>say(PROF.err),1500)}
 // accès Internet et Bluetooth : un aperçu de fichier (appli Claude, gestionnaire de fichiers…) bloque souvent les deux
 async function netCheck(){let net=false;try{await fetchT('https://s3.amazonaws.com/elevation-tiles-prod/terrarium/0/0/0.png',{},12000);net=true}catch(e){}
  const bt=!!navigator.bluetooth;if(net&&bt)return;
