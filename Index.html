@@ -1130,8 +1130,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <script>
 
 'use strict';
+// restauration d'une sauvegarde (v3bkpend) : appliquée avant toute lecture du stockage, pour que la page précédente ne puisse pas l'écraser
+(function(){try{const j=localStorage.getItem('v3bkpend');if(!j)return;localStorage.removeItem('v3bkpend');const p=JSON.parse(j);for(const k of p.rm||[])localStorage.removeItem(k);for(const k in p.set)localStorage.setItem(k,p.set[k])}catch(e){try{localStorage.removeItem('v3bkpend')}catch(x){}}})();
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · an';const ERRL=[];
+const VCT_VER='27/11/2026 · ao';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -5764,6 +5766,71 @@ function roulRender(){const box=document.querySelector('#s-roul .cards');box.inn
  hcard(box,'✨ Créer un parcours','Parcours imaginaire à ta mesure (distance, dénivelé, boucle) à rouler dans le monde 🦖 Aventure',genCourseOpen);
  hcard(box,'📚 Mes parcours',CRS.list.length?CRS.list.length+' parcours importé'+(CRS.list.length>1?'s':''):'Aucun parcours pour l\'instant',crsMenu);
  hcard(box,'🤖 Exploration','Pilote automatique sur le parcours choisi',()=>courseThen(()=>nav('explore'),'exploration'))}
+// ====================== sauvegarde et transfert de progression (27 nov. 2026, demande de Cyril : « tout ce que j'ai fait sur la tablette doit être transféré sur le smartphone ») ======================
+// Fichier .vct (JSON compressé gzip) : toutes les clés localStorage utiles (progression, comptes, parcours, compétition, préférences, Strava) + l'historique complet des sorties (IndexedDB « velo3d-rides* »).
+// Trois façons : exporter / partager un fichier, importer un fichier, ou envoyer directement à l'autre appareil quand le cast est connecté (canal de données WebRTC).
+// Restauration : « Remplacer » (l'appareil devient la copie de la sauvegarde ; une sauvegarde de sécurité de l'état d'avant est téléchargée) ou « Ajouter » (parcours et sorties qui manquent, clés absentes ; rien n'est écrasé).
+// L'application des clés se fait au prochain démarrage (clé v3bkpend, lue tout en haut du script) : la page qui s'arrête ne peut pas écraser la restauration.
+const BKX=new Set(['v3cast','v3castrelay','v3diag','v3hwt','v3intro','v3mrb','v3mrv','v3q2','v3tr','v3rec','v3bkpend']);// propres à l'appareil
+const BKG=[['prog','📈 Progression : niveau, points, FTP, poids, vestiaire, plans, comptes',true],['crs','🗺️ Parcours : GPX importés, tracés, parcours imaginaires',true],['hist','📜 Historique complet des sorties (trace détaillée de chaque sortie)',true],['cmp','🏆 Courses : classements, fatigue, historique de compétition',true],['set','🎛️ Préférences et réglages (voix, HUD, effets…)',false],['str','🟧 Lien Strava (contient tes jetons : sensible)',false]];
+function bkInner(k){const m=k.match(/^p:[^:]+:(.*)$/);return m?m[1]:k}
+function bkGroup(k){const i=bkInner(k);if(i==='v3crs'||i==='v3cur')return'crs';if(/^v3(comp|cmph|cmpf|cmpa)$/.test(i))return'cmp';if(/^v3(set|dst|dsv|dsfx)$/.test(i))return'set';if(i==='velo3d-strava')return'str';return'prog'}
+function bkOpen(n){return new Promise((ok,ko)=>{const q=indexedDB.open(n,1);q.onupgradeneeded=()=>q.result.createObjectStore('r',{keyPath:'t0'});q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)})}
+async function bkIdbAll(n){const db=await bkOpen(n);return new Promise((ok,ko)=>{const tx=db.transaction('r','readonly'),r=tx.objectStore('r').getAll();tx.oncomplete=()=>{db.close();ok(r.result)};tx.onerror=()=>ko(tx.error)})}
+async function bkIdbPut(n,recs,wipe){const db=await bkOpen(n);return new Promise((ok,ko)=>{const tx=db.transaction('r','readwrite'),st=tx.objectStore('r');if(wipe)st.clear();for(const r of recs)st.put(r);tx.oncomplete=()=>{db.close();ok()};tx.onerror=()=>ko(tx.error)})}
+async function bkGz(u8,dec){const s=dec?new DecompressionStream('gzip'):new CompressionStream('gzip'),w=s.writable.getWriter();w.write(u8);w.close();return new Uint8Array(await new Response(s.readable).arrayBuffer())}
+async function bkCollect(sel){try{gsave();save();ssave()}catch(e){}// l'état en mémoire est écrit avant la copie
+ const ls={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(BKX.has(k)||BKX.has(bkInner(k)))continue;if(!sel[bkGroup(k)])continue;ls[k]=localStorage.getItem(k)}
+ const idb={};if(sel.hist&&indexedDB.databases){for(const d of await indexedDB.databases()){if(/^velo3d-rides/.test(d.name))idb[d.name]=await bkIdbAll(d.name)}}
+ return{vct:'backup',v:1,t:Date.now(),ver:VCT_VER,sel:Object.keys(sel).filter(k=>sel[k]),ls,idb}}
+function bkName(l){const d=new Date(),z=x=>String(x).padStart(2,'0');return 'VCT-'+(l||'sauvegarde')+'-'+d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'-'+z(d.getHours())+'h'+z(d.getMinutes())+'.vct'}
+async function bkBlob(o){return new Blob([await bkGz(new TextEncoder().encode(JSON.stringify(o)))],{type:'application/octet-stream'})}
+async function bkDownload(o,l){const b=await bkBlob(o),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=bkName(l);document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);return b.size}
+async function bkRead(buf){let u=new Uint8Array(buf);if(u[0]===0x1f&&u[1]===0x8b)u=await bkGz(u,true);const o=JSON.parse(new TextDecoder().decode(u));if(!o||o.vct!=='backup'||!o.ls)throw new Error('ce fichier n\'est pas une sauvegarde VCT');return o}
+function bkInfo(o){let crs=0,acc=0,ri=0,xp='';try{for(const k in o.ls)if(bkInner(k)==='v3crs')crs+=JSON.parse(o.ls[k]).length}catch(e){}
+ try{acc=JSON.parse(o.ls.v3prof).list.length}catch(e){}for(const n in o.idb||{})ri+=o.idb[n].length;
+ try{const g=JSON.parse(o.ls[GK]);xp=' · '+Math.round(g.xp||0)+' XP · '+((g.hist||[]).length)+' sorties au suivi'}catch(e){}
+ return (o.sel||[]).length+' catégorie'+((o.sel||[]).length>1?'s':'')+' · '+crs+' parcours · '+ri+' sorties détaillées · '+acc+' compte'+(acc>1?'s':'')+xp+'<br><small>faite le '+new Date(o.t).toLocaleString('fr-FR')+' (version '+esc(o.ver||'?')+')</small>'}
+function bkSelHTML(){return BKG.map(([k,n,d])=>'<label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0"><input type="checkbox" data-bk="'+k+'" '+(d?'checked':'')+' style="margin-top:4px"><span>'+n+'</span></label>').join('')}
+function bkSelRead(){const s={};document.querySelectorAll('#castd [data-bk]').forEach(e=>{s[e.dataset.bk]=e.checked});return s}
+// ---- application ----
+async function bkApply(o,mode){
+ try{if(mode==='replace'){const all={};BKG.forEach(([k])=>all[k]=true);const keep=await bkCollect(all);await bkDownload(keep,'avant-restauration')}}catch(e){console.warn('sauvegarde de sécurité',e)}
+ const groups=new Set(o.sel||[]),rm=[],set={};
+ if(mode==='replace'){for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(BKX.has(k)||BKX.has(bkInner(k)))continue;if(groups.has(bkGroup(k)))rm.push(k)}for(const k in o.ls)set[k]=o.ls[k]}
+ else{for(const k in o.ls){const loc=localStorage.getItem(k);
+   if(bkInner(k)==='v3crs'&&loc){try{const a=JSON.parse(loc),b=JSON.parse(o.ls[k]),ids=new Set(a.map(c=>c.id));set[k]=JSON.stringify(a.concat(b.filter(c=>!ids.has(c.id))))}catch(e){}}
+   else if(loc==null)set[k]=o.ls[k]}}
+ for(const n in o.idb||{})await bkIdbPut(n,o.idb[n],mode==='replace'&&groups.has('hist'));
+ try{sessionStorage.v3skip='1'}catch(e){}
+ try{localStorage.v3bkpend=JSON.stringify({rm,set})}catch(e){// mémoire pleine : écriture directe
+  try{rm.forEach(k=>localStorage.removeItem(k));for(const k in set)localStorage.setItem(k,set[k])}catch(x){mod('⚠️ Mémoire pleine : restauration incomplète<br><small>'+esc(x.message)+'</small>',[['OK',()=>{}]]);return}}
+ location.reload()}
+function bkAsk(o,src){mod('📥 Sauvegarde '+(src||'reçue')+'<br><small style="display:block;text-align:left;margin-top:6px">'+bkInfo(o)+'</small>',
+ [['♻️ Remplacer (cet appareil devient la copie ; l\'état d\'avant est téléchargé)',()=>bkApply(o,'replace')],['➕ Ajouter sans rien écraser (parcours, sorties, éléments absents)',()=>bkApply(o,'merge')],['Annuler',()=>{}]])}
+// ---- fichier ----
+function bkPick(){const i=document.createElement('input');i.type='file';i.accept='.vct,.json,.gz,application/octet-stream';i.onchange=async()=>{const f=i.files&&i.files[0];if(!f)return;try{castDlgClose();bkAsk(await bkRead(await f.arrayBuffer()),'du fichier')}catch(e){mod('⚠️ '+esc(e.message),[['OK',()=>{}]])}};i.click()}
+async function bkExport(share){const sel=bkSelRead();if(!Object.values(sel).some(Boolean))return;const st=$('bkst');if(st)st.textContent='Préparation…';
+ try{const o=await bkCollect(sel);if(share&&navigator.canShare){const b=await bkBlob(o),f=new File([b],bkName(),{type:'application/octet-stream'});if(navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Sauvegarde VCT'});if(st)st.textContent='Partagé ✓ ('+Math.round(b.size/1024)+' Ko)';return}}
+  const n=await bkDownload(o);if(st)st.textContent='Enregistré dans Téléchargements ✓ ('+Math.round(n/1024)+' Ko)'}catch(e){if(st)st.textContent='⚠️ '+e.message}}
+// ---- envoi direct par le cast ----
+async function bkSend(){const sel=bkSelRead(),st=$('bkst');if(!Object.values(sel).some(Boolean))return;if(!CAST.ch||CAST.ch.readyState!=='open'){if(st)st.textContent='Le cast n\'est pas connecté : connecte-le d\'abord (ou utilise un fichier).';return}
+ try{if(st)st.textContent='Préparation…';const o=await bkCollect(sel),z=await bkGz(new TextEncoder().encode(JSON.stringify(o))),N=10000,n=Math.ceil(z.length/N),id=Date.now();
+  if(z.length>60e6){if(st)st.textContent='Trop gros ('+Math.round(z.length/1e6)+' Mo) : utilise un fichier.';return}
+  for(let i=0;i<n;i++){while(CAST.ch&&CAST.ch.readyState==='open'&&CAST.ch.bufferedAmount>1e6)await new Promise(r=>setTimeout(r,40));if(!CAST.ch||CAST.ch.readyState!=='open')throw new Error('liaison coupée');
+   castSend({t:'bk',id,i,n,b:castB64(z.subarray(i*N,(i+1)*N))});if(st&&i%20===0)st.textContent='Envoi… '+Math.round(i/n*100)+' %'}
+  if(st)st.textContent='Envoyé ✓ ('+Math.round(z.length/1024)+' Ko) : valide sur l\'autre appareil.'}catch(e){if(st)st.textContent='⚠️ '+e.message}}
+const BKR={};
+async function bkRecv(m){const b=BKR[m.id]||(BKR[m.id]={n:m.n,p:[],c:0});if(b.p[m.i]===undefined){b.p[m.i]=m.b;b.c++}
+ if(b.c<b.n){if(m.i%25===0)say('📥 Réception de la sauvegarde… '+Math.round(b.c/b.n*100)+' %');return}
+ delete BKR[m.id];try{const u=new Uint8Array(b.p.reduce((a,x)=>a+castUnb64(x).length,0));let off=0;for(const x of b.p){const r=castUnb64(x);u.set(r,off);off+=r.length}bkAsk(await bkRead(u.buffer),'reçue de l\'autre appareil')}catch(e){mod('⚠️ Sauvegarde reçue illisible<br><small>'+esc(e.message)+'</small>',[['OK',()=>{}]])}}
+// ---- fenêtre ----
+function bkPanel(){castDlg('<h2 style="margin:4px 0 8px">💾 Sauvegarde et transfert</h2><p>Copie <b>tout ce que tu as fait</b> (progression, parcours, sorties, courses) d\'un appareil à l\'autre, ou garde-le en sécurité dans un fichier.</p>'
+  +'<div style="background:#1c1a17;border:1px solid #3a342c;border-radius:12px;padding:10px 12px;margin:8px 0"><b>Quoi copier ?</b>'+bkSelHTML()+'</div>'
+  +'<button id="bk1" style="'+castBtnOn+'">📲 Envoyer à l\'autre appareil <small>(cast connecté'+(CAST.ch&&CAST.ch.readyState==='open'?' ✓':' ✗')+')</small></button>'
+  +'<button id="bk2" style="'+castBtn+'">⬇ Enregistrer un fichier de sauvegarde (.vct)</button><button id="bk3" style="'+castBtn+'">📤 Partager le fichier (messagerie, Drive, Quick Share…)</button><button id="bk4" style="'+castBtn+'">📥 Importer / restaurer un fichier .vct</button>'
+  +'<div id="bkst" style="min-height:22px;color:#e9a178;margin:6px 0"></div><p style="font-size:12.5px;opacity:.7">Sur l\'appareil qui reçoit, un choix s\'affiche : <b>Remplacer</b> (l\'appareil devient la copie ; l\'état d\'avant est téléchargé par sécurité) ou <b>Ajouter</b> (rien n\'est écrasé). L\'appli redémarre ensuite. Les préférences et le lien Strava ne sont copiés que si tu les coches.</p><button id="bkx" style="'+castBtn+'">✕ Fermer</button>',()=>{
+  $('bkx').onclick=castDlgClose;$('bk1').onclick=bkSend;$('bk2').onclick=()=>bkExport(false);$('bk3').onclick=()=>bkExport(true);$('bk4').onclick=bkPick})}
 // ====================== cast téléphone ⇄ tablette, v2 (27 nov. 2026, demande de Cyril : « affichage identique et interactif, tout piloter depuis la tablette, un code unique et permanent ») ======================
 // Le TÉLÉPHONE fait tout tourner (3D, simulation, interface). La TABLETTE est un écran à distance :
 //  • la 3D arrive en vidéo (WebRTC, canvas.captureStream) ;
@@ -5824,6 +5891,7 @@ function castChan(ch){CAST.ch=ch;ch.onopen=()=>{CAST.rx=Date.now();
  ch.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}
   if(CAST.view){CAST.rq=(CAST.rq||Promise.resolve()).then(()=>castOnMsg(m)).catch(()=>{})}else castOnMsg(m)}}
 async function castOnMsg(m){CAST.rx=Date.now();
+ if(m.t==='bk')return bkRecv(m);
  if(m.t==='ch'){const q=CAST.chb||(CAST.chb={}),b=q[m.id]||(q[m.id]={n:m.n,p:[],c:0});if(b.p[m.i]===undefined){b.p[m.i]=m.s;b.c++}if(b.c===b.n){delete q[m.id];let j;try{j=JSON.parse(b.p.join(''))}catch(e){return}return castOnMsg(j)}return}
  if(m.t==='z'){let j;try{j=JSON.parse(new TextDecoder().decode(await castZip(castUnb64(m.b),true)))}catch(e){return}return castOnMsg(j)}
  if(CAST.host){
@@ -5945,11 +6013,11 @@ function castStageBuild(){castStageKill();const o=document.createElement('div');
  o.innerHTML='<div id="castst" style="position:absolute;left:0;top:0;transform-origin:0 0;display:none"><video id="castvv" autoplay playsinline muted style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:fill;background:#000"></video><iframe id="castif" style="position:absolute;left:0;top:0;width:100%;height:100%;border:0;background:transparent"></iframe></div>'
   +'<div id="castw" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px"><div><div style="font-size:42px">📡</div><div id="castwm" style="margin:10px 0;opacity:.9">Connexion…</div><div style="opacity:.6;font-size:13px">Code '+castFmt(CASTS.code||'')+'</div><button id="castwr" style="'+castBtn+'width:auto;display:inline-block;margin-top:14px">↻ Réessayer</button> <button id="castwx" style="'+castBtn+'width:auto;display:inline-block">✕ Quitter</button></div></div>'
   +'<button id="castgb" style="position:absolute;left:4px;top:50%;margin-top:-17px;z-index:5;width:34px;height:34px;border-radius:17px;border:0;background:rgba(15,14,13,.55);color:#f4efe6;font-size:16px;opacity:.5">⚙</button>'
-  +'<div id="castgp" style="position:absolute;left:44px;top:50%;transform:translateY(-50%);z-index:5;display:none;padding:8px;border-radius:12px;background:rgba(15,14,13,.92);min-width:210px"><button id="castb1" style="'+castBtn+'margin:4px 0">🚴 Home trainer</button><button id="castb2" style="'+castBtn+'margin:4px 0">❤️ Cardio</button><button id="castb3" style="'+castBtn+'margin:4px 0">↻ Reconnecter</button><button id="castb4" style="'+castBtn+'margin:4px 0">✕ Quitter le cast</button><div id="castvs" style="font-size:11px;opacity:.7;margin-top:4px"></div></div>';
+  +'<div id="castgp" style="position:absolute;left:44px;top:50%;transform:translateY(-50%);z-index:5;display:none;padding:8px;border-radius:12px;background:rgba(15,14,13,.92);min-width:210px"><button id="castb1" style="'+castBtn+'margin:4px 0">🚴 Home trainer</button><button id="castb2" style="'+castBtn+'margin:4px 0">❤️ Cardio</button><button id="castb3" style="'+castBtn+'margin:4px 0">↻ Reconnecter</button><button id="castb5" style="'+castBtn+'margin:4px 0">📲 Envoyer ma progression au téléphone</button><button id="castb4" style="'+castBtn+'margin:4px 0">✕ Quitter le cast</button><div id="castvs" style="font-size:11px;opacity:.7;margin-top:4px"></div></div>';
  document.body.append(o);document.body.classList.add('castv');
  if(!$('castcss')){const st=document.createElement('style');st.id='castcss';st.textContent='body.castv #res,body.castv #toast{z-index:999999}';document.head.append(st)}
  $('castgb').onclick=()=>{const p=$('castgp');p.style.display=p.style.display==='none'?'block':'none'};
- $('castb1').onclick=connect;$('castb2').onclick=connectHR;$('castb3').onclick=()=>{$('castgp').style.display='none';CAST.retry&&CAST.retry()};$('castb4').onclick=$('castwx').onclick=()=>{castStop();CASTS.auto=CASTS.auto;castSave()};$('castwr').onclick=()=>CAST.retry&&CAST.retry();
+ $('castb5').onclick=()=>{$('castgp').style.display='none';bkPanel()};$('castb1').onclick=connect;$('castb2').onclick=connectHR;$('castb3').onclick=()=>{$('castgp').style.display='none';CAST.retry&&CAST.retry()};$('castb4').onclick=$('castwx').onclick=()=>{castStop();CASTS.auto=CASTS.auto;castSave()};$('castwr').onclick=()=>CAST.retry&&CAST.retry();
  addEventListener('resize',castStageFit);try{fsEnter()}catch(e){}}
 function castStageKill(){const v=$('castv');if(v)v.remove();document.body.classList.remove('castv');removeEventListener('resize',castStageFit);CV.nodes=new Map();CV.id=new WeakMap();CV.vw=CV.vh=0}
 function castUiRefresh(){const m=$('castwm');if(m&&CAST.msg)m.textContent=CAST.msg;const s=$('castvs');if(s)s.textContent=(CAST.msg||'')+(CAST.vst?' · '+CAST.vst:'');if(CAST.host)castHostBadge();if($('castd')&&$('castd').style.display!=='none'&&CAST.pnl)castPanelDraw()}
@@ -6045,6 +6113,7 @@ function regRender(){const box=document.querySelector('#s-reg .cards');box.inner
  hcard(box,'🎬 Film d\'ouverture','Au lancement : '+(localStorage.v3intro==='0'?'non':'oui')+' · touche pour revoir ou changer',()=>mod('Film d\'ouverture « le grand dézoom »<br><small>Environ 20 s au lancement, avant le choix du compte. Toucher l\'écran pour passer.</small>',[['▶ Revoir maintenant',()=>{showScr('s-main');nav('home');introStart()}],[(localStorage.v3intro==='0'?'✅ Activer':'⏸ Désactiver')+' au lancement',()=>{try{localStorage.v3intro=localStorage.v3intro==='0'?'1':'0'}catch(e){}regRender()}],['Fermer',()=>{}]]));
  hcard(box,'👥 Comptes','Compte actif : '+esc(PROF.me().name)+' · '+PROF.list.length+' compte'+(PROF.list.length>1?'s':'')+' · changer, créer, modifier',()=>accOpen());
  hcard(box,'📡 Cast téléphone → tablette',CAST.view?'Tablette : écran à distance actif':CAST.host?'Téléphone : cast actif ('+(CAST.state||'attente')+')':(CASTS.code?'Code '+castFmt(CASTS.code)+' · ':'')+'Le téléphone calcule, la tablette affiche et pilote',castPanel);
+ hcard(box,'💾 Sauvegarde et transfert','Copier ta progression, tes parcours et tes sorties vers un autre appareil, ou les garder dans un fichier',bkPanel);
  hcard(box,'🔌 Matériel',(conn?'Home trainer connecté':'Home trainer non connecté')+' · '+(hr?'cardio connectée':'cardio non connectée'),()=>showScr('s-hw'));
  hcard(box,'🟧 Strava',STR.id&&STR.ref?'Connecté'+(STR.who?' · '+esc(STR.who):'')+' · '+GS.strv.length+' sortie'+(GS.strv.length>1?'s':'')+' envoyée'+(GS.strv.length>1?'s':''):'Non connecté · touche ici pour relier ton compte',()=>stravaPanel(()=>regRender()));
  hcard(box,'👕 Vestiaire','Maillots, casque, lunettes, couleurs du vélo, roues',()=>{kitRender();showScr('s-kit')});
