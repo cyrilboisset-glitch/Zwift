@@ -1133,7 +1133,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // restauration d'une sauvegarde (v3bkpend) : appliquée avant toute lecture du stockage, pour que la page précédente ne puisse pas l'écraser
 (function(){try{const j=localStorage.getItem('v3bkpend');if(!j)return;localStorage.removeItem('v3bkpend');const p=JSON.parse(j);for(const k of p.rm||[])localStorage.removeItem(k);for(const k in p.set)localStorage.setItem(k,p.set[k])}catch(e){try{localStorage.removeItem('v3bkpend')}catch(x){}}})();
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · ao';const ERRL=[];
+const VCT_VER='27/11/2026 · ap';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -3949,8 +3949,8 @@ function* buildTile(t,lod){const det=lod===0,G=new T.Group();G.matrixAutoUpdate=
   if(++n%(det?120:400)===0)flush();if(performance.now()-t0>4){yield;t0=performance.now()}}
  flush();return G}
 const BLD={lp:V(1e9,0,1e9),ver:1};
-function bldUpdate(cp,force){if(!force&&cp.distanceToSquared(BLD.lp)<400)return;BLD.lp.copy(cp);
- for(const[k,t]of BT){const cx=(t.a+.5)*BTS,cz=(t.b+.5)*BTS,d=Math.max(0,Math.hypot(cx-cp.x,cz-cp.z)-BTS*.7),L=d<QP.bldD?0:d<QP.bld?1:-1;
+function bldUpdate(cp,force){if(!force&&cp.distanceToSquared(BLD.lp)<400)return;BLD.lp.copy(cp);const bOn=SHW('bld');
+ for(const[k,t]of BT){if(!bOn){if(t.g)t.g.visible=false;continue}const cx=(t.a+.5)*BTS,cz=(t.b+.5)*BTS,d=Math.max(0,Math.hypot(cx-cp.x,cz-cp.z)-BTS*.7),L=d<QP.bldD?0:d<QP.bld?1:-1;
   if(L<0){if(t.g&&d>QP.bld+300){WORLD.remove(t.g);t.g.traverse(o=>{if(o.geometry)o.geometry.dispose()});t.g=null;t.lod=-1}if(t.g)t.g.visible=d<QP.bld+150;continue}
   if(t.g)t.g.visible=true;
   if(t.lod!==L||t.built!==t.dirty+BLD.ver*1e6){const key='b'+k;if(JOBS.some(j=>j.key===key))continue;let it=null,want=L;
@@ -5774,12 +5774,12 @@ function roulRender(){const box=document.querySelector('#s-roul .cards');box.inn
 const BKX=new Set(['v3cast','v3castrelay','v3diag','v3hwt','v3intro','v3mrb','v3mrv','v3q2','v3tr','v3rec','v3bkpend']);// propres à l'appareil
 const BKG=[['prog','📈 Progression : niveau, points, FTP, poids, vestiaire, plans, comptes',true],['crs','🗺️ Parcours : GPX importés, tracés, parcours imaginaires',true],['hist','📜 Historique complet des sorties (trace détaillée de chaque sortie)',true],['cmp','🏆 Courses : classements, fatigue, historique de compétition',true],['set','🎛️ Préférences et réglages (voix, HUD, effets…)',false],['str','🟧 Lien Strava (contient tes jetons : sensible)',false]];
 function bkInner(k){const m=k.match(/^p:[^:]+:(.*)$/);return m?m[1]:k}
-function bkGroup(k){const i=bkInner(k);if(i==='v3crs'||i==='v3cur')return'crs';if(/^v3(comp|cmph|cmpf|cmpa)$/.test(i))return'cmp';if(/^v3(set|dst|dsv|dsfx)$/.test(i))return'set';if(i==='velo3d-strava')return'str';return'prog'}
+function bkGroup(k){const i=bkInner(k);if(i==='v3crs'||i==='v3cur')return'crs';if(/^v3(comp|cmph|cmpf|cmpa|cmpr)$/.test(i))return'cmp';if(/^v3(set|dst|dsv|dsfx)$/.test(i))return'set';if(i==='velo3d-strava')return'str';return'prog'}
 function bkOpen(n){return new Promise((ok,ko)=>{const q=indexedDB.open(n,1);q.onupgradeneeded=()=>q.result.createObjectStore('r',{keyPath:'t0'});q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)})}
 async function bkIdbAll(n){const db=await bkOpen(n);return new Promise((ok,ko)=>{const tx=db.transaction('r','readonly'),r=tx.objectStore('r').getAll();tx.oncomplete=()=>{db.close();ok(r.result)};tx.onerror=()=>ko(tx.error)})}
 async function bkIdbPut(n,recs,wipe){const db=await bkOpen(n);return new Promise((ok,ko)=>{const tx=db.transaction('r','readwrite'),st=tx.objectStore('r');if(wipe)st.clear();for(const r of recs)st.put(r);tx.oncomplete=()=>{db.close();ok()};tx.onerror=()=>ko(tx.error)})}
 async function bkGz(u8,dec){const s=dec?new DecompressionStream('gzip'):new CompressionStream('gzip'),w=s.writable.getWriter();w.write(u8);w.close();return new Uint8Array(await new Response(s.readable).arrayBuffer())}
-async function bkCollect(sel){try{gsave();save();ssave()}catch(e){}// l'état en mémoire est écrit avant la copie
+async function bkCollect(sel){try{gsave();save();ssave();cmpCkSave()}catch(e){}// l'état en mémoire est écrit avant la copie
  const ls={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(BKX.has(k)||BKX.has(bkInner(k)))continue;if(!sel[bkGroup(k)])continue;ls[k]=localStorage.getItem(k)}
  const idb={};if(sel.hist&&indexedDB.databases){for(const d of await indexedDB.databases()){if(/^velo3d-rides/.test(d.name))idb[d.name]=await bkIdbAll(d.name)}}
  return{vct:'backup',v:1,t:Date.now(),ver:VCT_VER,sel:Object.keys(sel).filter(k=>sel[k]),ls,idb}}
@@ -6123,10 +6123,10 @@ function regRender(){const box=document.querySelector('#s-reg .cards');box.inner
  hcard(box,'🖥️ Graphismes','Qualité actuelle : '+QPRE[QK].n+(SET.autoQ===0?'':' · automatique'),()=>mod('Qualité graphique<br><small>Actuelle : '+QPRE[QK].n+'. Changement immédiat, sans recharger.</small>',
   ['tab','low','med','high','ultra'].map(k=>[QPRE[k].n,()=>{qualitySet(k);regRender()}]).concat([['🎚️ Qualité automatique : '+(SET.autoQ===0?'non':'oui (≥ 20 img/s)'),()=>{autoQSet(SET.autoQ===0);regRender()}],['🌑 Ombres : '+(shadowOn()?'oui':'non'),()=>{shadowSet(!shadowOn());regRender()}],['🌳 Éléments affichés (arbres, animaux, passants…)',showMenu],['✨ Effets visuels : '+['aucun','doux','max'][fxLevel()],()=>mod('Effets visuels<br><small>Halo lumineux autour des lumières, rayons du soleil, couleurs plus riches, vignette. Coûte un peu de fluidité : déconseillé sur la tablette.</small>',[['Automatique (selon la qualité)',()=>{fxSet(-1);regRender()}],['Aucun',()=>{fxSet(0);regRender()}],['Doux',()=>{fxSet(1);regRender()}],['Max',()=>{fxSet(2);regRender()}],['Annuler',()=>{}]])],['Annuler',()=>{}]])))}
 // ---- éléments affichés (19 nov. 2026, demande de Cyril) : arbres, herbe, animaux, passants, autres cyclistes, nuages ; gardé dans SET.show ----
-const SHOWK=[['trees','🌳 Arbres'],['grass','🌱 Herbe'],['farm','🐄 Animaux de la ferme (vaches, moutons, chiens, chats, écureuils)'],['wild','🦌 Animaux sauvages et oiseaux (chevaux, cerfs, renards, dinosaures)'],['peds','🚶 Passants et spectateurs'],['npc','🚴 Autres cyclistes'],['clouds','☁️ Nuages']];
+const SHOWK=[['trees','🌳 Arbres'],['grass','🌱 Herbe'],['farm','🐄 Animaux de la ferme (vaches, moutons, chiens, chats, écureuils)'],['wild','🦌 Animaux sauvages et oiseaux (chevaux, cerfs, renards, dinosaures)'],['peds','🚶 Passants et spectateurs'],['npc','🚴 Autres cyclistes'],['clouds','☁️ Nuages'],['bld','🏠 Bâtiments (maisons, immeubles, églises)']];
 var CMPLT=null;// éléments coupés pendant une course en Montagne (ferme, sauvages, passants, herbe)
 function SHW(k){if(CMPLT&&CMPLT.indexOf(k)>=0)return false;return !(typeof SET!=='undefined'&&SET.show&&SET.show[k]===0)}
-function showSet(k,v){SET.show=Object.assign({},SET.show||{});SET.show[k]=v?1:0;ssave();if(k==='trees')VEG.lp.set(1e9,0,1e9)}
+function showSet(k,v){SET.show=Object.assign({},SET.show||{});SET.show[k]=v?1:0;ssave();if(k==='trees')VEG.lp.set(1e9,0,1e9);if(k==='bld')BLD.lp.set(1e9,0,1e9)}
 function showMenu(){const n=SHOWK.filter(([k])=>!SHW(k)).length;
  mod('Éléments affichés<br><small>Touche une ligne pour afficher ou masquer. Masquer des éléments allège l\'appli (utile sur la tablette). '+(n?n+' élément'+(n>1?'s':'')+' masqué'+(n>1?'s':'')+'.':'Tout est affiché.')+'</small>',
   SHOWK.map(([k,t])=>[(SHW(k)?'✅ ':'⬜ ')+t,()=>{showSet(k,!SHW(k));showMenu()}]).concat([['Tout afficher',()=>{SET.show={};ssave();VEG.lp.set(1e9,0,1e9);showMenu()}],['Fermer',()=>{}]]))}
@@ -8194,7 +8194,7 @@ function cmpOpen(){const e=cEl('cmp');e.className='cmp';e.style.display='block';
   h+='<h3>Lueur des coureurs dangereux au général</h3><div class="chips" id="cmgl">'+[[0,'Aucune'],[1,'Discrète'],[2,'Marquée']].map(([v,t])=>'<button data-v="'+v+'"'+((SET.glow==null?1:SET.glow)===v?' class="on"':'')+'>'+t+'</button>').join('')+'<button data-p="1"'+(SET.glowP===0?'':' class="on"')+'>Pulsation '+(SET.glowP===0?'non':'oui')+'</button></div><small>Contour rouge fin et reflet rouge sur la route, visibles à moins de 150 m. Mêmes coureurs que le ⚠️ du classement.</small>';
   if(sel.k!=='clm'&&sel.k!=='ttt')h+='<h3>Départ</h3><div class="chips" id="cmnu">'+[[1000,'🏳️ Neutralisé 1 km (drapeau baissé ensuite)'],[0,'Départ lancé']].map(([v,t])=>'<button data-v="'+v+'"'+(sel.neu===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div><small>Neutralisé : le peloton roule groupé à 28 km/h sur le premier kilomètre ; le chrono et la course démarrent au drapeau.</small>'}
  h+='<h3>Gabarit des adversaires</h3><div class="chips" id="cmgb">'+[['me','⚖️ Comme moi (même poids, armes égales)'],['real','🚴 Réaliste (60–80 kg)']].map(([v,t])=>'<button data-v="'+v+'"'+((sel.opts.gab||'me')===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div><small>« Comme moi » : même rapport watts/kg que toi et même poids que toi. « Réaliste » : poids de peloton, donc moins de watts que toi sur le plat.</small>';
- h+='<h3>Monde de la course</h3><div class="chips" id="cmwd">'+[['space','🚀 Space (le plus léger)'],['mont','🏔️ Montagne légère (vrai relief, neige, sans maisons)']].map(([v,t])=>'<button data-v="'+v+'"'+((sel.world||'space')===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div>'+((sel.world==='mont'&&CRS.cur&&CRS.cur.gen&&sel.k!=='stage')?'<small>⚠️ Le parcours actuel est imaginaire : il se roulera en Space. Génère un vrai parcours ci-dessous pour la Montagne.</small>':'');
+ h+='<h3>Monde de la course</h3><div class="chips" id="cmwd">'+[['space','🚀 Space (le plus léger)'],['mont','🏔️ Montagne légère (vrai relief, neige, sans maisons)'],['real','🌍 Réaliste (photos, bâtiments, arbres : le plus lourd)']].map(([v,t])=>'<button data-v="'+v+'"'+((sel.world||'space')===v?' class="on"':'')+'>'+t+'</button>').join('')+'</div>'+(((sel.world==='mont'||sel.world==='real')&&CRS.cur&&CRS.cur.gen&&sel.k!=='stage')?'<small>⚠️ Le parcours actuel est imaginaire : il se roulera en Space. Génère un vrai parcours ci-dessous pour ce monde.</small>':'');
  if(sel.k!=='stage'){h+='<h3>Parcours</h3>'+(c?'<div class="cd"><b>'+esc(c.name)+'</b>'+nf(c.km,1)+' km · '+nf(c.dp||0)+' m D+'+(lp?' · boucle':'')+'<div class="chips" style="margin-top:8px"><button id="cmch">⇄ Changer de parcours</button></div></div>':'<div class="cd">Aucun parcours : importe un GPX ou crée un parcours (Mes parcours).</div>')+(c?cmpPrevHtml(c):'');
   if(lp&&sel.k==='race')h+='<h3>Nombre de tours</h3><div class="chips" id="cmlp">'+[1,2,3].map(n=>'<button data-v="'+n+'"'+(sel.laps===n?' class="on"':'')+'>'+n+' tour'+(n>1?'s':'')+(c?' ('+nf(c.km*n,0)+' km)':'')+'</button>').join('')+'</div>';h+=famSingleHTML(sel)}
  else{h+='<h3>Nombre d\'étapes</h3><div class="chips" id="cmns">'+[3,4,5,6,7,8].map(n=>'<button data-v="'+n+'"'+(sel.ns===n?' class="on"':'')+'>'+n+' étapes</button>').join('')+'</div>';
@@ -8224,8 +8224,9 @@ e.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{sel.k=b.dataset.k;cmpOp
 // ---- départ / arrêt ----
 function cmpStart(o){if(!COURSE)return say('Choisis d\'abord un parcours.');
  if(!CMP.prev)CMP.prev={w:WORLDK,a:SET.spAmb,crs:o.prevCrs||null};
- {const wantM=o.world==='mont'&&!(CRS.cur&&CRS.cur.gen);if(o.world==='mont'&&!wantM)say('Parcours imaginaire : course en Space.');
+ {const gen=!!(CRS.cur&&CRS.cur.gen),wantM=o.world==='mont'&&!gen,wantR=o.world==='real'&&!gen;if((o.world==='mont'||o.world==='real')&&gen)say('Parcours imaginaire : course en Space.');
   if(wantM){if(WORLDK!=='mont')worldSwitch('mont');CMPLT=['farm','wild','peds','grass']}
+  else if(wantR){if(WORLDK!=='real')worldSwitch('real');CMPLT=null}// monde réaliste : tout ce que Réglages → Éléments affichés autorise
   else{CMPLT=null;if(WORLDK!=='space'){SET.spAmb='ast';worldSwitch('space')}else if(SET.spAmb!=='ast')spAmbSet('ast')}}
  Object.assign(CMP,{dg:null,upP:o.upP||0,spO:[],koO:[],spt:{},kpt:{},bon:{},stat:{t:0,e:0,mx:0,dr:0,drs:0,fr:0,lo:0,best:0,top3:0,top10:0,wb:100,rk:0,n:0},cps:500,on:true,fsaved:false,kind:o.kind,diff:o.diff||1,seed:o.seed||1,laps:o.laps||1,T:0,fin:false,hold:true,cd:-1,ord:'prot',brk:new Set(),ev:{},evT:0,res:null,ff:null,stageK:o.stageK||null,ttt:!!o.ttt,tt:null,
   coach:{t:-1e9,tg:0,ann:-1e9,over:-1e9,p30:FTP*.6,ci:-1,lastTg:0}});
@@ -8438,7 +8439,7 @@ function cmpTick(dt,P,now){const me=CMP.me;if(!me)return;
  const list=[me,...CMP.R].sort((a,b)=>b.d-a.d);const{G,pack}=cmpStep(dt,list);
  cmpDraw(dt);
  CMP.evT+=dt;if(CMP.evT>1){CMP.evT=0;if(!(CMP.neu&&CMP.neu.on))cmpEvents(G,pack,list)}
- if(!(CMP.neu&&CMP.neu.on))cmpCoach(now,P);cmpHud();
+ if(!(CMP.neu&&CMP.neu.on))cmpCoach(now,P);cmpHud();if(now-(CMP.ckT||0)>8000){CMP.ckT=now;cmpCkSave()}
  if(me.fin==null&&me.d>=CMP.L){me.fin=CMP.T;cmpFinish()}}
 // premier kilomètre fictif : peloton groupé à 28 km/h, chrono et course à partir du drapeau baissé
 function cmpNeu(dt){const N=CMP.neu;if(!N||!N.on)return;const me=CMP.me,ds=CMP.R.map(r=>r.d).sort((a,b)=>a-b),med=ds.length?ds[ds.length>>1]:0,front=Math.max(med,me.d);
@@ -9039,7 +9040,7 @@ function famBind(e,sel){
 async function cmpStageNew(sel){let list=[];const n=sel.ns||4,st=famSt(sel);
  if(sel.src==='mine'){const ids=sel.pick.filter(id=>CRS.list.some(q=>q.id===id));if(ids.length<3||ids.length>8)return say('Coche de 3 à 8 parcours.');
   list=ids.map(id=>{const q=CRS.list.find(c=>c.id===id);return{id,name:q.name,kind:'race',km:q.km}});list[0].kind='clm'}
- else{if(sel.src==='place'&&!sel.place)return say('Choisis d\'abord un lieu (recherche, puis touche un résultat).');if(sel.world==='mont'&&sel.src==='gen')return say('Montagne demande de vrais lieux : choisis « Lieux célèbres » ou « Mes parcours ».');
+ else{if(sel.src==='place'&&!sel.place)return say('Choisis d\'abord un lieu (recherche, puis touche un résultat).');if((sel.world==='mont'||sel.world==='real')&&sel.src==='gen')return say('Ce monde demande de vrais lieux : choisis « Lieux célèbres » ou « Mes parcours ».');
   const base=CRS.list.length,used=new Set();let go=$('cmgo');if(go){go.disabled=true}
   for(let i=0;i<n;i++){const s=st[i];say('🗓️ Étape '+(i+1)+' / '+n+(sel.src==='real'?' : recherche d\'un lieu célèbre…':sel.src==='place'?' : calcul autour de '+sel.place.name.split(',')[0]+'…':' : création…'));let c=null;
    try{if(sel.src==='real')c=await famBuild(s.t==='ttt'?'clm':s.t,s.km,s.dp,used,'🏆 Étape '+(i+1)+' · ');else if(sel.src==='place')c=await famPlaceBuild(s.t==='ttt'?'clm':s.t,s.km,s.dp,sel.place,'🏆 Étape '+(i+1)+' · ');
@@ -9049,14 +9050,34 @@ async function cmpStageNew(sel){let list=[];const n=sel.ns||4,st=famSt(sel);
   try{localStorage.v3crs=JSON.stringify(CRS.list)}catch(e){CRS.list.splice(base);if(go)go.disabled=false;return say('Stockage plein : supprime des parcours dans « Mes parcours ».')}}
  const S={name:'Tour VCT '+new Date().toLocaleDateString('fr-FR'),seed:(Date.now()%100000)+11,diff:cmpDiffVal(sel.diff),world:sel.world||'space',opts:cmpOptsN(sel.opts),neu:sel.neu==null?1000:sel.neu,upP:0,list,i:0,gc:{},pts:{},kom:{},over:false,prevCrs:CRS.cur?CRS.cur.id:null};cmpSave(S);
  cmpResShow(null,'start')}
+// ---- reprise d'une étape interrompue (27 nov. 2026, demande de Cyril : « le tour doit pouvoir être transféré en cours d'étape ») : point de sauvegarde toutes les 8 s dans v3cmpr (groupe « courses » de la sauvegarde), proposé au départ de l'étape ----
+function cmpCkSave(){try{if(!CMP.on||!CMP.me||!CMP.stageK||CMP.hold||CMP.fin||!CMP.R.length)return;
+ const prim=o=>{const r={};for(const k in o){const x=o[k];if(typeof x!=='function'&&!(x&&typeof x==='object'&&(x.isObject3D||x.isMaterial||x.isBufferGeometry||x.isTexture)))r[k]=x}return r},
+  flat=o=>{const r={};for(const k in o){const x=o[k];if(x===null||typeof x!=='object'&&typeof x!=='function')r[k]=x}return r},c={};
+ for(const k of ['T','evT','ord','ev','upP','spt','kpt','bon','stat','tt','neu','paceK','sit','fsaved','spO','koO'])c[k]=CMP[k];
+ c.p30=CMP.coach&&CMP.coach.p30;c.brk=[...CMP.brk];c.sprints=CMP.sprints.map(flat);c.climbs=CMP.climbs.map(flat);
+ const me=prim(CMP.me),R=CMP.R.map(r=>{const o=prim(r);delete o._hi;delete o.cb;delete o.da;return o});
+ localStorage.v3cmpr=JSON.stringify({v:1,t:Date.now(),i:CMP.stageK.i,seed:CMP.seed,n:R.length,sd:s,vd:v,c,me,R},(k,x)=>x instanceof Set?[...x]:x instanceof Float32Array?undefined:x)}catch(e){}}
+function cmpCkLoad(S){try{const j=JSON.parse(localStorage.v3cmpr||'null');if(!j||j.v!==1||!S||j.i!==S.i||j.seed!==S.seed||!(j.sd>20))return null;return j}catch(e){return null}}
+function cmpCkClear(){try{localStorage.removeItem('v3cmpr')}catch(e){}}
+function cmpCkApply(ck){try{const me=CMP.me,c=ck.c;
+ Object.assign(me,ck.me);me.pd=ck.sd;s=ck.sd;v=ck.vd||0;advance(RID,ck.sd,riderChoose);RID.jx=null;CAM.snap=true;
+ for(const k of ['T','evT','ord','ev','upP','spt','kpt','bon','stat','tt','neu','paceK','sit','fsaved','spO','koO'])if(c[k]!==undefined)CMP[k]=c[k];
+ CMP.brk=new Set(c.brk||[]);if(c.p30!=null)CMP.coach.p30=c.p30;
+ (c.sprints||[]).forEach((q,i)=>{if(CMP.sprints[i])Object.assign(CMP.sprints[i],q)});(c.climbs||[]).forEach((q,i)=>{if(CMP.climbs[i])Object.assign(CMP.climbs[i],q)});
+ for(const q of ck.R){const r=CMP.R.find(x=>x.id===q.id);if(r)Object.assign(r,q)}
+ say('▶ Étape reprise à '+nf(ck.sd/1000,1)+' km')}catch(e){console.warn('reprise d\'étape',e);say('Reprise impossible : l\'étape repart du début.')}}
 function cmpStageGo(){const S=cmpLoad();if(!S||S.over)return cmpOpen();const st=S.list[S.i];if(!CRS.list.some(q=>q.id===st.id))return say('Parcours de l\'étape introuvable (supprimé ?).');
+ const ck=cmpCkLoad(S);if(ck)return mod('Étape '+(S.i+1)+' interrompue à '+nf(ck.sd/1000,1)+' km<br><small>'+esc(st.name)+' · sauvegarde de '+new Date(ck.t).toLocaleString('fr-FR')+'</small>',[['▶ Reprendre l\'étape où elle en était',()=>cmpStageGo2(S,st,ck)],['↺ Recommencer l\'étape',()=>{cmpCkClear();cmpStageGo2(S,st,null)}],['Annuler',()=>{}]]);
+ cmpStageGo2(S,st,null)}
+function cmpStageGo2(S,st,ck){
  const prev=CRS.cur?CRS.cur.id:null;CMP.prev=CMP.prevKeep||{w:WORLDK,a:SET.spAmb,crs:S.prevCrs||prev};CMP.prevKeep=null;
  if(!CRS.cur||CRS.cur.id!==st.id)crsSwitch(st.id);
  say('🗓️ Étape '+(S.i+1)+' / '+S.list.length+' : '+st.name);
  // on attend que le parcours soit prêt avant le départ
  let tries=0;const go=()=>{if(++tries>120)return say('Parcours pas prêt : réessaie.');if(!COURSE||!NET.ready||!CRS.cur||CRS.cur.id!==st.id)return setTimeout(go,250);
-  cmpStart({kind:st.kind==='ttt'?'clm':st.kind,ttt:st.kind==='ttt',diff:S.diff,world:S.world||'space',opts:S.opts,neu:S.neu==null?1000:S.neu,upP:S.upP||0,seed:S.seed,laps:1,stageK:{i:S.i}})};setTimeout(go,300)}
-function cmpStageEnd(rows,kom){const S=cmpLoad();if(!S||S.over)return;const st=S.list[S.i],race=st.kind!=='clm'&&st.kind!=='ttt',TTX=st.kind==='ttt'&&CMP.res&&CMP.res.ttt,tT=r=>{if(!TTX)return r.tg;const x=TTX.find(q=>q.team===r.team);return x?x.t:r.tg};// par équipes : tous les coureurs d'une équipe prennent le temps de l'équipe
+  cmpStart({kind:st.kind==='ttt'?'clm':st.kind,ttt:st.kind==='ttt',diff:S.diff,world:S.world||'space',opts:S.opts,neu:S.neu==null?1000:S.neu,upP:S.upP||0,seed:S.seed,laps:1,stageK:{i:S.i}});if(ck)cmpCkApply(ck)};setTimeout(go,300)}
+function cmpStageEnd(rows,kom){cmpCkClear();const S=cmpLoad();if(!S||S.over)return;const st=S.list[S.i],race=st.kind!=='clm'&&st.kind!=='ttt',TTX=st.kind==='ttt'&&CMP.res&&CMP.res.ttt,tT=r=>{if(!TTX)return r.tg;const x=TTX.find(q=>q.team===r.team);return x?x.t:r.tg};// par équipes : tous les coureurs d'une équipe prennent le temps de l'équipe
  rows.forEach((r,i)=>{const bon=race?[10,6,4][i]||0:0;S.gc[r.id]=(S.gc[r.id]||0)+tT(r)-bon-(CMP.bon[r.id]||0);if(race){const p=[25,20,16,14,12,10,8,6,4,2][i]||0;if(p)S.pts[r.id]=(S.pts[r.id]||0)+p}});
  for(const[id,p]of Object.entries(kom))S.kom[id]=(S.kom[id]||0)+p;
  for(const[id,p]of Object.entries(CMP.spt))S.pts[id]=(S.pts[id]||0)+p;
@@ -9267,7 +9288,7 @@ function recTick(now,P,x,z,y){if(!REC.on)return;const t=Date.now();if(t-REC.last
 // sortie en cours gardée dans le navigateur (format compact), effacée quand la sortie se termine normalement
 function recSave(){if(!REC.on||REC.pts.length<10)return;try{localStorage.v3rec=JSON.stringify({t0:REC.t0,mode:REC.mode,asc:Math.round(REC.asc),wkn:wk&&wk.n||'',
  p:REC.pts.map(q=>[q.t,+q.lat.toFixed(6),+q.lon.toFixed(6),+q.alt.toFixed(1),+q.dist.toFixed(1),+q.spd.toFixed(2),q.pw,q.hr,q.cad])})}catch(e){}}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')recSave()});addEventListener('pagehide',recSave);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')recSave()});addEventListener('pagehide',()=>{recSave();cmpCkSave()});
 // la sortie est gardée dès 30 s et 100 m, même si le parcours n'est pas fini
 function recStop(){if(!REC.on)return null;REC.on=false;try{delete localStorage.v3rec}catch(e){}const p=REC.pts;if(p.length<30||p[p.length-1].dist-p[0].dist<100)return null;return{pts:p.slice(),asc:REC.asc,mode:REC.mode,t0:REC.t0,bl:(REC.mode==='wk'&&wk&&wk.bl)?wk.bl.map(b=>b.slice()):null}}
 // au démarrage : une sortie interrompue (appli fermée, écran éteint…) est proposée à l'envoi sur Strava
