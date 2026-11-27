@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · al';const ERRL=[];
+const VCT_VER='27/11/2026 · am';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -1184,7 +1184,7 @@ let NETD={E:[]};// rempli par netSrc() à partir du parcours actif
 // ====================================================================
 const T=THREE;T.ColorManagement.enabled=true;
 const $=id=>document.getElementById(id);
-const say=m=>{const st=$('st');if(st)st.textContent=m;const t=$('toast');if(!t)return;t.textContent=m;t.style.display='block';clearTimeout(say.t);say.t=setTimeout(()=>t.style.display='none',5000)};
+const say=m=>{if(CAST.fwd)try{castSend({t:'say',m:String(m).slice(0,200)})}catch(e){}const st=$('st');if(st)st.textContent=m;const t=$('toast');if(!t)return;t.textContent=m;t.style.display='block';clearTimeout(say.t);say.t=setTimeout(()=>t.style.display='none',5000)};
 const V=(x,y,z)=>new T.Vector3(x,y,z),UP=V(0,1,0);
 const clamp=(x,a,b)=>x<a?a:x>b?b:x,lerp=(a,b,t)=>a+(b-a)*t;
 const sm=(a,b,x)=>{x=(x-a)/(b-a);x=x<0?0:x>1?1:x;return x*x*(3-2*x)};
@@ -4976,7 +4976,8 @@ let mode='home',conn=false,pw=0,cad=0,v=0,s=0,tt=0,play=false,yaw=0,pit=.28,dist
 let cp,q=Promise.resolve(),lastT=-1,lastBi=-1,hr=0,wk=null,wt=0,WT=1,ix=1,wpz=0,best=0,sA=0,sT=0,bad=0,stepI=-1,FTP=200;
 try{FTP=+localStorage.ftp||200;$('kg').value=+localStorage.kg||80}catch(e){}
 const save=()=>{try{localStorage.ftp=FTP;localStorage.kg=$('kg').value}catch(e){}};
-const wcp=a=>!cp?q:q=q.then(()=>(cp.writeValueWithResponse||cp.writeValue).call(cp,new Uint8Array(a))).catch(e=>say('Commande refusée : '+e.message));
+var CAST={host:false,view:false,fwd:false,pc:null,ch:null,state:''};// cast téléphone → tablette (voir section « cast »)
+const wcp=a=>CAST.fwd?(castSend({t:'cp',a:Array.from(a instanceof ArrayBuffer?new Uint8Array(a):a)}),q):!cp?q:q=q.then(()=>(cp.writeValueWithResponse||cp.writeValue).call(cp,new Uint8Array(a))).catch(e=>say('Commande refusée : '+e.message));
 // simulation de pente (FTMS 0x11) : vent 0, pente en 0,01 %, Crr 0,0040, Cw 0,19
 // l'aspiration réduit le coefficient de traînée envoyé au home trainer (Cw 0,19 kg/m sans abri)
 const sim=(g,dr)=>{const b=new DataView(new ArrayBuffer(7));b.setUint8(0,17);b.setInt16(1,0,true);b.setInt16(3,Math.round(Math.max(-.2,Math.min(.2,g))*10000),true);b.setUint8(5,40);b.setUint8(6,Math.max(5,Math.round(19*(1-(dr||0)))));wcp(b.buffer)};
@@ -5763,9 +5764,99 @@ function roulRender(){const box=document.querySelector('#s-roul .cards');box.inn
  hcard(box,'✨ Créer un parcours','Parcours imaginaire à ta mesure (distance, dénivelé, boucle) à rouler dans le monde 🦖 Aventure',genCourseOpen);
  hcard(box,'📚 Mes parcours',CRS.list.length?CRS.list.length+' parcours importé'+(CRS.list.length>1?'s':''):'Aucun parcours pour l\'instant',crsMenu);
  hcard(box,'🤖 Exploration','Pilote automatique sur le parcours choisi',()=>courseThen(()=>nav('explore'),'exploration'))}
+// ====================== cast téléphone → tablette (27 nov. 2026, demande de Cyril : « pour tester si c'est mieux ») ======================
+// Le TÉLÉPHONE calcule la 3D et envoie l'image en direct (WebRTC, canvas.captureStream) ; la TABLETTE affiche la vidéo, se connecte au home trainer
+// (Bluetooth) et renvoie puissance / cadence / cardio au téléphone, qui lui renvoie les commandes de résistance (pente, ERG).
+// Pas de serveur : les deux appareils échangent un code (copier / coller ou partager), puis la liaison est directe sur le réseau local (ou point d'accès du téléphone).
+const CASTCFG={ice:[{urls:'stun:stun.l.google.com:19302'}]};
+function castB64(u){let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function castUnb64(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';const s=atob(t),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u}
+async function castPack(o){const j=JSON.stringify(o);try{const cs=new CompressionStream('deflate-raw'),w=cs.writable.getWriter();w.write(new TextEncoder().encode(j));w.close();return 'VCT2.'+castB64(new Uint8Array(await new Response(cs.readable).arrayBuffer()))}catch(e){return 'VCT1.'+btoa(unescape(encodeURIComponent(j)))}}
+async function castUnpack(t){t=(t||'').replace(/\s+/g,'');const m=t.match(/VCT([12])\.([\w\-+\/=]+)/);if(!m)throw new Error('code non reconnu');
+ if(m[1]==='1')return JSON.parse(decodeURIComponent(escape(atob(m[2]))));
+ const ds=new DecompressionStream('deflate-raw'),w=ds.writable.getWriter();w.write(castUnb64(m[2]));w.close();return JSON.parse(await new Response(ds.readable).text())}
+function castIceDone(pc){return new Promise(ok=>{if(pc.iceGatheringState==='complete')return ok();const f=()=>{if(pc.iceGatheringState==='complete'){pc.removeEventListener('icegatheringstatechange',f);ok()}};pc.addEventListener('icegatheringstatechange',f);setTimeout(ok,5000)})}
+function castSend(o){try{if(CAST.ch&&CAST.ch.readyState==='open')CAST.ch.send(JSON.stringify(o))}catch(e){}}
+// ---- fenêtre de dialogue (indépendante de mod()) ----
+function castDlg(h,bind){let d=$('castd');if(!d){d=document.createElement('div');d.id='castd';d.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(10,9,8,.94);color:#f4efe6;font:15px/1.45 system-ui,sans-serif;overflow:auto;padding:16px;display:flex;justify-content:center';document.body.append(d)}
+ d.innerHTML='<div style="max-width:560px;width:100%">'+h+'</div>';d.style.display='flex';if(bind)bind(d);return d}
+function castDlgClose(){const d=$('castd');if(d)d.style.display='none'}
+const castBtn='display:block;width:100%;margin:8px 0;padding:12px;border-radius:12px;border:1px solid #3a342c;background:#27241f;color:#f4efe6;font-size:15px;text-align:left';
+const castBtnOn='display:block;width:100%;margin:8px 0;padding:12px;border-radius:12px;border:0;background:#f0cf73;color:#1c1a17;font-weight:700;font-size:15px';
+const castTa='width:100%;height:86px;margin:6px 0;border-radius:10px;border:1px solid #3a342c;background:#15130f;color:#f4efe6;font:11px monospace;padding:8px;box-sizing:border-box';
+function castPanel(){
+ castDlg('<h2 style="margin:4px 0 8px">📡 Cast téléphone → tablette</h2><p>Le <b>téléphone calcule la 3D</b> et envoie l\'image ; la <b>tablette affiche</b>, se connecte au <b>home trainer</b> et au cardio. Sans serveur : les deux appareils échangent un code, puis la liaison est directe.</p><p style="color:#e9a178">À faire : mêmes Wi-Fi pour les deux (le plus fiable : le <b>point d\'accès du téléphone</b>, la tablette s\'y connecte), appli ouverte dans Chrome sur les deux, Bluetooth du home trainer sur la <b>tablette</b>.</p>'
+  +'<button id="cs1" style="'+castBtn+'">📺 <b>Cette tablette</b> : écran + home trainer</button><button id="cs2" style="'+castBtn+'">📱 <b>Ce téléphone</b> : calcule la 3D</button><button id="cs0" style="'+castBtn+'">✕ Fermer</button>',d=>{
+  $('cs1').onclick=castViewerStart;$('cs2').onclick=castHostStart;$('cs0').onclick=castDlgClose})}
+function castMake(){castStop(true);const pc=new RTCPeerConnection({iceServers:CASTCFG.ice});CAST.pc=pc;
+ pc.onconnectionstatechange=()=>{const s=pc.connectionState;CAST.state=s;if(CAST.onstate)CAST.onstate(s);if(s==='failed'||s==='closed')castLost()};return pc}
+function castLost(){if(CAST.host){CAST.fwd=false;conn=false;pw=0;cad=0;say('📡 Cast : liaison avec la tablette perdue')}if(CAST.view&&$('castv'))$('castvs').textContent='Liaison perdue'}
+function castStop(quiet){clearInterval(CAST.t1);clearInterval(CAST.t2);try{CAST.ch&&CAST.ch.close()}catch(e){}try{CAST.pc&&CAST.pc.close()}catch(e){}
+ if(CAST.host){CAST.fwd=false;if(!quiet){conn=false;pw=0;cad=0}const b=$('casth');if(b)b.remove()}
+ if(CAST.view){const v=$('castv');if(v)v.remove();document.body.classList.remove('castv')}CAST.onstate=null;
+ CAST.pc=CAST.ch=null;CAST.host=CAST.view=false;CAST.state=''}
+// ---- TABLETTE (spectateur) : crée l'offre ----
+async function castViewerStart(){
+ castDlg('<h2>📺 Tablette : étape 1/3</h2><p>Préparation du code…</p>');
+ let pc;try{pc=castMake();CAST.view=true;pc.addTransceiver('video',{direction:'recvonly'});const ch=pc.createDataChannel('vct');castChan(ch);
+  await pc.setLocalDescription(await pc.createOffer());await castIceDone(pc)}catch(e){CAST.view=false;castDlg('<p>⚠️ '+esc(e.message)+'</p><button id="cb" style="'+castBtn+'">Retour</button>',()=>$('cb').onclick=castPanel);return}
+ const code=await castPack({k:'offer',s:pc.localDescription.sdp});
+ castDlg('<h2>📺 Tablette : étapes 1 et 2 sur 3</h2><p><b>1.</b> Copie ce code et envoie-le au téléphone (message à toi-même, Keep, mail…) :</p><textarea id="cto" readonly style="'+castTa+'"></textarea><button id="cco" style="'+castBtn+'">📋 Copier le code</button>'
+  +'<p><b>2.</b> Sur le téléphone : <i>Réglages → 📡 Cast → Ce téléphone</i>, colle ce code, puis copie la <b>réponse</b> et colle-la ici :</p><textarea id="cti" placeholder="Code réponse du téléphone (VCT2.…)" style="'+castTa+'"></textarea><div id="cte" style="color:#ff8a6a;min-height:20px"></div><button id="cgo" style="'+castBtnOn+'">▶ Connecter</button><button id="cx" style="'+castBtn+'">✕ Annuler</button>',d=>{
+  $('cto').value=code;$('cco').onclick=async()=>{try{await navigator.clipboard.writeText(code);$('cco').textContent='✅ Copié'}catch(e){$('cto').select();document.execCommand('copy');$('cco').textContent='✅ Copié (ou copie à la main)'}};
+  $('cx').onclick=()=>{castStop();castDlgClose()};
+  $('cgo').onclick=async()=>{try{const o=await castUnpack($('cti').value);if(o.k!=='answer')throw new Error('ce n\'est pas le code réponse');$('cte').textContent='Connexion…';await pc.setRemoteDescription({type:'answer',sdp:o.s});castViewUI()}catch(e){$('cte').textContent='⚠️ '+e.message}}})}
+// ---- téléphone (hôte) : reçoit l'offre, renvoie la réponse ----
+function castHostStart(){
+ castDlg('<h2>📱 Téléphone : calcule la 3D</h2><p><b>1.</b> Sur la tablette : <i>Réglages → 📡 Cast → Cette tablette</i>, copie le code et colle-le ici :</p><textarea id="cti" placeholder="Code de la tablette (VCT2.…)" style="'+castTa+'"></textarea><div id="cte" style="color:#ff8a6a;min-height:20px"></div><button id="cgo" style="'+castBtnOn+'">Créer la réponse</button><button id="cx" style="'+castBtn+'">✕ Annuler</button>',d=>{
+  $('cx').onclick=()=>{castStop();castDlgClose()};
+  $('cgo').onclick=async()=>{try{const o=await castUnpack($('cti').value);if(o.k!=='offer')throw new Error('ce n\'est pas le code de la tablette');$('cte').textContent='Préparation…';
+   const pc=castMake();CAST.host=true;pc.ondatachannel=e=>castChan(e.channel);
+   const st=ren.domElement.captureStream(30),tr=st.getVideoTracks()[0];try{tr.contentHint='motion'}catch(e){}
+   await pc.setRemoteDescription({type:'offer',sdp:o.s});
+   const tc=pc.getTransceivers().find(t=>t.receiver&&t.receiver.track&&t.receiver.track.kind==='video');if(!tc)throw new Error('offre sans vidéo');tc.direction='sendonly';await tc.sender.replaceTrack(tr);
+   try{const p=tc.sender.getParameters();if(!p.encodings||!p.encodings.length)p.encodings=[{}];p.encodings[0].maxBitrate=8e6;p.encodings[0].maxFramerate=30;p.degradationPreference='maintain-framerate';await tc.sender.setParameters(p)}catch(e){}
+   await pc.setLocalDescription(await pc.createAnswer());await castIceDone(pc);
+   const code=await castPack({k:'answer',s:pc.localDescription.sdp});
+   castDlg('<h2>📱 Téléphone : étape 2</h2><p><b>2.</b> Copie ce code <b>réponse</b> et colle-le sur la tablette (champ « Code réponse »), puis touche « Connecter » :</p><textarea id="cto" readonly style="'+castTa+'"></textarea><button id="cco" style="'+castBtn+'">📋 Copier</button><button id="csh" style="'+castBtn+'">📤 Partager…</button><p style="font-size:13px;opacity:.85">Ensuite choisis ton parcours et lance la sortie <b>sur le téléphone</b> : la tablette affiche l\'image et fournit la puissance.</p><button id="cx" style="'+castBtn+'">✕ Fermer (le cast continue)</button>',()=>{
+    $('cto').value=code;$('cco').onclick=async()=>{try{await navigator.clipboard.writeText(code);$('cco').textContent='✅ Copié'}catch(e){$('cto').select();document.execCommand('copy')}};
+    $('csh').onclick=()=>{if(navigator.share)navigator.share({text:code}).catch(()=>{});else $('cco').click()};$('cx').onclick=castDlgClose});
+   CAST.onstate=s=>{castHostBadge();if(s==='connected')castDlgClose()};castHostBadge()}catch(e){CAST.host=false;$('cte').textContent='⚠️ '+e.message}}})}
+function castHostBadge(){let b=$('casth');if(!b){b=document.createElement('div');b.id='casth';b.style.cssText='position:fixed;left:8px;top:8px;z-index:9000;padding:4px 10px;border-radius:14px;background:rgba(15,14,13,.75);color:#f0cf73;font:12px system-ui;pointer-events:auto';b.onclick=()=>mod('📡 Cast vers la tablette<br><small>'+esc(CAST.state||'')+'</small>',[['Arrêter le cast',()=>castStop()],['Fermer',()=>{}]]);document.body.append(b)}
+ b.textContent='📡 Cast · '+({connected:'tablette connectée',connecting:'connexion…',new:'en attente',failed:'échec',disconnected:'coupé'}[CAST.state]||CAST.state||'')+(CAST.fps?' · '+CAST.fps:'')}
+// ---- canal de données ----
+function castChan(ch){CAST.ch=ch;ch.onopen=()=>{
+  if(CAST.host){CAST.fwd=true;conn=true;IBT=performance.now();say('📡 Cast : tablette connectée');CAST.t1=setInterval(()=>{castSend(castHud());castHostBadge()},250);CAST.t2=setInterval(castHostStats,2000)}
+  if(CAST.view){CAST.t1=setInterval(()=>castSend({t:'st',c:conn?1:0,p:Math.round(pw),k:Math.round(cad),h:hr|0,ck:CADOK?1:0,cp:cp?1:0,pr:PRNG,b:HRBELT?1:0}),125);CAST.t2=setInterval(castViewStats,2000)}};
+ ch.onclose=()=>castLost();
+ ch.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}
+  if(CAST.host){if(m.t==='st'){conn=!!m.c;pw=m.p||0;cad=m.k||0;hr=m.h||0;CADOK=!!m.ck;PRNG=m.pr||null;HRBELT=!!m.b;IBT=performance.now();TRW=0}}
+  else if(CAST.view){if(m.t==='cp'&&cp)wcp(m.a);else if(m.t==='hud')castViewHud(m);else if(m.t==='say')castViewSay(m.m)}}}
+function castHud(){const g=id=>{const e=$(id);return e?e.textContent:''};return{t:'hud',m:mode,s:g('vs'),p:g('vp'),c:g('vc'),g:g('vg'),h:g('vh'),d:g('vd'),r:g('vr'),a:g('va'),tm:g('vt'),z:g('zzn')+' '+g('zzp')}}
+async function castHostStats(){try{const sd=CAST.pc.getSenders().find(s=>s.track&&s.track.kind==='video');if(!sd)return;const r=await sd.getStats();r.forEach(x=>{if(x.type==='outbound-rtp'&&x.kind==='video'&&x.framesPerSecond!=null)CAST.fps=Math.round(x.framesPerSecond)+' img/s '+(x.frameWidth||'')+'×'+(x.frameHeight||'')})}catch(e){}}
+// ---- affichage sur la tablette ----
+function castViewUI(){castDlgClose();let o=$('castv');if(o)o.remove();o=document.createElement('div');o.id='castv';
+ o.style.cssText='position:fixed;inset:0;z-index:99990;background:#000;color:#f4efe6;font-family:system-ui,sans-serif;touch-action:manipulation';
+ o.innerHTML='<video id="castvv" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000"></video>'
+  +'<div id="castvh" style="position:absolute;left:10px;top:10px;padding:8px 14px;border-radius:14px;background:rgba(15,14,13,.55);display:none"><div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap"><span><b id="cv-s" style="font-size:34px">0</b> km/h</span><span><b id="cv-p" style="font-size:34px;color:#f0cf73">0</b> W</span><span><b id="cv-c" style="font-size:24px">0</b> tr/min</span><span><b id="cv-h" style="font-size:24px">–</b> bpm</span><span><b id="cv-g" style="font-size:24px">0</b> %</span></div><div style="font-size:15px;opacity:.9;margin-top:2px"><span id="cv-d">0</span> km · reste <span id="cv-r">0</span> km · <span id="cv-a">0</span> m · <span id="cv-t">0:00</span> · <span id="cv-z"></span></div></div>'
+  +'<div id="castvs" style="position:absolute;left:10px;bottom:8px;font-size:12px;opacity:.75">Connexion…</div><div id="castvm" style="position:absolute;left:50%;top:14px;transform:translateX(-50%);padding:8px 16px;border-radius:12px;background:rgba(15,14,13,.8);display:none;max-width:70%;text-align:center"></div>'
+  +'<div style="position:absolute;right:10px;top:10px;display:flex;gap:8px"><button id="cvb1" style="'+castBtn+'width:auto;margin:0;padding:8px 12px">🚴 Home trainer</button><button id="cvb2" style="'+castBtn+'width:auto;margin:0;padding:8px 12px">❤️ Cardio</button><button id="cvb3" style="'+castBtn+'width:auto;margin:0;padding:8px 12px">✕</button></div>';
+ document.body.append(o);document.body.classList.add('castv');if(!$('castcss')){const st=document.createElement('style');st.id='castcss';st.textContent='body.castv #res,body.castv #toast{z-index:999999}';document.head.append(st)}
+ CAST.pc.ontrack=e=>{const v=$('castvv');v.srcObject=e.streams&&e.streams[0]?e.streams[0]:new MediaStream([e.track]);v.play().catch(()=>{})};
+ try{const r=CAST.pc.getReceivers().find(x=>x.track&&x.track.kind==='video');if(r){const v=$('castvv');v.srcObject=new MediaStream([r.track])}}catch(e){}
+ $('cvb1').onclick=connect;$('cvb2').onclick=connectHR;$('cvb3').onclick=()=>{castStop();castDlgClose()};
+ CAST.onstate=s=>{if(!$('castvs'))return;$('castvs').textContent=({connected:'Connecté au téléphone',connecting:'Connexion…',failed:'Liaison échouée',disconnected:'Liaison coupée'}[s]||s)+(CAST.vst?' · '+CAST.vst:'')};
+ try{fsEnter()}catch(e){}}
+function castViewHud(m){const h=$('castvh');if(!h)return;h.style.display='block';const set=(i,t)=>{const e=$(i);if(e)e.textContent=t};set('cv-s',m.s);set('cv-p',m.p);set('cv-c',m.c);set('cv-h',m.h);set('cv-g',m.g);set('cv-d',m.d);set('cv-r',m.r);set('cv-a',m.a);set('cv-t',m.tm);set('cv-z',m.z||'')}
+function castViewSay(t){const e=$('castvm');if(!e)return;e.textContent=t;e.style.display='block';clearTimeout(castViewSay.t);castViewSay.t=setTimeout(()=>e.style.display='none',5000)}
+async function castViewStats(){try{const r=await CAST.pc.getStats();let fps=0,w=0,h=0,jb=0,codec='',cid='';const cs={};r.forEach(x=>{if(x.type==='codec')cs[x.id]=x.mimeType});
+  r.forEach(x=>{if(x.type==='inbound-rtp'&&x.kind==='video'){fps=Math.round(x.framesPerSecond||0);w=x.frameWidth;h=x.frameHeight;if(x.jitterBufferEmittedCount)jb=Math.round(x.jitterBufferDelay/x.jitterBufferEmittedCount*1000);cid=x.codecId}});
+  codec=(cs[cid]||'').replace('video/','');CAST.vst=fps+' img/s · '+w+'×'+h+' · '+codec+' · tampon '+jb+' ms';const e=$('castvs');if(e)e.textContent='Connecté au téléphone · '+CAST.vst}catch(e){}}
+function castViewTick(){}
 function regRender(){const box=document.querySelector('#s-reg .cards');box.innerHTML='';
  hcard(box,'🎬 Film d\'ouverture','Au lancement : '+(localStorage.v3intro==='0'?'non':'oui')+' · touche pour revoir ou changer',()=>mod('Film d\'ouverture « le grand dézoom »<br><small>Environ 20 s au lancement, avant le choix du compte. Toucher l\'écran pour passer.</small>',[['▶ Revoir maintenant',()=>{showScr('s-main');nav('home');introStart()}],[(localStorage.v3intro==='0'?'✅ Activer':'⏸ Désactiver')+' au lancement',()=>{try{localStorage.v3intro=localStorage.v3intro==='0'?'1':'0'}catch(e){}regRender()}],['Fermer',()=>{}]]));
  hcard(box,'👥 Comptes','Compte actif : '+esc(PROF.me().name)+' · '+PROF.list.length+' compte'+(PROF.list.length>1?'s':'')+' · changer, créer, modifier',()=>accOpen());
+ hcard(box,'📡 Cast téléphone → tablette',CAST.view?'Tablette : écran actif':CAST.host?'Téléphone : cast actif ('+(CAST.state||'attente')+')':'Le téléphone calcule la 3D, la tablette affiche et pilote le home trainer (test)',castPanel);
  hcard(box,'🔌 Matériel',(conn?'Home trainer connecté':'Home trainer non connecté')+' · '+(hr?'cardio connectée':'cardio non connectée'),()=>showScr('s-hw'));
  hcard(box,'🟧 Strava',STR.id&&STR.ref?'Connecté'+(STR.who?' · '+esc(STR.who):'')+' · '+GS.strv.length+' sortie'+(GS.strv.length>1?'s':'')+' envoyée'+(GS.strv.length>1?'s':''):'Non connecté · touche ici pour relier ton compte',()=>stravaPanel(()=>regRender()));
  hcard(box,'👕 Vestiaire','Maillots, casque, lunettes, couleurs du vélo, roues',()=>{kitRender();showScr('s-kit')});
@@ -14043,7 +14134,7 @@ function glReload(){try{recSave&&recSave()}catch(e){}try{sessionStorage.v3skip='
 ren.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();GLL.lost=true;GLL.n++;console.warn('WebGL perdu');
  try{say('Affichage 3D interrompu par la tablette : reprise…')}catch(e){}const n=GLL.n;setTimeout(()=>{if(GLL.lost&&GLL.n===n&&!MR.on)glReload()},5000)},false);
 ren.domElement.addEventListener('webglcontextrestored',()=>{GLL.lost=false;console.warn('WebGL rendu');try{if(typeof homeRender==='function'&&mode==='home')homeRender()}catch(e){}},false);
-function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;if(!N)return;if(now-uiLayout.t>400){uiLayout.t=now;try{uiLayout()}catch(e){}}
+function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1000);last=now;if(!N)return;if(CAST.view)return;/* tablette en mode cast : pas de 3D, seulement la vidéo du téléphone */if(now-uiLayout.t>400){uiLayout.t=now;try{uiLayout()}catch(e){}}
  // carte de traçage ouverte ou affichage perdu : la 3D ne se dessine pas (mémoire et batterie pour la carte)
  if(GLL.lost||(MR.on&&!IN.on)){loop.p=now;return}fA+=((now-(loop.p||now))-fA)*.05;loop.p=now;
  const hm=mode==='home',riding=mode==='ride'||mode==='wk';RM.visible=TR.visible=hm;WORLD.visible=!hm;sky.visible=!hm;clouds.visible=!hm&&!!QP.clouds&&SHW('clouds');stars.visible=!hm&&DAYF<.6;moon.visible=!hm&&MD.y>-.04;sc.background=hm?BGC:null;sc.fog.density=hm?0:1/42000;
