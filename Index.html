@@ -1131,7 +1131,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · ai';const ERRL=[];
+const VCT_VER='27/11/2026 · aj';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -5969,7 +5969,7 @@ function c3dOpen(){const D=c3dData();if(!D)return say('Parcours en préparation�
   const cv=el.querySelector('canvas'),pt=new Map();let pd=0;
   cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);pt.set(e.pointerId,[e.clientX,e.clientY]);C3D.auto=false};cv.onpointerup=cv.onpointercancel=e=>{pt.delete(e.pointerId);pd=0};
   cv.onpointermove=e=>{const o=pt.get(e.pointerId);if(!o)return;pt.set(e.pointerId,[e.clientX,e.clientY]);if(pt.size===2){const[a,b]=[...pt.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pd)C3D.zoom=clamp(C3D.zoom*d/pd,.5,4);pd=d;return}
-   C3D.yaw+=(e.clientX-o[0])*.008;C3D.pit=clamp(C3D.pit+(e.clientY-o[1])*.005,.15,1.35)};
+   C3D.yaw-=(e.clientX-o[0])*.008;C3D.pit=clamp(C3D.pit+(e.clientY-o[1])*.005,.15,1.35)};
   cv.onwheel=e=>{C3D.zoom=clamp(C3D.zoom*Math.exp(-e.deltaY*.0012),.5,4);e.preventDefault()};
   el.querySelector('#c3x').onclick=c3dClose;el.querySelector('#c3g').onclick=()=>{c3dClose();nav('ride')};el.querySelector('#c3a').onclick=()=>C3D.auto=!C3D.auto;
   el.querySelector('.lg').innerHTML=[[-4,'descente'],[0,'0–2 %'],[3,'2–4 %'],[5,'4–6 %'],[7,'6–8 %'],[9,'8–10 %'],[11,'> 10 %']].map(([g,t])=>'<span style="background:'+GCOL(g)+'">'+t+'</span>').join('')}
@@ -8571,6 +8571,7 @@ function cmpResShow(res,gcOnly){const e=cEl('cmp');e.className='cmp';e.style.dis
  const row=(i,id,val,me)=>'<tr'+(me?' class="me"':'')+'><td>'+i+'</td><td><span class="dot" style="background:'+cTeamCol(tm(id))+'"></span>'+esc(nm(id))+'</td><td><small>'+esc(cTeamName(tm(id)))+'</small></td><td>'+val+'</td></tr>';
  let h='<button class="x" id="cmx">✕</button><h2>'+(res?(res.kind==='clm'?(res.ttt?'👥 Contre-la-montre par équipes':'⏱️ Contre-la-montre'):'🏁 Arrivée'):'📋 Classements')+'</h2>';
  const tabs=[];if(res&&res.ttt)tabs.push(['tt','👥 Équipes']);if(res)tabs.push(['st',res.ttt?'Coureurs':'Étape']);if(res&&res.kind==='race')tabs.push(['qe','Équipes (étape)']);if(res&&res.kind==='race'&&CMP.stat)tabs.push(['sx','📊 Stats']);if(S&&(!res||!S.over))tabs.push(['pr','🗓️ Programme']);if(S)tabs.push(['gc','💛 Général'],['pt','💚 Points'],['km','🔴 Montagne'],['eq','Équipes']);if(S&&S.last)tabs.push(['ld','Dernière étape']);
+ if(gcOnly==='start'&&S&&!S.over&&!res){const cc=CRS.list.find(q=>q.id===S.list[S.i].id);h+='<h3>Étape '+(S.i+1)+' / '+S.list.length+' : '+esc(S.list[S.i].name)+'</h3>'+(cc?cmpPrevHtml(cc):'')+'<button class="go" id="cmgo2">▶ Prendre le départ : étape '+(S.i+1)+'</button>'}
  if(tabs.length>1)h+='<div class="tabs">'+tabs.map(([k,t])=>'<button data-t="'+k+'"'+(tab===k?' class="on"':'')+'>'+t+'</button>').join('')+'</div>';
  if(tab==='pr'&&S){h+='<div class="cards">'+S.list.map((q,i)=>'<div class="cd'+(i===S.i&&!S.over?' on':'')+'" data-pv="'+i+'" style="cursor:pointer'+(cmpResShow.pv===i?';grid-column:1/-1':'')+'"><b>'+(cmpResShow.pv===i?'▾ ':'▸ ')+(i<S.i?'✓ ':'')+(i+1)+'. '+esc(q.name)+'</b>'+(q.kind==='ttt'?'👥 contre-la-montre par équipes':q.kind==='clm'?'⏱️ contre-la-montre':'🚴 course en ligne')+' · '+nf(q.km||0,1)+' km'+(!S.over&&i>=S.i&&!(i===S.i&&CMP.on&&!res)?'<br><button data-ed="'+i+'" style="margin-top:6px;padding:6px 12px;border-radius:999px;border:1px solid #3a342c;background:#27241f;color:#f0cf73;font:700 12px Arial">✏️ Changer le parcours</button>':'')+(cmpResShow.pv===i?(()=>{const cc=CRS.list.find(z=>z.id===q.id);return cc?cmpPrevHtml(cc):'<br><small>Profil indisponible (parcours supprimé).</small>'})():'<br><small style="opacity:.7">Touche l\'étape pour voir son profil</small>')+'</div>').join('')+'</div>'}
  else if(tab==='sx'&&res)h+=cmpStatHtml(res);else{h+='<table><tr><th>#</th><th>'+(tab==='tt'?'Équipe':'Coureur')+'</th><th>'+(tab==='tt'?'Détail':'Équipe')+'</th><th>'+(tab==='pt'||tab==='km'?'Points':'Temps')+'</th></tr>';
@@ -8586,8 +8587,7 @@ function cmpResShow(res,gcOnly){const e=cEl('cmp');e.className='cmp';e.style.dis
   L.forEach(([k,t],i)=>h+='<tr'+(k==0?' class="me"':'')+'><td>'+(i+1)+'</td><td><span class="dot" style="background:'+cTeamCol(+k)+'"></span>'+esc(cTeamName(+k))+'</td><td><small>3 meilleurs</small></td><td>'+(i?'+'+fmtH(t-L[0][1]):fmtH(t))+'</td></tr>')}
  if(!res&&!(S&&tab==='pr')&&S&&['gc','pt','km'].includes(tab)&&!Object.keys(tab==='gc'?S.gc:tab==='pt'?S.pts:S.kom).length)h+='<tr><td colspan="4"><small>Pas encore de classement : il se remplit après la première étape.</small></td></tr>';
  h+='</table>'}
- if(!res&&S&&!S.over){const cc=CRS.list.find(q=>q.id===S.list[S.i].id);if(cc)h+='<h3>Prochaine étape : '+(S.i+1)+' / '+S.list.length+'</h3>'+cmpPrevHtml(cc)}
- if(gcOnly==='start'&&S&&!S.over&&!res)h+='<button class="go" id="cmgo2">▶ Prendre le départ : étape '+(S.i+1)+' — '+esc(S.list[S.i].name)+'</button>';
+ if(!res&&S&&!S.over&&gcOnly!=='start'){const cc=CRS.list.find(q=>q.id===S.list[S.i].id);if(cc)h+='<h3>Prochaine étape : '+(S.i+1)+' / '+S.list.length+'</h3>'+cmpPrevHtml(cc)}
  if(S&&!S.over&&res)h+='<button class="go" id="cmnx">▶ Étape suivante : '+esc(S.list[S.i].name)+'</button>';
  if(S&&S.over&&res)h+='<h3>🏆 Course par étapes terminée</h3><small>'+cmpGCLine(S)+'</small>';
  if(S&&res&&CMP.stageK0)h+='<button class="go" id="cmcr" style="background:#27241f;color:#f0cf73">'+(S.over?'🏆 Revoir la remise de la coupe':'🎖️ Revoir la remise des maillots')+'</button>';
