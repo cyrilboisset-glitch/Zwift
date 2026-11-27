@@ -1133,7 +1133,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // restauration d'une sauvegarde (v3bkpend) : appliquée avant toute lecture du stockage, pour que la page précédente ne puisse pas l'écraser
 (function(){try{const j=localStorage.getItem('v3bkpend');if(!j)return;localStorage.removeItem('v3bkpend');const p=JSON.parse(j);for(const k of p.rm||[])localStorage.removeItem(k);for(const k in p.set)localStorage.setItem(k,p.set[k])}catch(e){try{localStorage.removeItem('v3bkpend')}catch(x){}}})();
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · aq';const ERRL=[];
+const VCT_VER='27/11/2026 · ar';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -8448,7 +8448,7 @@ function cmpTick(dt,P,now){const me=CMP.me;if(!me)return;
   if(CMP.cd<=0){CMP.hold=false;setTimeout(()=>cd.style.display='none',700)}cmpUpdateMe(P,0);cmpDraw(dt);cmpHud();return}
  if(CMP.fin){cmpUpdateMe(P,0);cmpDraw(dt);return}
  CMP.T+=dt;cmpUpdateMe(P,dt);cmpStatTick(dt,P);cmpNeu(dt);
- const list=[me,...CMP.R].sort((a,b)=>b.d-a.d);const{G,pack}=cmpStep(dt,list);
+ const list=[me,...CMP.R].sort((a,b)=>b.d-a.d);const{G,pack}=cmpStep(dt,list);cmpMarks();
  cmpDraw(dt);
  CMP.evT+=dt;if(CMP.evT>1){CMP.evT=0;if(!(CMP.neu&&CMP.neu.on))cmpEvents(G,pack,list)}
  if(!(CMP.neu&&CMP.neu.on))cmpCoach(now,P);cmpHud();if(now-(CMP.ckT||0)>8000){CMP.ckT=now;cmpCkSave()}
@@ -8456,7 +8456,7 @@ function cmpTick(dt,P,now){const me=CMP.me;if(!me)return;
 // premier kilomètre fictif : peloton groupé à 28 km/h, chrono et course à partir du drapeau baissé
 function cmpNeu(dt){const N=CMP.neu;if(!N||!N.on)return;const me=CMP.me,ds=CMP.R.map(r=>r.d).sort((a,b)=>a-b),med=ds.length?ds[ds.length>>1]:0,front=Math.max(med,me.d);
  if(!N.a&&N.len-front<300){N.a=1;cRadio(dsF('neu_300'))}
- if(front>=N.len){N.on=false;CMP.T=0;CMP.evT=0;CMP.ev={};Object.assign(CMP.coach,{t:-1e9,ann:-1e9,over:-1e9});for(const r of CMP.R){r.st='pack'}cRadio(dsF('neu_flag'))}}
+ if(front>=N.len){N.on=false;CMP.T=0;cmpMarksReset();CMP.evT=0;CMP.ev={};Object.assign(CMP.coach,{t:-1e9,ann:-1e9,over:-1e9});for(const r of CMP.R){r.st='pack'}cRadio(dsF('neu_flag'))}}
 function cmpUpdateMe(P,dt){const me=CMP.me;me.pd=me.d;me.d=s;if(dt>0&&CMP.kind==='clm'&&me.fin==null&&me.cp){const k=Math.floor(me.d/CMP.cps),k0=Math.floor(me.pd/CMP.cps);if(k>k0&&k>=1)me.cp[k-1]=CMP.T-(me.d-k*CMP.cps)/Math.max(v,.5)}if(dt>0&&me.fin==null)for(const c of CMP.climbs)if(me.pd<c.d1&&me.d>=c.d1&&me.kom[c.i]==null){me.kom[c.i]=CMP.T;cmpCross('k',c.i,me)}for(const sp of CMP.sprints)if(me.pd<sp.d&&me.d>=sp.d&&me.sp[sp.i]==null){me.sp[sp.i]=CMP.T;cmpCross('s',sp.i,me)}me.v=v;me.lat=RLAT;me.x=RW.x;me.z=RW.z;me.tx=RW.tx;me.tz=RW.tz;me.P=P;if(dt>0){me.kjr+=P*dt/1000;me.fk=cmpFk(me.kj0+me.kjr);me.fe=FTP*me.fk;wbalStep(me,P,me.fe,dt)}
  CMP.coach.p30+=(P-CMP.coach.p30)*Math.min(1,dt/30)}
 function cmpAttacks(dt,G,pack,ctx){if(!pack)return;
@@ -8505,14 +8505,30 @@ function cmpAdvice(att,gapS,sec){const c=cmpAdvCalc(att,gapS,sec),w='<b>'+c.need
 // tous les commentaires du directeur sportif en dépendent (dsM choisit la banque de phrases selon la situation)
 function dsM(k,v){const m=CMP.sit?CMP.sit.mode:'pack',c=[k+'_'+m];if(m==='duo')c.push(k+'_break');for(const x of c)if(DSB[x])return dsF(x,v);return dsF(k,v)}
 function cmpSoloW(){const me=CMP.me,E=CMP.ev,T=CMP.T;if(E.swT==null||T-E.swT>20||T<E.swT){E.swT=T;try{E.sw=Math.round(cPacing(me.d,CMP.L,me.fe,Math.max(0,me.wbal),me.m,me.cda,true,FTP).P)}catch(x){E.sw=null}}return E.sw||Math.round(me.fe*.9)}
+// ---- écarts au chrono (version ar) : chaque coureur note l'heure de passage tous les 25 m ; écart = temps écoulé depuis que celui de devant était à ta position (plus de distance ÷ vitesse) ----
+const CMK=25;
+function cmpMarks(){const T=CMP.T;for(const r of [CMP.me,...CMP.R]){if(!r||(r.fin!=null&&r!==CMP.me))continue;const m=r.mk||(r.mk=[]),k=Math.floor(r.d/CMK);if(r.mj==null||r.mj>k)r.mj=k;const vv=Math.max(r.v||0,.5);for(let i=r.mj+1;i<=k;i++)m[i]=T-(r.d-i*CMK)/vv;r.mj=k}}
+function cmpMarksReset(){for(const r of [CMP.me,...CMP.R]){if(r){r.mk=[];r.mj=null}}}
+function cmpTat(a,d){const m=a.mk;if(!m||d>a.d+.01)return null;const k=Math.floor(d/CMK),t0=m[k];if(t0==null)return null;const f=(d-k*CMK)/CMK;if(m[k+1]!=null)return t0+(m[k+1]-t0)*f;if(k===a.mj&&a.d>k*CMK+.01)return t0+(CMP.T-t0)*(d-k*CMK)/(a.d-k*CMK);return null}
+// écart en secondes entre a (devant) et b (derrière) ; 0 si a n'est pas devant
+function cmpGap(a,b){if(!a||!b||a===b||a.d<=b.d)return 0;const t=cmpTat(a,b.d);if(t!=null&&t<=CMP.T+.01)return Math.max(0,CMP.T-t);return (a.d-b.d)/Math.max(b.v||0,5)}
+// écart signé : positif si r est devant b
+function cmpGapS(r,b){return r.d>=b.d?cmpGap(r,b):-cmpGap(b,r)}
+const cmpFr=g=>g.R.reduce((x,r)=>r.d>x.d?r:x,g.R[0]),cmpTl=g=>g.R.reduce((x,r)=>r.d<x.d?r:x,g.R[0]);
+// voisins de moi : plus proche coureur devant / derrière, et plus proche ADVERSAIRE devant / derrière (équipe 0 = la mienne)
+function cmpNeigh(){const me=CMP.me;let nb=null,ob=null,na=null,oa=null;for(const r of CMP.R){if(r.fin!=null)continue;if(r.d<me.d){if(!nb||r.d>nb.d)nb=r;if(r.team!==0&&(!ob||r.d>ob.d))ob=r}else if(r.d>me.d){if(!na||r.d<na.d)na=r;if(r.team!==0&&(!oa||r.d<oa.d))oa=r}}return{nb,ob,na,oa}}
+function cmpNearTxt(S){if(!S||!S.nb&&!S.na)return '';const t=[],at=g=>g<2?'<b>dans ta roue</b>':'à <b>'+cGapTxt(g)+'</b>',tm=(r,g)=>'<b>'+r.name+'</b>, <b>un des nôtres</b>, '+at(g),op=(r,g)=>'<b>'+r.name+'</b> ('+cTeamName(r.team)+') '+at(g);
+ if(S.nb){if(S.nb.team===0)t.push('Derrière toi : '+tm(S.nb,S.gNb)+(S.ob?'. L\'adversaire le plus proche derrière : '+op(S.ob,S.gOb):'. Aucun adversaire derrière'));else t.push('Derrière toi, l\'adversaire le plus proche : '+op(S.nb,S.gNb))}
+ if(S.na){if(S.na.team===0)t.push('Devant : '+tm(S.na,S.gNa)+(S.oa?'. Premier adversaire devant : '+op(S.oa,S.gOa):''));else t.push('Devant, adversaire : '+op(S.na,S.gNa))}
+ return t.join(' ; ')+'.'}
 function cmpSitu(G,pack){const me=CMP.me,T=CMP.T,gi=G.findIndex(g=>g.R.includes(me)),pi=G.indexOf(pack);if(gi<0)return CMP.sit=null;
  const g=G[gi],mates=g.R.filter(r=>r!==me),v=Math.max(me.v,5),behind=G[gi+1]||null,ahead=gi>0?G[gi-1]:null;
  const mode=gi===pi?'pack':gi>pi?'drop':gi===0?(mates.length?(mates.length===1?'duo':'break'):'solo'):'chase';
- const gapB=behind?Math.max(0,(me.d-behind.front)/v):0,gapA=ahead?Math.max(0,(ahead.tail-me.d)/v):0,H=CMP.sh||(CMP.sh={m:null,a:[]}),gm=mode==='chase'?gapA:gapB;
+ const NB=cmpNeigh(),gNb=NB.nb?cmpGap(me,NB.nb):0,gOb=NB.ob?cmpGap(me,NB.ob):0,gNa=NB.na?cmpGap(NB.na,me):0,gOa=NB.oa?cmpGap(NB.oa,me):0,gapB=behind?(NB.ob&&NB.ob.d<me.d?gOb:(NB.nb?gNb:0)):0,gapA=ahead?cmpGap(cmpTl(ahead),me):0,H=CMP.sh||(CMP.sh={m:null,a:[]}),gm=mode==='chase'?gapA:gapB;
  if(H.m!==mode||(H.a.length&&T<H.a[H.a.length-1][0])){H.m=mode;H.a=[]}
  if(!H.a.length||T-H.a[H.a.length-1][0]>=5){H.a.push([T,gm]);while(H.a.length>2&&T-H.a[0][0]>70)H.a.shift()}
  const a0=H.a[0],dt=T-a0[0],tr=dt>8?(gm-a0[1])/dt*30:0,rem=CMP.L-me.d,projB=mode==='chase'?gapB:gapB+(tr/30)*(rem/v),fin=gapB<6||projB<6?'lost':projB<20?'tight':'safe';
- return CMP.sit={mode,ahead:mode==='solo'||mode==='duo'||mode==='break'||mode==='chase',mates,gapB,gapA,tr,fin,ch:behind?behind.R[0]:null,chT:behind?behind.R.filter(r=>r.team===0&&r!==me):[]}}
+ return CMP.sit={mode,ahead:mode==='solo'||mode==='duo'||mode==='break'||mode==='chase',mates,gapB,gapA,tr,fin,ch:NB.ob&&NB.ob.d<me.d?NB.ob:(behind?behind.R[0]:null),chT:behind?behind.R.filter(r=>r.team===0&&r!==me):[],nb:NB.nb,ob:NB.ob,na:NB.na,oa:NB.oa,gNb,gOb,gNa,gOa}}
 function cmpTend(S){const t=S.tr;if(Math.abs(t)<3)return 'stable';if(S.mode==='chase')return t<0?'on revient, '+Math.round(t)+' s':'<b>ils s\'éloignent</b>, +'+Math.round(t)+' s';return t>0?'ça augmente, +'+Math.round(t)+' s':'<b>ça baisse</b>, '+Math.round(t)+' s'}
 function cmpSitV(S,rem){return{gap:cGapTxt(S.gapB),gapA:cGapTxt(S.gapA),w:cmpSoloW(),wb:cmpWb(),rem:cKm(rem),tend:cmpTend(S),team:S.ch?cTeamName(S.ch.team):'peloton',names:S.chT.slice(0,3).map(r=>'<b>'+r.name+'</b>').join(', '),avec:S.mates.length?' avec '+S.mates.slice(0,3).map(r=>r.name).join(', '):''}}
 function cmpMark(k,S,rem){if(!S||S.mode==='pack')return '';const V=cmpSitV(S,rem),mk=S.mode==='duo'||S.mode==='break'?'brk':S.mode;
@@ -8538,18 +8554,18 @@ function cmpSituDS(S,rem){const me=CMP.me,E=CMP.ev,T=CMP.T;if(!S)return;const m=
   else if(m==='duo')t=dsF('duo_suivi',V);
   else if(m==='break'){const g2=cGrade(me.d+30),vh=Math.max(6,(CMP.R.find(r=>r.st==='pack')||me).v+.5),ph=Math.min(Math.round(me.fe*1.2),Math.round(powFor(vh,g2,me.m,me.cda,.2)));t=dsF('echappe_suivi',{gap:V.gap,tend:V.tend,w:ph,wb:V.wb})+(rem<8000?' Plus que '+V.rem+' : garde un peu pour le sprint.':'')}
   else if(m==='chase')t=dsF('chase_suivi',V);
-  if(t)cRadio(t)}}
+  if(t)cRadio(t+(S.nb&&S.nb.team===0?' '+cmpNearTxt(S):''))}}
 function cmpEvents(G,pack,list){const me=CMP.me,E=CMP.ev,T=CMP.T,rem=CMP.L-me.d,crossed=x=>(E.lr==null?CMP.L:E.lr)>=x&&rem<x;
  if(CMP.kind==='clm'){// directeur sportif : avance / retard à chaque kilomètre, avec les watts pour battre le meilleur
   if(CMP.ttt){cmpTttTick();{const k=Math.floor(me.d/1000);if(k>=1&&!E['d'+k]&&rem>300){E['d'+k]=1;cmpTttDS(k)}}if(rem<1000&&!E.km1){E.km1=1;cRadio('<b>Dernier kilomètre</b> : plus de relais, <b>tout le monde à bloc</b>, serrez les rangs !')}return}
   {const k=Math.floor(me.d/1000);if(k>=1&&!E['d'+k]&&rem>300){E['d'+k]=1;cmpClmDS(k)}}
-  const mm=CMP.R[CMP.R.length-1];if(mm&&mm.fin==null&&!E.mm&&T>90){E.mm=1;const gp=(mm.d-me.d)/Math.max(me.v,5);if(gp>0)cRadio(dsF('clm_mm',{name:mm.name,gap:cGapTxt(gp)}))}
+  const mm=CMP.R[CMP.R.length-1];if(mm&&mm.fin==null&&!E.mm&&T>90){E.mm=1;const gp=cmpGap(mm,me);if(gp>0)cRadio(dsF('clm_mm',{name:mm.name,gap:cGapTxt(gp)}))}
   if(rem<1000&&!E.km1){E.km1=1;cRadio(dsF('clm_dernier_km'))}return}
  if(!pack||T<60||me.d<400)return;
  const SIT=cmpSitu(G,pack);
  for(const r of pack.R){if(r.st==='att'&&!r.anc&&r!==me){r.anc=1;if(T-(E.attT||-1e9)>25&&!CMP.brk.size&&!(SIT&&SIT.ahead)){E.attT=T;cRadio(dsF('attaque',{name:r.name,team:cTeamName(r.team)})+' '+cmpAdvice([r],3,45))}}else if(r.st!=='att')r.anc=0}
  const brkG=G.filter(x=>x.front>pack.front+5),brkR=brkG.flatMap(g=>g.R).filter(r=>r!==me),meIn=brkG.some(g=>g.R.includes(me)),meDrop=G.indexOf(pack)<G.findIndex(g=>g.R.includes(me))&&!meIn;
- const ids=new Set(brkR.map(r=>r.id)),gapS=brkG.length?(brkG[0].front-pack.front)/Math.max(pack.R[0].v,5):0;
+ const ids=new Set(brkR.map(r=>r.id)),gapS=brkG.length?cmpGap(cmpFr(brkG[0]),cmpFr(pack)):0;
  const names=a=>a.slice(0,4).map(r=>r.name+' ('+cTeamName(r.team)+')').join(', ')+(a.length>4?' et '+(a.length-4)+' autres':'');
  if(ids.size&&![...ids].every(i=>CMP.brk.has(i))&&gapS>4&&(!CMP.brk.size||T-(E.gT||-1e9)>40)&&(!meIn||(SIT&&SIT.mode==='chase'))){{const nr=cmpBrkNear(brkR),hasG=!!cmpGcOf(brkR[0]);cRadio(dsF('brk')+' '+brkR.length+' coureur'+(brkR.length>1?'s':'')+', <b>'+cGapTxt(gapS)+'</b> d\'avance. '+(hasG?'Les plus proches au général : ':'On y trouve : ')+nr.map(cmpGcTxt).join(' ; ')+'. '+(meIn?'':cmpAdvice(brkR,gapS,120)))}E.gT=T;E.gD=me.d;E.gap0=gapS}
  else if(ids.size&&(T-(E.gT||0)>75||me.d-(E.gD||0)>2500)&&!meIn){E.gT=T;E.gD=me.d;const ch=pack.R[0],tr=gapS-(E.gap0==null?gapS:E.gap0),tt=Math.abs(tr)<4?'stable':tr>0?'<b>elle prend du temps</b> (+'+Math.round(tr)+' s)':'<b>on revient</b> ('+Math.round(tr)+' s)';E.gap0=gapS;
@@ -8557,9 +8573,9 @@ function cmpEvents(G,pack,list){const me=CMP.me,E=CMP.ev,T=CMP.T,rem=CMP.L-me.d,
  if(CMP.brk.size&&!ids.size&&!meIn&&!(E.sm&&E.sm!=='pack'&&E.sm!=='drop'))cRadio(dsF('reprise'));
  CMP.brk=ids;
  {const bt=cmpEvents.bt||(cmpEvents.bt={t:T,g:gapS,tr:0});if(T-bt.t>10||T<bt.t){bt.tr=T<bt.t?0:gapS-bt.g;bt.t=T;bt.g=gapS}
-  if(ids.size||meIn){const R=meIn?brkG.flatMap(g=>g.R).filter(r=>r!==me):brkR,ga=meIn?(me.d-pack.front)/Math.max(me.v,5):gapS;CMP.bw={gap:ga,R,near:R.length?cmpBrkNear(R):[],meIn,sit:SIT,mode:SIT?SIT.mode:'pack',tr:meIn&&SIT?SIT.tr:bt.tr,adv:meIn?null:cmpAdvCalc(R,gapS,Math.max(60,Math.min(240,gapS*3)))}}else CMP.bw=null}
+  if(ids.size||meIn){const R=meIn?brkG.flatMap(g=>g.R).filter(r=>r!==me):brkR,ga=meIn?cmpGap(me,cmpFr(pack)):gapS;CMP.bw={gap:ga,R,near:R.length?cmpBrkNear(R):[],meIn,sit:SIT,mode:SIT?SIT.mode:'pack',tr:meIn&&SIT?SIT.tr:bt.tr,adv:meIn?null:cmpAdvCalc(R,gapS,Math.max(60,Math.min(240,gapS*3)))}}else CMP.bw=null}
  cmpSituDS(SIT,rem);
- if(meDrop&&T-(E.dropT||-1e9)>60){E.dropT=T;const gb=(pack.tail-me.d)/Math.max(me.v,5);cRadio(dsF('lache',{gap:cGapTxt(gb)})+' '+(CMP.ord!=='free'?dsF('lache_suite'):'<b>Accroche-toi</b>, ne baisse pas la tête !'));if(CMP.ord!=='free')cmpOrder('prot',true)}
+ if(meDrop&&T-(E.dropT||-1e9)>60){E.dropT=T;const gb=cmpGap(cmpTl(pack),me);cRadio(dsF('lache',{gap:cGapTxt(gb)})+(CMP.sit?' '+cmpNearTxt(CMP.sit):'')+' '+(CMP.ord!=='free'?dsF('lache_suite'):'<b>Accroche-toi</b>, ne baisse pas la tête !'));if(CMP.ord!=='free')cmpOrder('prot',true)}
  for(const sp of CMP.sprints){const d=sp.d-me.d;if(d<900&&d>250&&!E['ps'+sp.i]){E['ps'+sp.i]=1;cmpPrimeDS('s',sp.d,'Sprint intermédiaire',CSPP,CBON)}}
  for(const c of CMP.climbs){const d=c.d1-me.d;if(d<800&&d>250&&!E['pk'+c.i]&&me.kom[c.i]==null){E['pk'+c.i]=1;cmpPrimeDS('k',c.d1,'Sommet',cmpKP(c),c.dp>=150?CBON:[])}}
  // montées
@@ -8574,7 +8590,7 @@ function cmpEvents(G,pack,list){const me=CMP.me,E=CMP.ev,T=CMP.T,rem=CMP.L-me.d,
 
 // ---- le DS improvise selon l'état de forme et la course ----
 function cmpMood(pack,meDrop,meIn,rem){const me=CMP.me,E=CMP.ev,T=CMP.T,w=me.wbal/me.wp;if(T-(E.mdT||-1e9)<45||me.fin!=null)return;
- const S=CMP.sit,m=S?S.mode:'pack',gb=pack?Math.max(0,(pack.tail-me.d)/Math.max(me.v,5)):0,V=S?cmpSitV(S,rem):{};
+ const S=CMP.sit,m=S?S.mode:'pack',gb=pack?cmpGap(cmpTl(pack),me):0,V=S?cmpSitV(S,rem):{};
  if(w<.2&&(meDrop||gb>6||meIn)){E.mdT=T;E.cr=(E.cr||0)+1;E.crk=1;const ph=Math.round(me.fe*.85);let t;
   if(m==='solo')t=dsF('solo_craque',V);else if(m==='duo'||m==='break')t=dsF('echappe_craque',{w:ph});else if(m==='chase')t=dsF('chase_craque',{w:ph});else t=E.cr>2&&gb>25?dsF('craque_perdu'):dsF('craque',{gap:cGapTxt(gb)});
   cRadio(t);return}
@@ -8611,7 +8627,7 @@ function cmpCoach(now,P){const C=CMP.coach,me=CMP.me,T=CMP.T;if(me.fin!=null)ret
 function cmpBoard(force){const e=cEl('cmk');if(!CMP.on||CMP.hold&&CMP.cd>5){e.style.display='none';return}const now=performance.now();if(!force&&now-(cmpBoard.t||0)<700)return;cmpBoard.t=now;
  if(CMP.kind!=='race'){const h0='<div class="ob"><button class="ds" data-ds="1">📻 DS</button><button class="ds" data-vox="1">🎤 Parler</button>'+(CMP.ttt?'<button class="ds" data-rel="1">🔁 Relais : passer la main</button>':'')+'<button class="ds" data-up="1">⬆ Adversaires +'+(CMP.upP||0)+' % → +1</button></div>';if(e._h!==h0){e._h=h0;e.innerHTML=h0;cmpBtn(e)}e.style.display='block';return}
  const me=CMP.me,S=CMP.stageK?cmpLoad():null,gcOn=S&&Object.keys(S.gc||{}).length>0,all=[me,...CMP.R].sort((a,b)=>(a.fin!=null&&b.fin!=null?a.fin-b.fin:b.d-a.d)),lead=all[0],vr=Math.max(6,lead.v||8);
- const gapS=r=>r===lead?0:Math.max(0,(lead.d-r.d)/vr),gcT=r=>(S&&S.gc[r.id]!=null?S.gc[r.id]:null);
+ const gapS=r=>r===lead?0:cmpGap(lead,r),gcT=r=>(S&&S.gc[r.id]!=null?S.gc[r.id]:null);
  const live=r=>gcT(r)==null?null:gcT(r)+gapS(r)-(CMP.bon[r.id]||0);
  let gcRank=null;if(gcOn){const L=all.map(r=>[r,live(r)]).filter(x=>x[1]!=null).sort((a,b)=>a[1]-b[1]);gcRank=new Map(L.map((x,i)=>[x[0],i+1]));}
  const myG=gcRank?gcRank.get(me):null,myL=gcOn?live(me):null;
@@ -8671,10 +8687,10 @@ function voxAnswer(t){const q=VXQ.find(x=>x[1].test(t));if(!q)return false;const
  else if(k==='watts')a='Tiens <b>'+(CMP.sit&&CMP.sit.mode==='solo'?cmpSoloW():tg)+' W</b> pour l\'instant'+(clm?' (cible du coach)':'')+'. Réserve <b>'+cmpWb()+' %</b>.';
  else if(k==='reste'||k==='next'){const nx=[...(CMP.sprints||[]).filter(x=>x.d>me.d).map(x=>({d:x.d,t:'sprint intermédiaire'})),...(CMP.climbs||[]).filter(c=>c.d1>me.d).map(c=>({d:c.d1,t:'sommet'}))].sort((x,y)=>x.d-y.d)[0];
   a=k==='next'?(nx?'Prochain '+nx.t+' dans <b>'+cKm(nx.d-me.d)+'</b>.':'Plus de sprint ni de sommet avant l\'arrivée.'):'Il reste <b>'+cKm(rem)+'</b>.'+(nx?' Prochain '+nx.t+' dans <b>'+cKm(nx.d-me.d)+'</b>.':'')}
- else if(k==='place'){if(clm)return cmpDsNow(),voxMsg('🎤 Compris : <b>ta place</b>',2000),true;const vp=Math.max(5,lead.v||8);a=rk===1?(CMP.sit&&CMP.sit.mode==='solo'?'Tu es <b>seul en tête</b>, <b>'+cGapTxt(CMP.sit.gapB)+'</b> d\'avance.':'Tu es <b>en tête</b> de la course.'):'Tu es <b>'+rk+'<sup>e</sup></b>, la tête est à <b>'+cGapTxt((lead.d-me.d)/vp)+'</b>.'}
+ else if(k==='place'){if(clm)return cmpDsNow(),voxMsg('🎤 Compris : <b>ta place</b>',2000),true;const vp=Math.max(5,lead.v||8);a=rk===1?(CMP.sit&&CMP.sit.mode==='solo'?'Tu es <b>seul en tête</b>, <b>'+cGapTxt(CMP.sit.gapB)+'</b> d\'avance.':'Tu es <b>en tête</b> de la course.'):'Tu es <b>'+rk+'<sup>e</sup></b>, la tête est à <b>'+cGapTxt(cmpGap(lead,me))+'</b>.'}
  else if(k==='gc'){const G=cmpGcVirt();if(!G)a='Pas de classement général en direct sur cette course (course par étapes, à partir de l\'étape 2).';else a=G.my===1?'Au <b>général virtuel</b> tu portes le <b>jaune</b>'+(G.behind?', avance de <b>'+cGapTxt(G.behind.t-G.y.t)+'</b> sur '+esc(G.behind.r.name)+' ('+cTeamName(G.behind.r.team)+').':'.'):'Au <b>général virtuel</b> tu es <b>'+G.my+'<sup>e</sup></b>, à <b>'+cGapTxt(G.gy)+'</b> du jaune ('+esc(G.y.r.name)+', '+cTeamName(G.y.r.team)+')'+(G.behind&&G.behind.t-G.L[G.my-1].t<25?'. '+esc(G.behind.r.name)+' est à '+cGapTxt(G.behind.t-G.L[G.my-1].t)+' derrière toi.':'.')}
  else if(k==='danger'){const d=CMP.R.filter(r=>CMP.dg&&CMP.dg.has(r.id)&&r.fin==null).sort((x,y)=>Math.abs(x.d-me.d)-Math.abs(y.d-me.d)).slice(0,3);
-  a=d.length?'Surveille '+d.map(r=>{const gs=(r.d-me.d)/Math.max(me.v,5);return '<b>'+r.name+'</b> ('+cTeamName(r.team)+'), '+(Math.abs(gs)<2?'dans ta roue':'à '+cGapTxt(Math.abs(gs))+(gs>0?' devant':' derrière'))}).join(' ; ')+'.':'<b>Aucun danger</b> au général pour l\'instant.'}
+  a=d.length?'Surveille '+d.map(r=>{const gs=cmpGapS(r,me);return '<b>'+r.name+'</b> ('+cTeamName(r.team)+'), '+(Math.abs(gs)<2?'dans ta roue':'à '+cGapTxt(Math.abs(gs))+(gs>0?' devant':' derrière'))}).join(' ; ')+'.':'<b>Aucun danger</b> au général pour l\'instant.'}
  else if(k==='mates'){const m=CMP.R.filter(r=>r.team===0&&r.fin==null);a=m.length?'Tes coéquipiers : '+m.map(r=>{const dm=Math.round(r.d-me.d);return '<b>'+r.name+'</b> '+(Math.abs(dm)<8?'à ta hauteur':Math.abs(dm)+' m '+(dm>0?'devant':'derrière'))+', réserve '+Math.round(100*r.wbal/r.wp)+' %'+(r.st==='spent'?' (rincé)':'')}).join(' ; ')+'.':'Plus aucun coéquipier en course.'}
 
  else if(k==='up'){const W={un:1,une:1,deux:2,trois:3,quatre:4,cinq:5,six:6,sept:7,huit:8,neuf:9,dix:10};let nn=1;const mm=t.match(/(\d+)/);if(mm)nn=+mm[1];else for(const w in W)if(new RegExp('\\b'+w+'\\b').test(t)){nn=W[w];break}
@@ -8696,7 +8712,7 @@ function voxTalk(){if(!CMP.on||!CMP.me)return;
  try{r.start();voxBeep(660);voxMsg('🎤 <b>Je t\'écoute…</b> dis ton ordre',7000);VXO.t=setTimeout(()=>{try{r.stop()}catch(e){}},7000)}catch(e){VXO.busy=false;voxMsg('🎤 Impossible d\'écouter',3000)}}
 // ---- général virtuel en cours d'étape : général d'avant + écart du jour (en direct) − bonifications ----
 function cmpGcVirt(){if(!CMP.on||CMP.kind!=='race'||!CMP.stageK)return null;const S=cmpLoad();if(!S||!S.gc||!Object.keys(S.gc).length)return null;
- const me=CMP.me,all=[me,...CMP.R].sort((a,b)=>b.d-a.d),lead=all[0],vr=Math.max(6,lead.v||8),gap=r=>r===lead?0:Math.max(0,(lead.d-r.d)/vr);
+ const me=CMP.me,all=[me,...CMP.R].sort((a,b)=>b.d-a.d),lead=all[0],gap=r=>r===lead?0:cmpGap(lead,r);
  const L=all.filter(r=>S.gc[r.id]!=null).map(r=>({r,t:S.gc[r.id]+gap(r)-(CMP.bon[r.id]||0)})).sort((a,b)=>a.t-b.t);
  const my=L.findIndex(x=>x.r===me);if(my<0)return null;return{L,my:my+1,y:L[0],gy:L[my].t-L[0].t,ahead:L[my-1]||null,behind:L[my+1]||null}}
 function cmpGcDS(rem){const E=CMP.ev,T=CMP.T,g=cmpGcVirt();if(!g||rem<1500||T-(E.gvT||-1e9)<60||T-(E.mdT||-1e9)<12||T-(E.gT||-1e9)<12)return;
@@ -8725,15 +8741,15 @@ function cmpUp(n){if(!CMP.on)return;n=Math.max(1,Math.min(10,Math.round(n)||1));
 // ---- bouton DS : point de situation à la demande ----
 function cmpDsNow(){const me=CMP.me;if(!me||CMP.kind==='clm'&&me.fin==null&&!CMP.on)return;if(CMP.ttt)return cmpTttNow();const rem=CMP.L-me.d,all=[me,...CMP.R].filter(r=>r.fin==null||r===me).sort((a,b)=>b.d-a.d),rk=all.indexOf(me)+1,lead=all[0];
  if(CMP.kind==='clm'){const k=Math.floor(me.d/CMP.cps);return cRadio('Reste <b>'+cKm(rem)+'</b>. Réserve <b>'+cmpWb()+' %</b>. Cible coach : <b>'+(CMP.coach.tg||'…')+' W</b>.')}
- const vp=Math.max(5,lead.v||8),gh=lead===me?0:(lead.d-me.d)/vp,ahead=all.slice(0,rk-1).reverse().find(r=>r.d-me.d>25),gA=ahead?(ahead.d-me.d)/Math.max(6,me.v):0;
+ const vp=Math.max(5,lead.v||8),gh=lead===me?0:cmpGap(lead,me),ahead=all.slice(0,rk-1).reverse().find(r=>r.d-me.d>25),gA=ahead?cmpGap(ahead,me):0;
  const nxt=[...CMP.sprints.filter(x=>x.d>me.d).map(x=>({d:x.d,t:'sprint'})),...CMP.climbs.filter(c=>c.d1>me.d).map(c=>({d:c.d1,t:'sommet'}))].sort((a,b)=>a.d-b.d)[0];
  const tg=CMP.coach.tg&&CMP.coach.ci!==-1?CMP.coach.tg:Math.round(me.fe*.8);
  {const S=CMP.sit,nx2=nxt?', prochain '+nxt.t+' dans <b>'+cKm(nxt.d-me.d)+'</b>':'';
-  if(S&&S.mode==='solo')return cRadio('Tu es <b>seul en tête</b>, <b>'+cGapTxt(S.gapB)+'</b> d\'avance'+(S.ch?' sur <b>'+S.ch.name+'</b> ('+cTeamName(S.ch.team)+')':'')+'. Reste <b>'+cKm(rem)+'</b>'+nx2+'. Réserve <b>'+cmpWb()+' %</b> : <b>tout donner</b>, tiens <b>'+cmpSoloW()+' W</b>, aucun relais possible.');
-  if(S&&(S.mode==='duo'||S.mode==='break'))return cRadio('Tu es <b>en tête à '+(S.mates.length+1)+'</b>, <b>'+cGapTxt(S.gapB)+'</b> d\'avance sur le peloton. Reste <b>'+cKm(rem)+'</b>'+nx2+'. Réserve <b>'+cmpWb()+' %</b> : relaie franchement, ne te grille pas.');
-  if(S&&S.mode==='chase')return cRadio('Tu es dans le <b>groupe de poursuite</b> : tête à <b>'+cGapTxt(S.gapA)+'</b>, peloton à '+cGapTxt(S.gapB)+' derrière. Reste <b>'+cKm(rem)+'</b>'+nx2+'. Réserve <b>'+cmpWb()+' %</b>.');
-  if(S&&S.mode==='drop')return cRadio('Tu es <b>lâché</b> : <b>'+rk+'<sup>e</sup></b>, la tête est à <b>'+cGapTxt(gh)+'</b>. Reste <b>'+cKm(rem)+'</b>'+nx2+'. Réserve <b>'+cmpWb()+' %</b> : roule à ton rythme, <b>'+tg+' W</b>.')}
- cRadio('Tu es <b>'+rk+'<sup>e</sup></b>'+(lead===me?', en tête':', tête à <b>'+cGapTxt(gh)+'</b>')+(ahead?' ; groupe devant à '+cGapTxt(gA):'')+'. Reste <b>'+cKm(rem)+'</b>'+(nxt?', prochain '+nxt.t+' dans <b>'+cKm(nxt.d-me.d)+'</b>':'')+'. Réserve <b>'+cmpWb()+' %</b> : tiens <b>'+tg+' W</b>'+(ahead&&gA<40&&me.wbal>.5*me.wp?', tu peux revenir à ~<b>'+Math.round(cmpPmax(Math.max(20,gA*2)))+' W</b>':'')+'.')}
+  if(S&&S.mode==='solo')return cRadio('Tu es <b>seul en tête</b>, <b>'+cGapTxt(S.gapB)+'</b> d\'avance'+(S.ch?' sur <b>'+S.ch.name+'</b> ('+cTeamName(S.ch.team)+')':'')+'. Reste <b>'+cKm(rem)+'</b>'+nx2+'. Réserve <b>'+cmpWb()+' %</b> : <b>tout donner</b>, tiens <b>'+cmpSoloW()+' W</b>, aucun relais possible. '+cmpNearTxt(S));
+  if(S&&(S.mode==='duo'||S.mode==='break'))return cRadio('Tu es <b>en tête à '+(S.mates.length+1)+'</b>, <b>'+cGapTxt(S.gapB)+'</b> d\'avance sur le peloton. Reste <b>'+cKm(rem)+'</b>'+nx2+'. Réserve <b>'+cmpWb()+' %</b> : relaie franchement, ne te grille pas. '+cmpNearTxt(S));
+  if(S&&S.mode==='chase')return cRadio('Tu es dans le <b>groupe de poursuite</b> : tête à <b>'+cGapTxt(S.gapA)+'</b>, peloton à '+cGapTxt(S.gapB)+' derrière. Reste <b>'+cKm(rem)+'</b>'+nx2+'. Réserve <b>'+cmpWb()+' %</b>. '+cmpNearTxt(S));
+  if(S&&S.mode==='drop')return cRadio('Tu es <b>lâché</b> : <b>'+rk+'<sup>e</sup></b>, la tête est à <b>'+cGapTxt(gh)+'</b>. Reste <b>'+cKm(rem)+'</b>'+nx2+'. Réserve <b>'+cmpWb()+' %</b> : roule à ton rythme, <b>'+tg+' W</b>. '+cmpNearTxt(S))}
+ cRadio('Tu es <b>'+rk+'<sup>e</sup></b>'+(lead===me?', en tête':', tête à <b>'+cGapTxt(gh)+'</b>')+(ahead?' ; groupe devant à '+cGapTxt(gA):'')+'. Reste <b>'+cKm(rem)+'</b>'+(nxt?', prochain '+nxt.t+' dans <b>'+cKm(nxt.d-me.d)+'</b>':'')+'. Réserve <b>'+cmpWb()+' %</b> : tiens <b>'+tg+' W</b>'+(ahead&&gA<40&&me.wbal>.5*me.wp?', tu peux revenir à ~<b>'+Math.round(cmpPmax(Math.max(20,gA*2)))+' W</b>':'')+'. '+cmpNearTxt(CMP.sit))}
 // ---- statistiques de l'étape et historique des courses ----
 function cmpStatTick(dt,P){const st=CMP.stat,me=CMP.me;if(!st||me.fin!=null)return;st.t+=dt;st.e+=P*dt;st.mx=Math.max(st.mx,P);if(RDRAFT>.04){st.dr+=dt;st.drs+=RDRAFT*dt}
  const all=[me,...CMP.R];const rk=1+all.filter(r=>r.d>me.d).length;st.rk+=rk*dt;st.n+=dt;st.top3+=rk<=3?dt:0;st.top10+=rk<=10?dt:0;st.best=Math.min(st.best||99,rk);
@@ -8781,7 +8797,7 @@ function cmpHud(force){const e=$('cmh');if(!e||!CMP.me)return;const now=performa
   const ahead=CMP.R.filter(r=>r.fin==null&&r.d>me.d&&r.t0<=CMP.T).sort((a,b)=>a.d-b.d)[0];l2=(ahead?'Devant : '+ahead.name+' à '+Math.round(ahead.d-me.d)+' m':'Personne devant')+(best.length?' · meilleur '+fmt(Math.min(...best)):'')}
  else{const all=[me,...CMP.R].filter(r=>r.fin==null||r===me).sort((a,b)=>b.d-a.d),rk=all.indexOf(me)+1,lead=all[0];
   l1='🚴 '+(CMP.stageK?'Étape '+(CMP.stageK.i+1)+' · ':'')+rk+'<sup>e</sup> / '+(CMP.R.length+1)+' · reste '+cKm(rem);
-  const gp=lead!==me?(lead.d-me.d)/Math.max(me.v,5):0;l2=lead===me?cmpLeadTxt():'Tête de course : '+lead.name+' à '+cGapTxt(gp);
+  const gp=lead!==me?cmpGap(lead,me):0;l2=lead===me?cmpLeadTxt():'Tête de course : '+lead.name+' à '+cGapTxt(gp);
   if(CMP.neu&&CMP.neu.on){const nf0=Math.max(CMP.R.length?CMP.R.map(r=>r.d).sort((a,b)=>a-b)[CMP.R.length>>1]:0,me.d);l1='🏳️ Neutralisé · drapeau dans '+Math.max(0,Math.round(CMP.neu.len-nf0))+' m';l2='Reste dans le peloton, 28 km/h'}}
  const wb=Math.round(100*clamp(me.wbal/me.wp,0,1));
  const ob='';
