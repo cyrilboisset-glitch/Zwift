@@ -1133,7 +1133,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // restauration d'une sauvegarde (v3bkpend) : appliquée avant toute lecture du stockage, pour que la page précédente ne puisse pas l'écraser
 (function(){try{const j=localStorage.getItem('v3bkpend');if(!j)return;localStorage.removeItem('v3bkpend');const p=JSON.parse(j);for(const k of p.rm||[])localStorage.removeItem(k);for(const k in p.set)localStorage.setItem(k,p.set[k])}catch(e){try{localStorage.removeItem('v3bkpend')}catch(x){}}})();
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='28/11/2026 · aw';const ERRL=[];
+const VCT_VER='28/11/2026 · ax';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -2041,7 +2041,7 @@ function fxPost(hm){const lv=fxLevel();if(!lv)return;
  catch(err){VFX.fail=true;console.warn('effets visuels désactivés',err);ren.setRenderTarget(null)}}
 function fxSet(v){SET.fx=v;ssave();say('Effets visuels : '+['aucun','doux','max'][fxLevel()])}
 const _FARH=[];
-function renderScene(){try{riderLodCam()}catch(e){}fogSun();GU.uSunV.value.copy(SUN).transformDirection(cam.matrixWorldInverse);GU.uSunC.value.setRGB(1,.9,.62).multiplyScalar(SPACE.on?0:clamp(DAYF,0,1)*sm(-2,10,ELEV));TU.uDetQ.value=QK==='ultra'?1:QK==='high'?.8:0;const n0=cam.near,f0=cam.far;ren.autoClear=false;ren.clear();
+function renderScene(){cdgFrame();try{riderLodCam()}catch(e){}fogSun();GU.uSunV.value.copy(SUN).transformDirection(cam.matrixWorldInverse);GU.uSunC.value.setRGB(1,.9,.62).multiplyScalar(SPACE.on?0:clamp(DAYF,0,1)*sm(-2,10,ELEV));TU.uDetQ.value=QK==='ultra'?1:QK==='high'?.8:0;const n0=cam.near,f0=cam.far;ren.autoClear=false;ren.clear();
  cam.near=SPLIT*.985;cam.far=160000;cam.updateProjectionMatrix();ren.shadowMap.autoUpdate=false;
  {const hid=_FARH;hid.length=0;const hide=g=>{if(g&&g.visible&&g.position.distanceToSquared(cam.position)<40000){g.visible=false;hid.push(g)}};hide(R);for(const n of NPCS)hide(n.R);
   // l'herbe (au plus 80 m autour de la caméra) est entièrement dans la passe proche : inutile de l'envoyer à la passe lointaine (plan proche à 256 m)
@@ -5896,7 +5896,7 @@ function castStop(quiet){castClosePc();castSubStop();CAST.run=(CAST.run||0)+1;cl
  if(CAST.host){CAST.fwd=false;CAST.tw=CAST.th=0;ren.domElement.style.objectFit='';castQApply();if(!quiet){conn=false;pw=0;cad=0}const b=$('casth');if(b)b.remove();castBlack(false)}
  if(CAST.view)castStageKill();
  CAST.host=CAST.view=false;CAST.retry=null;CAST.msg=''}
-function castSend(o){const s=typeof o==='string'?o:JSON.stringify(o),ch=CAST.ch;if(!ch||ch.readyState!=='open')return false;
+function castSend(o){const s=typeof o==='string'?o:JSON.stringify(o),ch=CAST.ch;if(!ch||ch.readyState!=='open')return false;if(CDG.on){CDG.tx.b+=s.length;const bb=ch.bufferedAmount;if(bb>CDG.buf)CDG.buf=bb}
  try{if(s.length<=15000)ch.send(s);else{const id=(CAST.cid=(CAST.cid||0)+1),n=Math.ceil(s.length/15000);for(let i=0;i<n;i++)ch.send(JSON.stringify({t:'ch',id,i,n,s:s.slice(i*15000,(i+1)*15000)}))}return true}catch(e){return false}}
 function castChan(ch){CAST.ch=ch;ch.onopen=()=>{CAST.rx=Date.now();
   if(CAST.host){CAST.fwd=true;castQApply();IBT=performance.now();castStatus('Tablette connectée');CAST.t1=setInterval(castHostBadge,1500);CAST.t2=setInterval(castHostStats,2000);cmStart()}
@@ -5906,6 +5906,8 @@ function castChan(ch){CAST.ch=ch;ch.onopen=()=>{CAST.rx=Date.now();
   if(CAST.view){CAST.rq=(CAST.rq||Promise.resolve()).then(()=>castOnMsg(m)).catch(()=>{})}else castOnMsg(m)}}
 async function castOnMsg(m){CAST.rx=Date.now();
  if(m.t==='bk')return bkRecv(m);
+ if(m.t==='pg'){castSend({t:'pn',ts:m.ts});return}if(m.t==='pn'){CDG.dc=performance.now()-m.ts;return}
+ if(m.t==='dg'){if(CDG.on){CDG.P.push(m.s);if(CDG.P.length>1800)CDG.P.shift();cdgOv()}return}if(m.t==='dgon'){cdgStart(true);return}if(m.t==='dgoff'){cdgStop(true);return}
  if(m.t==='ch'){const q=CAST.chb||(CAST.chb={}),b=q[m.id]||(q[m.id]={n:m.n,p:[],c:0});if(b.p[m.i]===undefined){b.p[m.i]=m.s;b.c++}if(b.c===b.n){delete q[m.id];let j;try{j=JSON.parse(b.p.join(''))}catch(e){return}return castOnMsg(j)}return}
  if(m.t==='z'){let j;try{j=JSON.parse(new TextDecoder().decode(await castZip(castUnb64(m.b),true)))}catch(e){return}return castOnMsg(j)}
  if(CAST.host){
@@ -5919,7 +5921,7 @@ async function castOnMsg(m){CAST.rx=Date.now();
 // ======== HÔTE (téléphone) : miroir du DOM ========
 const CM={on:false,ids:new WeakMap(),nodes:new Map(),next:1,pk:new Set(),pa:new Map(),pt:new Set(),rm:new Set(),sig:new Map(),al:new WeakMap(),tx:new WeakMap(),val:new WeakMap(),cv:new WeakMap(),mo:null,tm:0,tk:0,q:Promise.resolve(),sz:''};
 const CM_SKIP=new Set(['script','style','link','meta','noscript','iframe','video','audio','object','embed','template']);
-function cmSkip(n){return CM_SKIP.has(n.localName)||n.id==='castd'||n.id==='castblk'||n.id==='casth'||n.id==='castv'||n.id==='castcss'}
+function cmSkip(n){return CM_SKIP.has(n.localName)||n.id==='castd'||n.id==='cdgo'||n.id==='castblk'||n.id==='casth'||n.id==='castv'||n.id==='castcss'}
 function cmId(n){let i=CM.ids.get(n);if(!i){i=CM.next++;CM.ids.set(n,i)}CM.nodes.set(i,n);return i}
 function cmAttrs(n){const a={};for(const at of n.attributes){const k=at.name;if(k.length>2&&k[0]==='o'&&k[1]==='n')continue;a[k]=at.value}return a}
 function cmSer(n){
@@ -5970,7 +5972,7 @@ function cmTick(){if(!CM.on||!CAST.ch||CAST.ch.readyState!=='open')return;
  for(const c of document.querySelectorAll('canvas')){if(c===ren.domElement||!CM.ids.has(c))continue;let st=CM.cv.get(c);if(!st)CM.cv.set(c,st={t:0,iv:250,last:''});if(now<st.t)continue;
   const r=c.getBoundingClientRect();if(r.width<2||r.height<2||c.width<2||c.height<2){st.t=now+400;continue}
   const t0=performance.now();let u='';try{u=c.closest('#c3d')?c.toDataURL('image/jpeg',.6):c.toDataURL('image/png')}catch(e){st.t=now+2000;continue}
-  st.iv=Math.max(250,(performance.now()-t0)*8);st.t=now+st.iv;if(u===st.last)continue;st.last=u;cmSend({t:'cv',id:CM.ids.get(c),u,w:c.width,h:c.height})}}
+  st.iv=Math.max(250,(performance.now()-t0)*8);st.t=now+st.iv;if(u===st.last)continue;st.last=u;if(CDG.on)CDG.tx.cv+=u.length;cmSend({t:'cv',id:CM.ids.get(c),u,w:c.width,h:c.height})}}
 // ---- événements rejoués sur le téléphone ----
 const CI={act:false,pk:new Map(),pn:0};
 // la tablette met l'interface à SA taille : un toucher est donc repéré par l'élément touché (id du miroir) et la position DANS cet élément (fx, fy en fraction), jamais par des pixels
@@ -6032,11 +6034,11 @@ function castStageBuild(){castStageKill();const o=document.createElement('div');
  o.innerHTML='<div id="castst" style="position:absolute;left:0;top:0;transform-origin:0 0;display:none"><video id="castvv" autoplay playsinline muted style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:fill;background:#000"></video><iframe id="castif" style="position:absolute;left:0;top:0;width:100%;height:100%;border:0;background:transparent"></iframe></div>'
   +'<div id="castw" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px"><div><div style="font-size:42px">📡</div><div id="castwm" style="margin:10px 0;opacity:.9">Connexion…</div><div style="opacity:.6;font-size:13px">Code '+castFmt(CASTS.code||'')+'</div><button id="castwr" style="'+castBtn+'width:auto;display:inline-block;margin-top:14px">↻ Réessayer</button> <button id="castwx" style="'+castBtn+'width:auto;display:inline-block">✕ Quitter</button></div></div>'
   +'<button id="castgb" style="position:absolute;left:4px;top:50%;margin-top:-17px;z-index:5;width:34px;height:34px;border-radius:17px;border:0;background:rgba(15,14,13,.55);color:#f4efe6;font-size:16px;opacity:.5">⚙</button>'
-  +'<div id="castgp" style="position:absolute;left:44px;top:50%;transform:translateY(-50%);z-index:5;display:none;padding:8px;border-radius:12px;background:rgba(15,14,13,.92);min-width:210px"><button id="castb1" style="'+castBtn+'margin:4px 0">🚴 Home trainer</button><button id="castb2" style="'+castBtn+'margin:4px 0">❤️ Cardio</button><button id="castb3" style="'+castBtn+'margin:4px 0">↻ Reconnecter</button><button id="castb5" style="'+castBtn+'margin:4px 0">📲 Envoyer ma progression au téléphone</button><button id="castb4" style="'+castBtn+'margin:4px 0">✕ Quitter le cast</button><div id="castvs" style="font-size:11px;opacity:.7;margin-top:4px"></div></div>';
+  +'<div id="castgp" style="position:absolute;left:44px;top:50%;transform:translateY(-50%);z-index:5;display:none;padding:8px;border-radius:12px;background:rgba(15,14,13,.92);min-width:210px"><button id="castb1" style="'+castBtn+'margin:4px 0">🚴 Home trainer</button><button id="castb2" style="'+castBtn+'margin:4px 0">❤️ Cardio</button><button id="castb3" style="'+castBtn+'margin:4px 0">↻ Reconnecter</button><button id="castb5" style="'+castBtn+'margin:4px 0">📲 Envoyer ma progression au téléphone</button><button id="castb6" style="'+castBtn+'margin:4px 0">📊 Diagnostic du streaming</button><button id="castb4" style="'+castBtn+'margin:4px 0">✕ Quitter le cast</button><div id="castvs" style="font-size:11px;opacity:.7;margin-top:4px"></div></div>';
  document.body.append(o);document.body.classList.add('castv');
  if(!$('castcss')){const st=document.createElement('style');st.id='castcss';st.textContent='body.castv #res,body.castv #toast{z-index:999999}';document.head.append(st)}
  $('castgb').onclick=()=>{const p=$('castgp');p.style.display=p.style.display==='none'?'block':'none'};
- $('castb5').onclick=()=>{$('castgp').style.display='none';bkPanel()};$('castb1').onclick=connect;$('castb2').onclick=connectHR;$('castb3').onclick=()=>{$('castgp').style.display='none';CAST.retry&&CAST.retry()};$('castb4').onclick=$('castwx').onclick=()=>{castStop();CASTS.auto=CASTS.auto;castSave()};$('castwr').onclick=()=>CAST.retry&&CAST.retry();
+ $('castb5').onclick=()=>{$('castgp').style.display='none';bkPanel()};$('castb6').onclick=()=>{$('castgp').style.display='none';cdgPanel()};$('castb1').onclick=connect;$('castb2').onclick=connectHR;$('castb3').onclick=()=>{$('castgp').style.display='none';CAST.retry&&CAST.retry()};$('castb4').onclick=$('castwx').onclick=()=>{castStop();CASTS.auto=CASTS.auto;castSave()};$('castwr').onclick=()=>CAST.retry&&CAST.retry();
  addEventListener('resize',castStageFit);try{fsEnter()}catch(e){}}
 function castStageKill(){const v=$('castv');if(v)v.remove();document.body.classList.remove('castv');removeEventListener('resize',castStageFit);CV.nodes=new Map();CV.id=new WeakMap();CV.vw=CV.vh=0}
 function castUiRefresh(){const m=$('castwm');if(m&&CAST.msg)m.textContent=CAST.msg;const s=$('castvs');if(s)s.textContent=(CAST.msg||'')+(CAST.vst?' · '+CAST.vst:'');if(CAST.host)castHostBadge();if($('castd')&&$('castd').style.display!=='none'&&CAST.pnl)castPanelDraw()}
@@ -6089,6 +6091,84 @@ function castBind(d){const send=o=>castSend(Object.assign({t:'in'},o));let pend=
 async function castViewStats(){try{if(!CAST.pc)return;const r=await CAST.pc.getStats();let fps=0,w=0,h=0,jb=0,cid='';const cs={};r.forEach(x=>{if(x.type==='codec')cs[x.id]=x.mimeType});
  r.forEach(x=>{if(x.type==='inbound-rtp'&&x.kind==='video'){fps=Math.round(x.framesPerSecond||0);w=x.frameWidth;h=x.frameHeight;if(x.jitterBufferEmittedCount)jb=Math.round(x.jitterBufferDelay/x.jitterBufferEmittedCount*1000);cid=x.codecId}});
  CAST.vst=fps+' img/s · '+w+'×'+h+' · '+(cs[cid]||'').replace('video/','')+' · tampon '+jb+' ms';castUiRefresh()}catch(e){}}
+// ======== diagnostic du streaming (cast) ========
+/* Mesure une fois par seconde, des deux côtés : téléphone (3D dessinée, encodage, débit, limites WebRTC, JS occupé, miroir) et tablette (décodage, images affichées, gels, tampon), + réseau (RTT, pertes, canal de données). Chaque côté envoie ses mesures à l'autre ; le rapport range les causes. Seuils = ordres de grandeur (HYPOTHÈSES). */
+const CDG={on:false,S:[],P:[],prev:{},t0:0,tl:0,tm:null,dc:0,buf:0,lt:{n:0,ms:0,mx:0},lf:{n:0,mx:0,last:0,slow:0},tx:{b:0,cv:0,n:0},rv:{n:0,mx:0,last:0,s50:0,s100:0},rvOn:false,po:null,ov:null,rep:''};
+function cdgFrame(){if(!CDG.on)return;const t=performance.now(),L=CDG.lf;if(L.last){const d=t-L.last;L.n++;if(d>L.mx)L.mx=d;if(d>50)L.slow++}L.last=t}
+function cdgRvf(){const v=$('castvv');if(!v||!v.requestVideoFrameCallback||CDG.rvOn)return;CDG.rvOn=true;const f=(now)=>{if(!CDG.on){CDG.rvOn=false;return}const R=CDG.rv;if(R.last){const d=now-R.last;R.n++;if(d>R.mx)R.mx=d;if(d>50)R.s50++;if(d>100)R.s100++}R.last=now;v.requestVideoFrameCallback(f)};v.requestVideoFrameCallback(f)}
+function cdgStart(remote){if(CDG.on)return;Object.assign(CDG,{on:true,S:[],P:[],prev:{},t0:performance.now(),tl:performance.now(),dc:0,buf:0,rep:''});CDG.lt={n:0,ms:0,mx:0};CDG.lf={n:0,mx:0,last:0,slow:0};CDG.tx={b:0,cv:0,n:0};CDG.rv={n:0,mx:0,last:0,s50:0,s100:0};
+ try{CDG.po=new PerformanceObserver(l=>{for(const e of l.getEntries()){CDG.lt.n++;CDG.lt.ms+=e.duration;if(e.duration>CDG.lt.mx)CDG.lt.mx=e.duration}});CDG.po.observe({entryTypes:['longtask']})}catch(e){CDG.po=null}
+ clearInterval(CDG.tm);CDG.tm=setInterval(cdgTick,1000);if(CAST.view)cdgRvf();
+ if(!CDG.ov){const o=document.createElement('div');o.id='cdgo';o.style.cssText='position:fixed;left:50%;top:4px;transform:translateX(-50%);z-index:999990;padding:4px 10px;border-radius:12px;background:rgba(15,14,13,.82);color:#f0cf73;font:11px/1.35 monospace;max-width:96vw;text-align:center;white-space:pre-wrap';o.onclick=()=>cdgPanel();document.body.append(o);CDG.ov=o}
+ CDG.ov.textContent='📊 mesure du streaming… (toucher = rapport)';if(!remote)castSend({t:'dgon'})}
+function cdgStop(remote){if(!CDG.on)return;CDG.on=false;clearInterval(CDG.tm);if(CDG.po){try{CDG.po.disconnect()}catch(e){}CDG.po=null}if(CDG.ov){CDG.ov.remove();CDG.ov=null}if(!remote)castSend({t:'dgoff'});CDG.rep=cdgReport()}
+const cdgAv=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0,cdgQ=(a,p)=>{if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);return b[Math.min(b.length-1,Math.floor(p*b.length))]};
+async function cdgTick(){if(!CDG.on)return;const pc=CAST.pc;if(!pc)return;const now=performance.now(),dt=Math.max(.3,(now-CDG.tl)/1000);CDG.tl=now;
+ const s={t:Math.round((now-CDG.t0)/1000)},P=CDG.prev,dl=(k,v)=>{v=v||0;const d=v-(P[k]||0);P[k]=v;return d};
+ let rep;try{rep=await pc.getStats()}catch(e){return}
+ let pair=null;const cand={};rep.forEach(x=>{if(x.type==='local-candidate'||x.type==='remote-candidate')cand[x.id]=x});
+ rep.forEach(x=>{if(x.type==='candidate-pair'&&x.nominated&&x.state==='succeeded'&&(!pair||(x.bytesSent||0)+(x.bytesReceived||0)>(pair.bytesSent||0)+(pair.bytesReceived||0)))pair=x});
+ if(pair){s.rtt=Math.round((pair.currentRoundTripTime||0)*1000);s.av=Math.round((pair.availableOutgoingBitrate||0)/1000);const lc=cand[pair.localCandidateId],rc=cand[pair.remoteCandidateId];s.ct=(lc?lc.candidateType:'?')+'/'+(rc?rc.candidateType:'?');if(lc&&lc.networkType)s.nt=lc.networkType}
+ rep.forEach(x=>{
+  if(x.type==='outbound-rtp'&&x.kind==='video'){const fe=dl('fe',x.framesEncoded),te=dl('te',x.totalEncodeTime);s.fe=Math.round(fe/dt*10)/10;s.enc=fe>0?Math.round(te/fe*1000*10)/10:0;s.kb=Math.round(dl('bs',x.bytesSent)*8/1000/dt);s.w=x.frameWidth;s.h=x.frameHeight;s.lim=x.qualityLimitationReason||'none';const d=x.qualityLimitationDurations||{};s.lc=Math.round(dl('lc',d.cpu)*10)/10;s.lb=Math.round(dl('lb',d.bandwidth)*10)/10;s.nk=dl('nk',x.nackCount);s.pl=dl('pl',x.pliCount);s.rx=dl('rx',x.retransmittedPacketsSent);s.tg=Math.round((x.targetBitrate||0)/1000);s.impl=x.encoderImplementation||''}
+  else if(x.type==='remote-inbound-rtp'&&x.kind==='video'){s.lo=dl('rl',x.packetsLost);s.jt=Math.round((x.jitter||0)*1000)}
+  else if(x.type==='inbound-rtp'&&x.kind==='video'){const fd=dl('fd',x.framesDecoded),td=dl('td',x.totalDecodeTime),jb=dl('jb',x.jitterBufferDelay),je=dl('je',x.jitterBufferEmittedCount);s.fd=Math.round(fd/dt*10)/10;s.dec=fd>0?Math.round(td/fd*1000*10)/10:0;s.dr=dl('dr',x.framesDropped);s.fz=dl('fz',x.freezeCount);s.fzd=Math.round(dl('fzd',x.totalFreezesDuration)*100)/100;s.jb=je>0?Math.round(jb/je*1000):0;s.lo=dl('lo',x.packetsLost);s.rcv=dl('pr',x.packetsReceived);s.kb=Math.round(dl('br',x.bytesReceived)*8/1000/dt);s.w=x.frameWidth;s.h=x.frameHeight;s.jt=Math.round((x.jitter||0)*1000);s.nk=dl('nk',x.nackCount);s.pl=dl('pl',x.pliCount);s.impl=x.decoderImplementation||''}});
+ if(CAST.host){const L=CDG.lf;s.r3=Math.round(L.n/dt*10)/10;s.rmx=Math.round(L.mx);s.rsl=L.slow;CDG.lf={n:0,mx:0,last:L.last,slow:0};
+  s.ltn=CDG.lt.n;s.ltm=Math.round(CDG.lt.ms);s.ltx=Math.round(CDG.lt.mx);CDG.lt={n:0,ms:0,mx:0};
+  s.mk=Math.round(CDG.tx.b/1000/dt);s.cv=Math.round(CDG.tx.cv/1000/dt);s.bf=Math.round(CDG.buf/1000);CDG.tx={b:0,cv:0,n:0};CDG.buf=0}
+ if(CAST.view){const R=CDG.rv;s.pr=Math.round(R.n/dt*10)/10;s.pmx=Math.round(R.mx);s.p50=R.s50;s.p100=R.s100;CDG.rv={n:0,mx:0,last:R.last,s50:0,s100:0};s.ltn=CDG.lt.n;s.ltm=Math.round(CDG.lt.ms);CDG.lt={n:0,ms:0,mx:0};castSend({t:'pg',ts:performance.now()})}
+ if(CDG.dc)s.dc=Math.round(CDG.dc);
+ CDG.S.push(s);if(CDG.S.length>1800)CDG.S.shift();castSend({t:'dg',s});cdgOv();if(s.t>=1200)cdgStop()}
+function cdgOv(){const o=CDG.ov;if(!o)return;const a=CDG.S[CDG.S.length-1]||{},b=CDG.P[CDG.P.length-1]||{},h=CAST.host?a:b,v=CAST.view?a:b;
+ o.textContent='📊 '+(a.t||0)+' s · 📱 3D '+(h.r3!=null?h.r3:'–')+'/s · enc '+(h.enc!=null?h.enc:'–')+' ms · '+(h.kb||0)+' kb/s'+(h.lim&&h.lim!=='none'?' · limite '+h.lim:'')+'\n📺 affichées '+(v.pr!=null?v.pr:'–')+'/s · gels '+(v.fz||0)+' · tampon '+(v.jb!=null?v.jb:'–')+' ms · RTT '+(a.rtt!=null?a.rtt:'–')+' ms (toucher = rapport)'}
+function cdgReport(){const S=CDG.S,P=CDG.P,H=CAST.host?S:P,V=CAST.view?S:P,n=Math.max(S.length,P.length);if(n<3)return'Mesure trop courte (moins de 3 secondes).';
+ const col=(A,k)=>A.map(x=>x[k]).filter(x=>x!=null&&!isNaN(x)),sum=a=>a.reduce((x,y)=>x+y,0),f1=x=>(Math.round(x*10)/10).toString().replace('.',','),
+ st=(a,u)=>a.length?f1(cdgAv(a))+' moy · '+f1(cdgQ(a,.5))+' méd · '+f1(cdgQ(a,.95))+' p95 · '+f1(Math.max(...a))+' max'+(u||''):'(pas de mesure)';
+ const L=[],F=[],T=S.length&&P.length?'les deux côtés':(CAST.host?'téléphone seul (la tablette n\'a rien envoyé)':'tablette seule (le téléphone n\'a rien envoyé)');
+ L.push('DIAGNOSTIC DU STREAMING — VCT '+VCT_VER+' · '+n+' s · mesures : '+T);L.push('Qualité du cast : '+(CASTQ[SET.castQ||1]||CASTQ[1]).n+' · qualité graphique : '+QK+' · rôle de cet appareil : '+(CAST.host?'téléphone (calcule la 3D)':'tablette (affiche)'));
+ const r3=col(H,'r3'),enc=col(H,'enc'),fe=col(H,'fe'),kbH=col(H,'kb'),rsl=sum(col(H,'rsl')),rmx=col(H,'rmx'),ltm=col(H,'ltm'),ltx=col(H,'ltx'),mk=col(H,'mk'),cv=col(H,'cv'),bf=col(H,'bf'),lc=sum(col(H,'lc')),lb=sum(col(H,'lb')),w=H.length&&H[H.length-1].w?H[H.length-1].w+'×'+H[H.length-1].h:'?',impl=(H.find(x=>x.impl)||{}).impl||'?';
+ L.push('');L.push('📱 TÉLÉPHONE (hôte)');
+ L.push(' 3D dessinée par seconde : '+st(r3));L.push(' images 3D à plus de 50 ms d\'intervalle : '+rsl+' · pire intervalle : '+(rmx.length?Math.max(...rmx):0)+' ms');
+ L.push(' images encodées par seconde : '+st(fe));L.push(' temps d\'encodage par image : '+st(enc,' ms')+' · encodeur : '+impl);L.push(' débit envoyé : '+st(kbH,' kb/s')+' · image envoyée : '+w);
+ L.push(' limitation WebRTC : '+f1(lc)+' s par le processeur · '+f1(lb)+' s par le réseau');
+ L.push(' tâches JavaScript longues (> 50 ms) : '+f1(cdgAv(col(H,'ltn')))+'/s · '+f1(cdgAv(ltm))+' ms de blocage par seconde · la pire : '+(ltx.length?Math.max(...ltx):0)+' ms');
+ L.push(' miroir de l\'interface : '+st(mk,' ko/s')+' dont images 2D : '+st(cv,' ko/s')+' · tampon du canal, pic : '+(bf.length?Math.max(...bf):0)+' ko');
+ const fd=col(V,'fd'),pr=col(V,'pr'),dec=col(V,'dec'),jb=col(V,'jb'),dr=sum(col(V,'dr')),fz=sum(col(V,'fz')),fzd=sum(col(V,'fzd')),p50=sum(col(V,'p50')),p100=sum(col(V,'p100')),pmx=col(V,'pmx'),loV=sum(col(V,'lo')),rcv=sum(col(V,'rcv')),nkV=sum(col(V,'nk')),plV=sum(col(V,'pl')),implV=(V.find(x=>x.impl)||{}).impl||'?';
+ L.push('');L.push('📺 TABLETTE (affichage)');
+ L.push(' images décodées par seconde : '+st(fd));L.push(' images affichées par seconde : '+st(pr));L.push(' intervalles d\'affichage > 50 ms : '+p50+' · > 100 ms : '+p100+' · pire : '+(pmx.length?Math.max(...pmx):0)+' ms');
+ L.push(' gels de la vidéo : '+fz+' ('+f1(fzd)+' s au total) · images abandonnées : '+dr);L.push(' temps de décodage par image : '+st(dec,' ms')+' · décodeur : '+implV);L.push(' tampon de gigue : '+st(jb,' ms'));
+ L.push(' paquets perdus : '+loV+(rcv?' sur '+rcv+' ('+f1(loV/(loV+rcv)*100)+' %)':'')+' · demandes de renvoi (NACK) : '+nkV+' · demandes d\'image clé : '+plV);
+ const rtt=col(S.concat(P),'rtt'),dc=col(V.length?V:S,'dc'),ct=(S.concat(P).find(x=>x.ct)||{}).ct||'?',nt=(S.concat(P).find(x=>x.nt)||{}).nt||'',av=col(H,'av');
+ L.push('');L.push('🌐 RÉSEAU');L.push(' aller-retour (RTT) : '+st(rtt,' ms'));L.push(' aller-retour par le canal de données (inclut l\'occupation du téléphone) : '+st(dc,' ms'));L.push(' liaison : '+ct+(nt?' · '+nt:'')+(ct.indexOf('relay')>=0?' ⚠ via un relais TURN':ct.indexOf('host')===0&&ct.indexOf('/host')>0?' (directe, réseau local)':'')+' · débit sortant estimé : '+st(av,' kb/s'));
+ // verdict
+ const lowFps=r3.length&&cdgAv(r3)<24,slowEnc=enc.length&&cdgAv(enc)>20,cpuLim=lc>n*.1,bwLim=lb>n*.1,rttHi=rtt.length&&cdgQ(rtt,.95)>60,lossHi=(loV+rcv)>0&&loV/(loV+rcv)>.01,nkHi=(nkV+col(H,'nk').reduce((x,y)=>x+y,0))>n*5,jbHi=jb.length&&cdgAv(jb)>80,decHi=dec.length&&cdgAv(dec)>15,dispBad=n>0&&(p50+p100)/Math.max(1,sum(col(V,'pr')))>.05,jsBusy=ltm.length&&cdgAv(ltm)>150,mirHi=(mk.length&&cdgAv(mk)>500)||(bf.length&&Math.max(...bf)>1000),dcHi=dc.length&&cdgQ(dc,.95)>150,dispLow=pr.length&&fd.length&&cdgAv(pr)<cdgAv(fd)*.8;
+ if(lowFps)F.push('🔴 Le téléphone dessine la 3D à '+f1(cdgAv(r3))+'/s seulement : c\'est lui le goulot (la vidéo ne peut pas être plus fluide que la 3D). Essaie la netteté « Normale », une qualité graphique plus basse, ou coupe des éléments affichés.');
+ if(slowEnc||cpuLim)F.push('🟠 Le téléphone a du mal à encoder la vidéo ('+f1(cdgAv(enc))+' ms par image, '+f1(lc)+' s limitées par le processeur) : baisse la netteté du cast (moins de pixels à encoder).');
+ if(jsBusy||(rsl>n*.2&&!lowFps))F.push('🟠 Le JavaScript du téléphone est souvent occupé ('+f1(cdgAv(ltm))+' ms de blocage par seconde, '+rsl+' images 3D en retard) : le miroir de l\'interface ou des constructions du monde bloquent la boucle de dessin.');
+ if(mirHi)F.push('🟠 Le miroir de l\'interface envoie beaucoup de données ('+f1(cdgAv(mk))+' ko/s, tampon jusqu\'à '+(bf.length?Math.max(...bf):0)+' ko) : il peut encombrer le canal et retarder les commandes.');
+ if(bwLim||(av.length&&kbH.length&&cdgAv(av)>0&&cdgAv(av)<cdgAv(kbH)*1.3))F.push('🟠 Le débit disponible est juste ('+f1(lb)+' s limitées par le réseau, estimation '+f1(cdgAv(av))+' kb/s pour '+f1(cdgAv(kbH))+' kb/s envoyés) : baisse la netteté du cast ou améliore le Wi-Fi.');
+ if(rttHi||lossHi||nkHi)F.push('🟠 Le Wi-Fi est instable : RTT p95 '+f1(cdgQ(rtt,.95))+' ms, '+(loV+rcv?f1(loV/(loV+rcv)*100)+' % de paquets perdus':'pertes inconnues')+', '+nkV+' renvois. Rapproche les appareils, évite un Wi-Fi chargé, ou utilise le point d\'accès du téléphone.');
+ if(jbHi||fz>0)F.push('🟠 La vidéo se fige côté tablette ('+fz+' gel(s), tampon moyen '+f1(cdgAv(jb))+' ms) alors que le téléphone envoie '+(lowFps?'peu d\'images':'normalement')+' : '+(rttHi||lossHi||nkHi?'cela vient du réseau.':'vérifie le réseau et la tablette.'));
+ if(decHi)F.push('🟠 La tablette décode lentement ('+f1(cdgAv(dec))+' ms par image, '+implV+') : la tablette est un goulot ; baisse la netteté du cast.');
+ if(dispBad||dispLow)F.push('🟠 La tablette affiche mal les images reçues ('+p50+' intervalles > 50 ms, '+p100+' > 100 ms, '+f1(cdgAv(pr))+' affichées/s pour '+f1(cdgAv(fd))+' décodées/s) : la tablette est trop occupée (miroir de l\'interface + vidéo).');
+ if(dcHi)F.push('🟠 Les messages mettent '+f1(cdgQ(dc,.95))+' ms (p95) à faire l\'aller-retour : canal encombré ou appareil occupé (les commandes tactiles seront en retard).');
+ if(ct.indexOf('relay')>=0)F.push('🔴 La liaison passe par un relais TURN (pas directe) : ajoute du délai ; mets les deux appareils sur le même Wi-Fi.');
+ L.push('');L.push('🔎 VERDICT (seuils = ordres de grandeur, à confirmer)');if(F.length)F.forEach(x=>L.push(' '+x));else L.push(' ✅ Aucun goulot net trouvé sur cette mesure : si ça saccade quand même, refais la mesure pendant une saccade (toucher le bandeau 📊 pour voir le rapport).');
+ // chronologie par tranches de 5 s
+ L.push('');L.push('CHRONOLOGIE (par 5 s : t · 3D/s · enc ms · kb/s · RTT · affichées/s · gels · tampon · pire intervalle 3D)');
+ const tm=Math.max(...S.concat(P).map(x=>x.t||0));for(let t=0;t<=tm;t+=5){const g=A=>A.filter(x=>x.t>=t&&x.t<t+5),h=g(H),v=g(V),a=(A,k)=>{const c=col(A,k);return c.length?f1(cdgAv(c)):'–'};if(!h.length&&!v.length)continue;
+  L.push(' '+String(t).padStart(4)+' s · 3D '+a(h,'r3')+' · enc '+a(h,'enc')+' · '+a(h,'kb')+' kb/s · RTT '+a(h.concat(v),'rtt')+' · aff '+a(v,'pr')+' · gels '+sum(col(v,'fz'))+' · tampon '+a(v,'jb')+' · pire 3D '+(col(h,'rmx').length?Math.max(...col(h,'rmx')):'–')+' ms')}
+ return L.join('\n')}
+function cdgPanel(){const on=CDG.on,rep=CDG.rep;
+ castDlg('<h2 style="margin:4px 0 8px">📊 Diagnostic du streaming</h2>'+(on?'<p>Mesure en cours depuis '+(CDG.S.length?CDG.S[CDG.S.length-1].t:0)+' s, des deux côtés. Roule normalement ; quand tu as vu une saccade (ou après 1 à 2 minutes), arrête la mesure.</p><button id="cdg1" style="'+castBtnOn+'">⏹ Arrêter et voir le rapport</button>'
+  :'<p>Mesure, <b>des deux côtés</b>, ce qui peut faire saccader le cast : le téléphone (3D dessinée, encodage, JavaScript occupé, miroir), le réseau (RTT, pertes, liaison) et la tablette (décodage, images affichées, gels). Démarre la mesure, roule 1 à 2 minutes (idéalement pendant que ça saccade), puis arrête et lis le <b>verdict</b>. Un petit bandeau 📊 s\'affiche en haut pendant la mesure ; le toucher ouvre ce rapport.</p><p style="font-size:12.5px;opacity:.7">La mesure consomme très peu. Il faut que le cast soit connecté (un seul côté suffit à la démarrer, l\'autre suit).</p><button id="cdg0" style="'+castBtnOn+'">▶ Démarrer la mesure</button>')
+  +(rep?'<h3 style="margin:14px 0 6px">Dernier rapport</h3><pre id="cdgr" style="white-space:pre-wrap;font:11.5px/1.4 monospace;background:#1c1a17;border:1px solid #3a342c;border-radius:10px;padding:10px;max-height:46vh;overflow:auto">'+esc(rep)+'</pre><button id="cdg2" style="'+castBtn+'">📋 Copier le rapport</button><button id="cdg3" style="'+castBtn+'">⬇ Enregistrer le rapport (.txt)</button>':'')
+  +'<button id="cdgx" style="'+castBtn+'">✕ Fermer</button>',d=>{
+  $('cdgx').onclick=castDlgClose;
+  if($('cdg0'))$('cdg0').onclick=()=>{if(!CAST.pc||!CAST.ch||CAST.ch.readyState!=='open'){alert('Le cast n\'est pas connecté.');return}cdgStart(false);castDlgClose()};
+  if($('cdg1'))$('cdg1').onclick=()=>{cdgStop(false);cdgPanel()};
+  if($('cdg2'))$('cdg2').onclick=async()=>{try{await navigator.clipboard.writeText(CDG.rep);$('cdg2').textContent='✅ Copié'}catch(e){const r=$('cdgr');if(r){const g=document.createRange();g.selectNodeContents(r);const sl=getSelection();sl.removeAllRanges();sl.addRange(g)}}};
+  if($('cdg3'))$('cdg3').onclick=()=>{try{dlBlob(new Blob([CDG.rep],{type:'text/plain'}),'VCT-diagnostic-streaming-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.txt')}catch(e){alert('Enregistrement impossible : '+e.message)}}})}
 // ======== fenêtre de réglage ========
 function castDlg(h,bind){let d=$('castd');if(!d){d=document.createElement('div');d.id='castd';d.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(10,9,8,.96);color:#f4efe6;font:15px/1.45 system-ui,sans-serif;overflow:auto;padding:16px;display:flex;justify-content:center';document.body.append(d)}
  d.innerHTML='<div style="max-width:580px;width:100%">'+h+'</div>';d.style.display='flex';if(bind)bind(d);return d}
@@ -6115,11 +6195,11 @@ function castPanelDraw(){const code=CASTS.code,role=CASTS.role;
   +(code?'<button id="cr1" style="'+(role==='view'?castBtnOn:castBtn)+'">📺 <b>Cette tablette</b> : écran + home trainer'+(CAST.view?' <small>(actif)</small>':'')+'</button><button id="cr2" style="'+(role==='host'?castBtnOn:castBtn)+'">📱 <b>Ce téléphone</b> : calcule la 3D'+(CAST.host?' <small>(en écoute)</small>':'')+'</button>'
    +'<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="cau" '+(CASTS.auto!==false?'checked':'')+'> Se connecter automatiquement au lancement (selon le rôle choisi)</label>':'')
   +'<div style="margin:8px 0">Netteté de l\'image (sur le téléphone, pendant le cast) : '+[[1,'Normale · 8 Mb/s'],[1.6,'Haute · 14 Mb/s'],[2.4,'Max · 22 Mb/s']].map(([v,n])=>'<button data-cq="'+v+'" style="'+((SET.castQ||1)===v?castBtnOn:castBtn)+'display:inline-block;width:auto;margin:2px 4px 2px 0;padding:8px 12px">'+n+'</button>').join('')+'<div style="font-size:12px;opacity:.7">Plus net = plus de pixels dessinés, plus de débit et priorité à la définition (moins d\'images/s si le réseau ou le téléphone peinent). La résolution baisse toute seule si les images/s chutent.</div></div>'
-  +(CAST.host?'<button id="cbk" style="'+castBtn+'">🌑 Écran noir (économie de batterie, le cast continue)</button>':'')
+  +(CAST.host?'<button id="cbk" style="'+castBtn+'">🌑 Écran noir (économie de batterie, le cast continue)</button>':'')+'<button id="cdgb" style="'+castBtn+'">📊 Diagnostic du streaming'+(CDG.on?' (mesure en cours)':'')+'</button>'
   +'<div id="cst" style="min-height:22px;color:#e9a178;margin:6px 0">'+esc(CAST.msg||'')+'</div>'
   +'<p style="font-size:12.5px;opacity:.7">Les messages de connexion passent par le relais public ntfy.sh, <b>chiffrés</b> avec ton code (personne d\'autre ne peut les lire) ; l\'image et les commandes vont ensuite <b>directement</b> d\'un appareil à l\'autre. Même Wi-Fi recommandé (ou point d\'accès du téléphone). Touche une fois l\'écran du téléphone après la connexion pour autoriser le son.</p>'
   +'<button id="cm1" style="'+castBtn+'">🔧 Connexion manuelle (sans relais ni code permanent)</button><button id="cx" style="'+castBtn+'">✕ Fermer</button>',d=>{
-  $('cx').onclick=castDlgClose;if($('cbk'))$('cbk').onclick=()=>{castDlgClose();castBlack(true)};
+  $('cx').onclick=castDlgClose;if($('cbk'))$('cbk').onclick=()=>{castDlgClose();castBlack(true)};$('cdgb').onclick=()=>{CAST.pnl=false;cdgPanel()};
   $('cd1').onclick=async()=>{if(!CASTS.code){CASTS.code=castNewCode();castSave();castPanelDraw();return}try{await navigator.clipboard.writeText(castFmt(CASTS.code));$('cd1').textContent='✅ Copié'}catch(e){}};
   $('cd2').onclick=()=>{const v=prompt('Code à 12 caractères (ex. K7M2-QX9P-4TWD) :','');if(v==null)return;const c=castNorm(v);if(!castCodeOk(c)){CAST.msg='Code invalide (12 caractères : lettres et chiffres, sans 0 / 1 / I / L / O)';castPanelDraw();return}CASTS.code=c;castSave();castStop(true);CAST.k=null;CAST.msg='Code enregistré';castPanelDraw()};
   if($('cd3'))$('cd3').onclick=()=>{if(!confirm('Créer un nouveau code ? Il faudra le ressaisir sur l\'autre appareil.'))return;castStop(true);CASTS.code=castNewCode();CAST.k=null;castSave();castPanelDraw()};
