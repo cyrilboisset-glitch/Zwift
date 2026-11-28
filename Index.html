@@ -1133,7 +1133,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // restauration d'une sauvegarde (v3bkpend) : appliquée avant toute lecture du stockage, pour que la page précédente ne puisse pas l'écraser
 (function(){try{const j=localStorage.getItem('v3bkpend');if(!j)return;localStorage.removeItem('v3bkpend');const p=JSON.parse(j);for(const k of p.rm||[])localStorage.removeItem(k);for(const k in p.set)localStorage.setItem(k,p.set[k])}catch(e){try{localStorage.removeItem('v3bkpend')}catch(x){}}})();
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='28/11/2026 · av';const ERRL=[];
+const VCT_VER='28/11/2026 · aw';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -5893,7 +5893,7 @@ function castLost(){if(CAST.lostT)return;CAST.lostT=setTimeout(()=>{CAST.lostT=0
   if(CAST.host){CAST.fwd=false;CAST.tw=CAST.th=0;ren.domElement.style.objectFit='';castQApply();conn=false;pw=0;cad=0;CM.on&&cmStop();castStatus('Tablette déconnectée — en attente…')}
   else if(CAST.view){castStatus('Liaison perdue — reconnexion…');setTimeout(()=>{if(CAST.view&&CAST.retry)CAST.retry()},1500)}},s0());function s0(){return CAST.view?4000:1500}}
 function castStop(quiet){castClosePc();castSubStop();CAST.run=(CAST.run||0)+1;clearTimeout(CAST.lostT);CAST.lostT=0;
- if(CAST.host){CAST.fwd=false;CAST.tw=CAST.th=0;ren.domElement.style.objectFit='';castQApply();if(!quiet){conn=false;pw=0;cad=0}const b=$('casth');if(b)b.remove()}
+ if(CAST.host){CAST.fwd=false;CAST.tw=CAST.th=0;ren.domElement.style.objectFit='';castQApply();if(!quiet){conn=false;pw=0;cad=0}const b=$('casth');if(b)b.remove();castBlack(false)}
  if(CAST.view)castStageKill();
  CAST.host=CAST.view=false;CAST.retry=null;CAST.msg=''}
 function castSend(o){const s=typeof o==='string'?o:JSON.stringify(o),ch=CAST.ch;if(!ch||ch.readyState!=='open')return false;
@@ -5919,7 +5919,7 @@ async function castOnMsg(m){CAST.rx=Date.now();
 // ======== HÔTE (téléphone) : miroir du DOM ========
 const CM={on:false,ids:new WeakMap(),nodes:new Map(),next:1,pk:new Set(),pa:new Map(),pt:new Set(),rm:new Set(),sig:new Map(),al:new WeakMap(),tx:new WeakMap(),val:new WeakMap(),cv:new WeakMap(),mo:null,tm:0,tk:0,q:Promise.resolve(),sz:''};
 const CM_SKIP=new Set(['script','style','link','meta','noscript','iframe','video','audio','object','embed','template']);
-function cmSkip(n){return CM_SKIP.has(n.localName)||n.id==='castd'||n.id==='casth'||n.id==='castv'||n.id==='castcss'}
+function cmSkip(n){return CM_SKIP.has(n.localName)||n.id==='castd'||n.id==='castblk'||n.id==='casth'||n.id==='castv'||n.id==='castcss'}
 function cmId(n){let i=CM.ids.get(n);if(!i){i=CM.next++;CM.ids.set(n,i)}CM.nodes.set(i,n);return i}
 function cmAttrs(n){const a={};for(const at of n.attributes){const k=at.name;if(k.length>2&&k[0]==='o'&&k[1]==='n')continue;a[k]=at.value}return a}
 function cmSer(n){
@@ -5989,7 +5989,7 @@ async function castHostAccept(sdp){const pc=castMake();CAST.host=true;pc.ondatac
  const st=ren.domElement.captureStream(30),tr=st.getVideoTracks()[0];try{tr.contentHint='motion'}catch(e){}
  await pc.setRemoteDescription({type:'offer',sdp});
  const tc=pc.getTransceivers().find(t=>t.receiver&&t.receiver.track&&t.receiver.track.kind==='video');if(!tc)throw new Error('offre sans vidéo');tc.direction='sendonly';await tc.sender.replaceTrack(tr);
- try{const p=tc.sender.getParameters();if(!p.encodings||!p.encodings.length)p.encodings=[{}];p.encodings[0].maxBitrate=8e6;p.encodings[0].maxFramerate=30;p.degradationPreference='maintain-framerate';await tc.sender.setParameters(p)}catch(e){}
+ CAST.snd=tc.sender;CAST.trk=tr;await castSendApply();
  await pc.setLocalDescription(await pc.createAnswer());await castIceDone(pc);return pc.localDescription.sdp}
 async function castHostListen(){
  if(!CASTS.code)return castPanel();
@@ -6096,7 +6096,17 @@ function castDlgClose(){const d=$('castd');if(d)d.style.display='none';CAST.pnl=
 const castBtn='display:block;width:100%;margin:8px 0;padding:12px;border-radius:12px;border:1px solid #3a342c;background:#27241f;color:#f4efe6;font-size:15px;text-align:left;';
 const castBtnOn='display:block;width:100%;margin:8px 0;padding:12px;border-radius:12px;border:0;background:#f0cf73;color:#1c1a17;font-weight:700;font-size:15px;';
 const castTa='width:100%;height:86px;margin:6px 0;border-radius:10px;border:1px solid #3a342c;background:#15130f;color:#f4efe6;font:11px monospace;padding:8px;box-sizing:border-box';
-function castQApply(){try{PR=PRMAX();ren.setPixelRatio(PR);rs()}catch(e){}}
+/* qualité du cast : 3 niveaux = résolution de dessin (SET.castQ), débit, priorité définition / fluidité */
+const CASTQ={1:{mb:8e6,deg:'maintain-framerate',hint:'motion',n:'Normale'},1.6:{mb:14e6,deg:'balanced',hint:'motion',n:'Haute'},2.4:{mb:22e6,deg:'maintain-resolution',hint:'detail',n:'Max'}};
+async function castSendApply(){try{const q=CASTQ[SET.castQ||1]||CASTQ[1];try{if(CAST.trk)CAST.trk.contentHint=q.hint}catch(e){}
+ const sd=CAST.snd;if(!sd)return;const p=sd.getParameters();if(!p.encodings||!p.encodings.length)p.encodings=[{}];p.encodings[0].maxBitrate=q.mb;p.encodings[0].maxFramerate=30;p.degradationPreference=q.deg;await sd.setParameters(p)}catch(e){}}
+function castQApply(){try{PR=PRMAX();ren.setPixelRatio(PR);rs();castSendApply()}catch(e){}}
+/* écran noir (téléphone) : voile noir plein écran, la 3D et la vidéo continuent ; toucher = réveiller */
+function castBlack(on){let v=$('castblk');if(!on){if(v)v.remove();return}
+ if(v)return;v=document.createElement('div');v.id='castblk';v.style.cssText='position:fixed;inset:0;z-index:99999;background:#000;color:#555;font:14px system-ui;display:flex;align-items:center;justify-content:center;text-align:center;touch-action:manipulation';
+ v.innerHTML='<span id="castblkt">🌑 Écran noir · touche pour réveiller</span>';document.body.append(v);
+ setTimeout(()=>{const t=$('castblkt');if(t)t.style.visibility='hidden'},4000);
+ v.onclick=()=>castBlack(false)}
 function castPanel(){CAST.pnl=true;castPanelDraw()}
 function castPanelDraw(){const code=CASTS.code,role=CASTS.role;
  castDlg('<h2 style="margin:4px 0 8px">📡 Cast téléphone ⇄ tablette</h2><p>Le <b>téléphone</b> calcule tout (3D, parcours, séance). La <b>tablette</b> affiche <b>la même chose</b>, tu la touches comme le téléphone, et elle se branche au <b>home trainer</b>.</p>'
@@ -6104,11 +6114,12 @@ function castPanelDraw(){const code=CASTS.code,role=CASTS.role;
   +'<button id="cd1" style="'+castBtn+'display:inline-block;width:auto;margin:2px 4px 2px 0">'+(code?'📋 Copier':'✨ Créer mon code')+'</button><button id="cd2" style="'+castBtn+'display:inline-block;width:auto;margin:2px 4px 2px 0">✏️ Saisir un code</button>'+(code?'<button id="cd3" style="'+castBtn+'display:inline-block;width:auto;margin:2px 0">🔄 Nouveau code</button>':'')+'</div>'
   +(code?'<button id="cr1" style="'+(role==='view'?castBtnOn:castBtn)+'">📺 <b>Cette tablette</b> : écran + home trainer'+(CAST.view?' <small>(actif)</small>':'')+'</button><button id="cr2" style="'+(role==='host'?castBtnOn:castBtn)+'">📱 <b>Ce téléphone</b> : calcule la 3D'+(CAST.host?' <small>(en écoute)</small>':'')+'</button>'
    +'<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="cau" '+(CASTS.auto!==false?'checked':'')+'> Se connecter automatiquement au lancement (selon le rôle choisi)</label>':'')
-  +'<div style="margin:8px 0">Netteté de l\'image (sur le téléphone, pendant le cast) : '+[[1,'Normale'],[1.6,'Haute'],[2.4,'Max']].map(([v,n])=>'<button data-cq="'+v+'" style="'+((SET.castQ||1)===v?castBtnOn:castBtn)+'display:inline-block;width:auto;margin:2px 4px 2px 0;padding:8px 12px">'+n+'</button>').join('')+'<div style="font-size:12px;opacity:.7">Plus net = plus lourd pour le téléphone (la résolution baisse toute seule si les images/s chutent).</div></div>'
+  +'<div style="margin:8px 0">Netteté de l\'image (sur le téléphone, pendant le cast) : '+[[1,'Normale · 8 Mb/s'],[1.6,'Haute · 14 Mb/s'],[2.4,'Max · 22 Mb/s']].map(([v,n])=>'<button data-cq="'+v+'" style="'+((SET.castQ||1)===v?castBtnOn:castBtn)+'display:inline-block;width:auto;margin:2px 4px 2px 0;padding:8px 12px">'+n+'</button>').join('')+'<div style="font-size:12px;opacity:.7">Plus net = plus de pixels dessinés, plus de débit et priorité à la définition (moins d\'images/s si le réseau ou le téléphone peinent). La résolution baisse toute seule si les images/s chutent.</div></div>'
+  +(CAST.host?'<button id="cbk" style="'+castBtn+'">🌑 Écran noir (économie de batterie, le cast continue)</button>':'')
   +'<div id="cst" style="min-height:22px;color:#e9a178;margin:6px 0">'+esc(CAST.msg||'')+'</div>'
   +'<p style="font-size:12.5px;opacity:.7">Les messages de connexion passent par le relais public ntfy.sh, <b>chiffrés</b> avec ton code (personne d\'autre ne peut les lire) ; l\'image et les commandes vont ensuite <b>directement</b> d\'un appareil à l\'autre. Même Wi-Fi recommandé (ou point d\'accès du téléphone). Touche une fois l\'écran du téléphone après la connexion pour autoriser le son.</p>'
   +'<button id="cm1" style="'+castBtn+'">🔧 Connexion manuelle (sans relais ni code permanent)</button><button id="cx" style="'+castBtn+'">✕ Fermer</button>',d=>{
-  $('cx').onclick=castDlgClose;
+  $('cx').onclick=castDlgClose;if($('cbk'))$('cbk').onclick=()=>{castDlgClose();castBlack(true)};
   $('cd1').onclick=async()=>{if(!CASTS.code){CASTS.code=castNewCode();castSave();castPanelDraw();return}try{await navigator.clipboard.writeText(castFmt(CASTS.code));$('cd1').textContent='✅ Copié'}catch(e){}};
   $('cd2').onclick=()=>{const v=prompt('Code à 12 caractères (ex. K7M2-QX9P-4TWD) :','');if(v==null)return;const c=castNorm(v);if(!castCodeOk(c)){CAST.msg='Code invalide (12 caractères : lettres et chiffres, sans 0 / 1 / I / L / O)';castPanelDraw();return}CASTS.code=c;castSave();castStop(true);CAST.k=null;CAST.msg='Code enregistré';castPanelDraw()};
   if($('cd3'))$('cd3').onclick=()=>{if(!confirm('Créer un nouveau code ? Il faudra le ressaisir sur l\'autre appareil.'))return;castStop(true);CASTS.code=castNewCode();CAST.k=null;castSave();castPanelDraw()};
