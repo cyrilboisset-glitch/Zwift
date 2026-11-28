@@ -1133,7 +1133,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // restauration d'une sauvegarde (v3bkpend) : appliquée avant toute lecture du stockage, pour que la page précédente ne puisse pas l'écraser
 (function(){try{const j=localStorage.getItem('v3bkpend');if(!j)return;localStorage.removeItem('v3bkpend');const p=JSON.parse(j);for(const k of p.rm||[])localStorage.removeItem(k);for(const k in p.set)localStorage.setItem(k,p.set[k])}catch(e){try{localStorage.removeItem('v3bkpend')}catch(x){}}})();
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='28/11/2026 · at';const ERRL=[];
+const VCT_VER='28/11/2026 · au';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -6159,7 +6159,7 @@ function bldDetMenu(){pctMenu('🏠 Détail des habitations','Fenêtres percées
 function roadDetMenu(){const c=SET.roadD==null?100:SET.roadD;mod('🛣️ Détails de la route<br><small>Grain de l\'enrobé, fissures, joints, traces de roues, relief. Actuel : <b>'+c+' %</b>. Moins de détails = plus léger.</small>',[0,25,50,75,100].map(p=>[(c===p?'✅ ':'⬜ ')+p+' %',()=>{roadDetSet(p);roadDetMenu()}]).concat([['↩ Éléments affichés',()=>showMenu()],['Fermer',()=>{}]]))}
 function showMenu(){const n=SHOWK.filter(([k])=>!SHW(k)).length;
  mod('Éléments affichés<br><small>Touche une ligne pour afficher ou masquer. Masquer des éléments allège l\'appli (utile sur la tablette). '+(n?n+' élément'+(n>1?'s':'')+' masqué'+(n>1?'s':'')+'.':'Tout est affiché.')+'</small>',
-  SHOWK.map(([k,t])=>[(SHW(k)?'✅ ':'⬜ ')+t,()=>{showSet(k,!SHW(k));showMenu()}]).concat([['🛣️ Détails de la route : '+(SET.roadD==null?100:SET.roadD)+' %',()=>roadDetMenu()],['🏠 Détail des habitations : '+bldPct('bldDet')+' %',()=>bldDetMenu()],['🏘️ Densité des habitations : '+bldPct('bldDen')+' %',()=>bldDenMenu()],['Tout afficher',()=>{SET.show={};ssave();VEG.lp.set(1e9,0,1e9);showMenu()}],['Fermer',()=>{}]]))}
+  SHOWK.map(([k,t])=>[(SHW(k)?'✅ ':'⬜ ')+t,()=>{showSet(k,!SHW(k));showMenu()}]).concat([['🛣️ Détails de la route : '+(SET.roadD==null?100:SET.roadD)+' %',()=>roadDetMenu()],['🚴 Détail des autres coureurs (course) : '+cmpDetP()+' %',()=>cmpDetMenu()],['🏠 Détail des habitations : '+bldPct('bldDet')+' %',()=>bldDetMenu()],['🏘️ Densité des habitations : '+bldPct('bldDen')+' %',()=>bldDenMenu()],['Tout afficher',()=>{SET.show={};ssave();VEG.lp.set(1e9,0,1e9);showMenu()}],['Fermer',()=>{}]]))}
 // ---- accueil façon applis du commerce : carte « prochaine sortie » (profil coloré, gros bouton) + tuiles colorées + niveau ----
 const HTILES=[['wk','🏋️','S\'entraîner','Séances ERG guidées, créateur, test FTP',1],['vel','🏟️','Vélodrome','Piste UCI 250 m, lumière de rythme',4],['crs','📚','Mes parcours','',2],
  ['roul','🚴','Rouler','Importer, exploration, options',0],['sui','📈','Mon suivi','',3],['reg','⚙️','Réglages','Matériel, Strava, vestiaire, graphismes',5],['cmp','🏆','Courses','Contre-la-montre, course, étapes, équipes',1]];
@@ -7957,7 +7957,12 @@ function cLabelDraw(sp,r){const cv=sp.userData.cv,g=cv.getContext('2d');g.clearR
 // dessin du peloton
 // ---- coureurs proches réalistes (24 nov. 2026) : les plus proches de la caméra sont de vrais cyclistes à squelette (comme les PNJ : corps, tête, casque,
 // maillot d'équipe, pédalage animé) ; les autres restent les petits maillages instanciés. Nombre selon la qualité : Tablette 3, Basse 4, Moyenne 6, Élevée+ 8.
-function cmpHiBuild(){cmpHiFree();const n=QK==='tab'?3:QK==='low'?4:QK==='med'?6:8,H=[];GSEG=QP.npcSeg||1;
+// coureurs proches (28 nov. 2026) : dans un périmètre de 100 m ils sont de vrais cyclistes dont le détail vaut SET.cmpDet % de celui de l'avatar (10 à 80, défaut 60) ;
+// moins de détail = plus de coureurs détaillés pour le même coût (au plus 3 fois plus)
+const cmpDetP=()=>Math.max(10,Math.min(80,SET.cmpDet==null?60:SET.cmpDet));
+function cmpDetSet(p){SET.cmpDet=p;ssave();CMP.hiR=100;if(CMP.on&&CMP.M)cmpHiBuild()}
+function cmpDetMenu(){const c=cmpDetP();mod('🚴 Détail des autres coureurs<br><small>Dans un rayon de 100 m, part du détail de ton avatar (10 à 80 %). Moins = plus de coureurs détaillés, plus léger. Actuel : <b>'+c+' %</b>.</small>',[10,20,30,40,50,60,70,80].map(p=>[(c===p?'✅ ':'⬜ ')+p+' %',()=>{cmpDetSet(p);cmpDetMenu()}]).concat([['↩ Éléments affichés',()=>showMenu()],['Fermer',()=>{}]]))}
+function cmpHiBuild(){cmpHiFree();CMP.hiR=100;const dp=cmpDetP()/100,n=Math.min(24,Math.round((QK==='tab'?3:QK==='low'?4:QK==='med'?6:8)*Math.max(1,Math.min(3,.6/dp)))),H=[];GSEG=dp;
  for(let i=0;i<n;i++){const tm=CTM[1];try{const inst=makeRiderInst({simple:true,tex:cmpTeamTex(1),frame:0x15171b,helmet:0xf4f5f7});inst.R.visible=false;inst.R.userData.keep=true;WORLD.add(inst.R);H.push({inst,R:inst.R,team:1,sh:null,cad:86})}catch(e){console.warn('cmpHi',e);break}}
  GSEG=1;CMP.hi=H}
 function cmpTeamTex(t){const c=cmpTeamTex.c||(cmpTeamTex.c={});if(!c[t]){const tm=CTM[t]||CTM[1];c[t]=texOf(jerseyCanvas(tm[0],tm[1],tm[4],tm[5],tm[2],true,{st:[0,2,1,3,0,4,2,6][t%8],sock:t%3?'#f2f2f0':tm[0],short:'#111114'}),true,false)}return c[t]}
