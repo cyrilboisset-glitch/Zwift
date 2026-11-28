@@ -1133,7 +1133,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // restauration d'une sauvegarde (v3bkpend) : appliquée avant toute lecture du stockage, pour que la page précédente ne puisse pas l'écraser
 (function(){try{const j=localStorage.getItem('v3bkpend');if(!j)return;localStorage.removeItem('v3bkpend');const p=JSON.parse(j);for(const k of p.rm||[])localStorage.removeItem(k);for(const k in p.set)localStorage.setItem(k,p.set[k])}catch(e){try{localStorage.removeItem('v3bkpend')}catch(x){}}})();
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='28/11/2026 · au';const ERRL=[];
+const VCT_VER='28/11/2026 · av';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -7959,9 +7959,9 @@ function cLabelDraw(sp,r){const cv=sp.userData.cv,g=cv.getContext('2d');g.clearR
 // maillot d'équipe, pédalage animé) ; les autres restent les petits maillages instanciés. Nombre selon la qualité : Tablette 3, Basse 4, Moyenne 6, Élevée+ 8.
 // coureurs proches (28 nov. 2026) : dans un périmètre de 100 m ils sont de vrais cyclistes dont le détail vaut SET.cmpDet % de celui de l'avatar (10 à 80, défaut 60) ;
 // moins de détail = plus de coureurs détaillés pour le même coût (au plus 3 fois plus)
-const cmpDetP=()=>Math.max(10,Math.min(80,SET.cmpDet==null?60:SET.cmpDet));
+const cmpDetP=()=>Math.max(10,Math.min(100,SET.cmpDet==null?80:SET.cmpDet));
 function cmpDetSet(p){SET.cmpDet=p;ssave();CMP.hiR=100;if(CMP.on&&CMP.M)cmpHiBuild()}
-function cmpDetMenu(){const c=cmpDetP();mod('🚴 Détail des autres coureurs<br><small>Dans un rayon de 100 m, part du détail de ton avatar (10 à 80 %). Moins = plus de coureurs détaillés, plus léger. Actuel : <b>'+c+' %</b>.</small>',[10,20,30,40,50,60,70,80].map(p=>[(c===p?'✅ ':'⬜ ')+p+' %',()=>{cmpDetSet(p);cmpDetMenu()}]).concat([['↩ Éléments affichés',()=>showMenu()],['Fermer',()=>{}]]))}
+function cmpDetMenu(){const c=cmpDetP();mod('🚴 Détail des autres coureurs<br><small>Dans un rayon de 100 m, part du détail de ton avatar (10 à 100 %). Moins = plus de coureurs détaillés, plus léger. Actuel : <b>'+c+' %</b>.</small>',[10,20,30,40,50,60,70,80,90,100].map(p=>[(c===p?'✅ ':'⬜ ')+p+' %',()=>{cmpDetSet(p);cmpDetMenu()}]).concat([['↩ Éléments affichés',()=>showMenu()],['Fermer',()=>{}]]))}
 function cmpHiBuild(){cmpHiFree();CMP.hiR=100;const dp=cmpDetP()/100,n=Math.min(24,Math.round((QK==='tab'?3:QK==='low'?4:QK==='med'?6:8)*Math.max(1,Math.min(3,.6/dp)))),H=[];GSEG=dp;
  for(let i=0;i<n;i++){const tm=CTM[1];try{const inst=makeRiderInst({simple:true,tex:cmpTeamTex(1),frame:0x15171b,helmet:0xf4f5f7});inst.R.visible=false;inst.R.userData.keep=true;WORLD.add(inst.R);H.push({inst,R:inst.R,team:1,sh:null,cad:86})}catch(e){console.warn('cmpHi',e);break}}
  GSEG=1;CMP.hi=H}
@@ -8479,6 +8479,7 @@ function cmpTick(dt,P,now){const me=CMP.me;if(!me)return;
  if(me.fin==null&&me.d>=CMP.L){me.fin=CMP.T;cmpFinish()}}
 // premier kilomètre fictif : peloton groupé à 28 km/h, chrono et course à partir du drapeau baissé
 function cmpNeu(dt){const N=CMP.neu;if(!N||!N.on)return;const me=CMP.me,ds=CMP.R.map(r=>r.d).sort((a,b)=>a-b),med=ds.length?ds[ds.length>>1]:0,front=Math.max(med,me.d);
+ N.k=clamp(1-(N.len-front)/150,0,1);// remontée de la résistance sur les 150 derniers mètres avant le drapeau
  if(!N.a&&N.len-front<300){N.a=1;cRadio(dsF('neu_300'))}
  if(front>=N.len){N.on=false;CMP.T=0;cmpMarksReset();CMP.evT=0;CMP.ev={};Object.assign(CMP.coach,{t:-1e9,ann:-1e9,over:-1e9});for(const r of CMP.R){r.st='pack'}cRadio(dsF('neu_flag'))}}
 function cmpUpdateMe(P,dt){const me=CMP.me;me.pd=me.d;me.d=s;if(dt>0&&CMP.kind==='clm'&&me.fin==null&&me.cp){const k=Math.floor(me.d/CMP.cps),k0=Math.floor(me.pd/CMP.cps);if(k>k0&&k>=1)me.cp[k-1]=CMP.T-(me.d-k*CMP.cps)/Math.max(v,.5)}if(dt>0&&me.fin==null)for(const c of CMP.climbs)if(me.pd<c.d1&&me.d>=c.d1&&me.kom[c.i]==null){me.kom[c.i]=CMP.T;cmpCross('k',c.i,me)}for(const sp of CMP.sprints)if(me.pd<sp.d&&me.d>=sp.d&&me.sp[sp.i]==null){me.sp[sp.i]=CMP.T;cmpCross('s',sp.i,me)}me.v=v;me.lat=RLAT;me.x=RW.x;me.z=RW.z;me.tx=RW.tx;me.tz=RW.tz;me.P=P;if(dt>0){me.kjr+=P*dt/1000;me.fk=cmpFk(me.kj0+me.kjr);me.fe=FTP*me.fk;wbalStep(me,P,me.fe,dt)}
@@ -8822,7 +8823,7 @@ function cmpHud(force){const e=$('cmh');if(!e||!CMP.me)return;const now=performa
  else{const all=[me,...CMP.R].filter(r=>r.fin==null||r===me).sort((a,b)=>b.d-a.d),rk=all.indexOf(me)+1,lead=all[0];
   l1='🚴 '+(CMP.stageK?'Étape '+(CMP.stageK.i+1)+' · ':'')+rk+'<sup>e</sup> / '+(CMP.R.length+1)+' · reste '+cKm(rem);
   const gp=lead!==me?cmpGap(lead,me):0;l2=lead===me?cmpLeadTxt():'Tête de course : '+lead.name+' à '+cGapTxt(gp);
-  if(CMP.neu&&CMP.neu.on){const nf0=Math.max(CMP.R.length?CMP.R.map(r=>r.d).sort((a,b)=>a-b)[CMP.R.length>>1]:0,me.d);l1='🏳️ Neutralisé · drapeau dans '+Math.max(0,Math.round(CMP.neu.len-nf0))+' m';l2='Reste dans le peloton, 28 km/h'}}
+  if(CMP.neu&&CMP.neu.on){const nf0=Math.max(CMP.R.length?CMP.R.map(r=>r.d).sort((a,b)=>a-b)[CMP.R.length>>1]:0,me.d);l1='🏳️ Neutralisé · drapeau dans '+Math.max(0,Math.round(CMP.neu.len-nf0))+' m';l2='Peloton groupé à 28 km/h · résistance '+Math.round((CMP.neu.k||0)*100)+' %'}}
  const wb=Math.round(100*clamp(me.wbal/me.wp,0,1));
  const ob='';
  const h='<div class="l1">'+l1+'</div><div class="l2">'+l2+'</div><div class="wb"><i style="width:'+wb+'%"></i></div><small>Réserve '+wb+' %'+(CMP.coach.tg&&CMP.coach.ci!==-1?' · cible coach '+CMP.coach.tg+' W':'')+'</small>'+ob;
@@ -14506,10 +14507,11 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.1,(now-last)/1
   gW=clamp(.5*1.2*.32*cda*(va*Math.abs(va)-v*v)/(m*9.81),-.08,.08);// le vent envoyé au home trainer sous forme de pente équivalente
   v=Math.max(0,Math.min(25,v+F/(m+1.5)*dt));{const vb=v;if((CRN.on||CRN.sp)&&v>CRN.vmax){v=Math.max(CRN.vmax,v-5.5*dt);CRN.br=1}else CRN.br=0;/* freinage avant les virages */BRK.a+=((vb-v)/Math.max(dt,1e-3)-BRK.a)*Math.min(1,dt*6)}if(wkA&&P>30&&v<3.33)v=Math.min(3.33,v+dt*1.5);if(P<5&&v<.25&&gP>-.015)v=0;// séance adoucie : au moins 12 km/h quand on pédale
   const ah=riderAhead();if(ah&&ah.d<.6&&RLAT>1&&v>ah.o.v)v=ah.o.v;// on ne rentre pas dans la roue de devant
+  if(CMP.on&&CMP.neu&&CMP.neu.on)v=CMP.neu.v;// km fictif : tout le peloton, toi compris, roule à la même vitesse (échauffement) ; la vitesse réelle ne compte qu'au drapeau
   const ds=v*dt;advance(RID,ds,riderChoose);histTick();s+=ds;PEMA=PEMA?PEMA+(P-PEMA)*Math.min(1,dt/180):P;
   if(mode==='ride'){if(v>.1)tt+=dt;if(conn){/* freinage avant un virage (17 nov. 2026) : pente positive ajoutée, montée en 0,5 s, plafond +8 % (doux) / +12 % (fort) ; envoi toutes les 120 ms pendant le freinage */
    const cap=[0,.08,.12][SET.brk|0]||0,tg=cap*clamp((BRK.a-.4)/2.6,0,1)*(v>6?1:0),rt=cap/.5*dt;BRK.s+=clamp(tg-BRK.s,-rt,rt);if(!cap)BRK.s=0;
-   const gs=g+gW+BRK.s,fast=BRK.s>.002||tg>0;if(now-lastSim>(fast?120:1500)&&(Math.abs(gs-lastG)>(fast?.004:.002)||Math.abs(RDRAFT-lastDr)>.06)){sim(gs,RDRAFT);lastG=gs;lastDr=RDRAFT;lastSim=now}}}
+   const kn=CMP.on&&CMP.neu&&CMP.neu.on?(CMP.neu.k||0):1,gs=(g+gW+BRK.s)*kn,drs=RDRAFT*kn,fast=BRK.s>.002||tg>0;/* km fictif : home trainer relâché (relief ignoré), la résistance remonte sur les 150 derniers mètres */if(now-lastSim>(fast||kn<1?120:1500)&&(Math.abs(gs-lastG)>(fast?.004:.002)||Math.abs(drs-lastDr)>.06)){sim(gs,drs);lastG=gs;lastDr=drs;lastSim=now}}}
  }else if(mode==='explore'){let ds=0;if(play)ds+=$('sp').value/3.6*dt;if(keys.ArrowUp)ds+=(keys.Shift?400:40)*dt;if(keys.ArrowDown&&!loop.ud){loop.ud=1;uTurn()}if(!keys.ArrowDown)loop.ud=0;
   advance(RID,ds,riderChoose);histTick();s+=ds;v=ds/Math.max(dt,1e-3)}
  else{v=7.5;if(!dr)yaw+=(Math.sin(now/7000)*.7-yaw)*.01}
