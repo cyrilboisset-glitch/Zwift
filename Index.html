@@ -1133,7 +1133,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // restauration d'une sauvegarde (v3bkpend) : appliquée avant toute lecture du stockage, pour que la page précédente ne puisse pas l'écraser
 (function(){try{const j=localStorage.getItem('v3bkpend');if(!j)return;localStorage.removeItem('v3bkpend');const p=JSON.parse(j);for(const k of p.rm||[])localStorage.removeItem(k);for(const k in p.set)localStorage.setItem(k,p.set[k])}catch(e){try{localStorage.removeItem('v3bkpend')}catch(x){}}})();
 // ---- version et relevé d'erreurs (21 nov. 2026) : la version s'affiche sous le titre de l'accueil ; toute erreur est gardée et montrée par un badge ⚠️ ----
-const VCT_VER='27/11/2026 · as';const ERRL=[];
+const VCT_VER='28/11/2026 · at';const ERRL=[];
 // vérifie au lancement (version.txt, jamais en cache) si une version plus récente est publiée : bandeau « toucher pour recharger »
 setTimeout(()=>{try{if(!/^https?:/.test(location.protocol))return;fetch('version.txt?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{t=(t||'').trim();if(t&&t!==VCT_VER&&t.length<40&&!document.getElementById('vupd')){const d=document.createElement('div');d.id='vupd';d.textContent='🔄 Nouvelle version ('+t+') : toucher pour recharger';d.style.cssText='position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:99999;background:#f0cf73;color:#1c1a17;font:700 15px Arial;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.5)';d.onclick=()=>{location.replace(location.pathname+'?v='+Date.now())};document.body.appendChild(d)}}).catch(()=>{})}catch(e){}},6000);
 function errNote(m){try{m=String(m||'').slice(0,300);if(!m||ERRL.length&&ERRL[ERRL.length-1].m===m)return;ERRL.push({t:new Date().toLocaleTimeString('fr-FR'),m});if(ERRL.length>12)ERRL.shift();
@@ -2841,17 +2841,24 @@ function setupRegions(){for(const M of[MOS_MID,MOS_FAR,MOS_RING])if(M&&M.tex)M.t
  REG.mid={x0:Math.ceil(m.x0/MT)*MT,x1:Math.floor(m.x1/MT)*MT,z0:Math.ceil(m.z0/MT)*MT,z1:Math.floor(m.z1/MT)*MT}}
 // couleur de sol procédurale (secours sans photo)
 const PAL_F=[[118,150,72],[134,160,80],[160,168,92],[176,166,112],[150,126,88],[98,132,62],[184,178,120],[126,142,70]];
-function landColorProc(x,z,o){const h=ground(x,z),e=20,sl=Math.hypot(ground(x+e,z)-ground(x-e,z),ground(x,z+e)-ground(x,z-e))/(2*e);
- const cs=170,cx=x/cs,cz=z/cs,xi=Math.floor(cx),zi=Math.floor(cz);let d1=9,id=0;
- for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const px=xi+i+ih3(xi+i,zi+j,3)*.9,pz=zi+j+ih3(xi+i,zi+j,4)*.9,d=(px-cx)**2+(pz-cz)**2;if(d<d1){d1=d;id=ih3(xi+i,zi+j,5)}}
- let c=PAL_F[(id*PAL_F.length)|0].slice();if(h>900)c=[108,128,66];
+function landColorProc(x,z,o){// Montagne (28 nov. 2026) : taches de couleur aux bords fondus et déformés (plus d'angles), plus de contraste et de vibrance
+ const e=20,gx=(ground(x+e,z)-ground(x-e,z))/(2*e),gz=(ground(x,z+e)-ground(x,z-e))/(2*e),h=ground(x,z),sl=Math.hypot(gx,gz);
+ const wx=x+(fbm(x/260+3.1,z/260,2)-.5)*150,wz=z+(fbm(x/260,z/260+7.7,2)-.5)*150;// bords des taches déformés
+ const cs=170,cx=wx/cs,cz=wz/cs,xi=Math.floor(cx),zi=Math.floor(cz);let cr=0,cg=0,cb=0,wt=0;
+ for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const px=xi+i+ih3(xi+i,zi+j,3)*.9,pz=zi+j+ih3(xi+i,zi+j,4)*.9,d=Math.sqrt((px-cx)**2+(pz-cz)**2),w=Math.exp(-d*d*9);// mélange doux entre taches voisines
+  const q=PAL_F[(ih3(xi+i,zi+j,5)*PAL_F.length)|0];cr+=q[0]*w;cg+=q[1]*w;cb+=q[2]*w;wt+=w}
+ let c=[cr/wt,cg/wt,cb/wt];{const t=sm(850,1000,h);c=[c[0]*(1-t)+108*t,c[1]*(1-t)+128*t,c[2]*(1-t)+66*t]}
  const forest=clamp(sm(.1,.25,sl+(fbm(x/400,z/400,3)-.5)*.2)+(fbm(x/250,z/250,3)>.64?.9:0),0,1)*(1-sm(1700,2000,h));
- const au=fbm(x/90,z/90,2),fc=au>.6?[86,84,44]:[40,64,34];c=c.map((v,k)=>v*(1-forest)+fc[k]*forest);
+ const au=sm(.55,.66,fbm(x/90,z/90,2)),fc=[40+46*au,64+20*au,34+10*au];c=c.map((v,k)=>v*(1-forest)+fc[k]*forest);
  if(h>1900){const t=sm(1900,2300,h);c=c.map((v,k)=>v*(1-t)+[132,128,110][k]*t)}
- {// neige en altitude (Montagne, 24 nov. 2026) : limite vers 1 750 m au bord irrégulier, sur les pentes douces ; rocher gris dans les pentes raides
-  const sn=1750+(fbm(x/300,z/300,3)-.5)*280;if(h>sn-260){const steep=sm(.55,.95,sl),t=sm(sn-90,sn+130,h)*(1-steep);c=c.map((v,k)=>v*(1-t)+[238,242,250][k]*t);
+ {const sn=1750+(fbm(x/300,z/300,3)-.5)*280;if(h>sn-260){const steep=sm(.55,.95,sl),t=sm(sn-90,sn+130,h)*(1-steep);c=c.map((v,k)=>v*(1-t)+[238,242,250][k]*t);
    const rk=sm(sn-260,sn+60,h)*steep*.8;c=c.map((v,k)=>v*(1-rk)+[118,114,108][k]*rk)}}
- const m=.9+.2*vn(x/60,z/60);o[0]=c[0]*m;o[1]=c[1]*m;o[2]=c[2]*m}
+ // relief éclairé « cuit » dans la couleur : versants au soleil plus clairs, versants à l'ombre plus profonds (grands volumes, bords arrondis car dégradé continu)
+ const lit=clamp(.5+(-gx*.6+gz*.45)*1.6,0,1),sh=.74+.5*lit,m=(.92+.16*vn(x/60,z/60))*sh;
+ let r=c[0]*m,g=c[1]*m,b=c[2]*m;
+ const L=(r+g+b)/3,vib=1.28;r=L+(r-L)*vib;g=L+(g-L)*vib;b=L+(b-L)*vib;// plus de vibrance
+ const ct=1.14;r=128+(r-128)*ct;g=128+(g-128)*ct;b=128+(b-128)*ct;// plus de contraste
+ o[0]=clamp(r,0,255);o[1]=clamp(g,0,255);o[2]=clamp(b,0,255)}
 function* procMosaic(M,step){const R=M.res,ts=R/M.nt,n=2**M.z*256,sc2=M.nt*256/R,o=[0,0,0];
  for(let ty=0;ty<M.nt;ty++)for(let tx=0;tx<M.nt;tx++){if(M.got.has(tx+','+ty))continue;
   const W=Math.ceil(ts),im=M.g.createImageData(W,W),d=im.data;
@@ -3181,7 +3188,7 @@ function oroadsPath(g,M,cx,cz,Rm){for(const c of ORL.values()){if(Math.abs((c.a+
  for(const o of c.list){const p=o.p;for(let i=0;i<p.length;i+=(i+3<p.length?3:1)){const[a,b]=M(p[i][0],p[i][1]);i?g.lineTo(a,b):g.moveTo(a,b)}}}}
 // ---- secours : villages procéduraux autour des vrais centres de communes ----
 const COMMUNES=[];// plus de communes intégrées : les parcours viennent de GPX importés (noms des villages : IGN / OpenStreetMap)
-function procBuildingsTile(a,b){if(MONT)return;const r=rng(a*7919+b*104729+11),x0=a*DT,z0=b*DT;let nb=0;
+function procBuildingsTile(a,b){const r=rng(a*7919+b*104729+11),x0=a*DT,z0=b*DT;let nb=0;
  const cs=COMMUNES.map(c=>{const[x,z]=ll2xz(c.lat,c.lon);return{x,z,big:!!c.big}});
  const place=(x,z,w,d,ang,lev,kind)=>{const c=Math.cos(ang),s=Math.sin(ang),P=[[-w/2,-d/2],[w/2,-d/2],[w/2,d/2],[-w/2,d/2]].map(([u,v])=>[x+u*c-v*s,z+u*s+v*c]);
   const q=roadQ(x,z,_RQ2);if(q&&q.d<Math.max(w,d)/2+6)return;for(const o of(BIDX.get(vck(Math.floor(x/VC),Math.floor(z/VC)))||[]))if(Math.hypot(o.cx-x,o.cz-z)<Math.max(w,d)*.9+4)return;
@@ -3370,14 +3377,14 @@ function* buildFurniture(c){let t0=performance.now();const ch=CHUNKS[c],Ed=NET.E
    // borne kilométrique (côté droit)
    if(Math.round(sd)%1000<SEG&&sd>100){const p=P(i,5.6,null),r=ry(i);gb.box(p[0],p[1]-.2,p[2],.36,.82,.18,r,W,4);gb.box(p[0],p[1]+.55,p[2],.37,.2,.19,r,Ye,6)}
    // glissières là où ça tombe
-   if(!MONT)for(const s2 of[-1,1]){const drop=H[i]-Math.min(hT(X[i]-TZ[i]*s2*9,Z[i]+TX[i]*s2*9),hT(X[i]-TZ[i]*s2*14,Z[i]+TX[i]*s2*14));
+   for(const s2 of[-1,1]){const drop=H[i]-Math.min(hT(X[i]-TZ[i]*s2*9,Z[i]+TX[i]*s2*9),hT(X[i]-TZ[i]*s2*14,Z[i]+TX[i]*s2*14));
     const drop2=H[i+1]-Math.min(hT(X[i+1]-TZ[i+1]*s2*9,Z[i+1]+TX[i+1]*s2*9),hT(X[i+1]-TZ[i+1]*s2*14,Z[i+1]+TX[i+1]*s2*14));
     if(drop>2.6&&drop2>2.6&&!nearOther(X[i]-TZ[i]*s2*5,Z[i]+TX[i]*s2*5)){const o=s2*4.95,a0=P(i,o,.42),b0=P(i+1,o,.42),a1=P(i,o,.74),b1=P(i+1,o,.74);
      if(s2>0)gb.quad(a1,b1,b0,a0,Gv,[sd/2,0,SD[i+1]/2,.3],5);else gb.quad(b1,a1,a0,b0,Gv,[sd/2,0,SD[i+1]/2,.3],5);
      const t0=P(i,o-s2*.05,.75),t1=P(i+1,o-s2*.05,.75);gb.quad(a1,b1,t1,t0,Gv,[0,0,1,1],5);
      if(i%1===0&&Math.round(sd)%4<SEG){const q=P(i,o+s2*.12,null);gb.box(q[0],q[1]-.3,q[2],.1,1.05,.08,ry(i),CA(0x8f9499),6)}}}
    // clôtures des prés (bois à deux lisses ou piquets et fils), par tronçons de 140 m d'un côté ou de l'autre
-   if(!MONT)for(const s2 of[-1,1]){const blk=Math.floor(sd/140),hh=ih(Ed.id*13+blk,s2>0?3:9);if(hh>.3)continue;const o=s2*(6.6+ih(Ed.id,blk)*1.6),wood=hh<.18;
+   for(const s2 of[-1,1]){const blk=Math.floor(sd/140),hh=ih(Ed.id*13+blk,s2>0?3:9);if(hh>.3)continue;const o=s2*(6.6+ih(Ed.id,blk)*1.6),wood=hh<.18;
     const a=P(i,o,null),b=P(i+1,o,null);if(Math.abs(a[1]-H[i])>2.2||nearOther(a[0],a[2])||nearOther(b[0],b[2]))continue;const mk=maskAt(a[0],a[2]);if(mk>=253||(mk>=1&&mk<=3)||seaAt(a[0],a[2]))continue;
     const r2=Math.atan2(b[0]-a[0],b[2]-a[2]),L=Math.hypot(b[0]-a[0],b[2]-a[2]),mx2=(a[0]+b[0])/2,mz2=(a[2]+b[2])/2,my2=(a[1]+b[1])/2;
     if(wood){gb.box(a[0],a[1]-.3,a[2],.11,1.42,.11,r2,FW,6);for(const y of[.45,.9])gb.box(mx2,my2+y,mz2,.045,.11,L+.06,r2,FW2,6)}
@@ -3402,7 +3409,7 @@ const RDV=QP.road||5000;// distance d'affichage des chaussées
 function roadUpdate(cp){
  for(let c=0;c<CHUNKS.length;c++){const ch=CHUNKS[c];if(!inWorld(ch.e))continue;const d=Math.hypot(ch.cx-cp.x,ch.cz-cp.z)-ch.r;
   let r=ROAD.ch[c];if(r&&RDIRTY.has(c)){RDIRTY.delete(c);r.ver=-1;const tc=TER.cor[c];if(tc)tc.ver=-1}
-  if(d<RDV){if(!r)r=ROAD.ch[c]={mesh:null,ver:0};if(r.ver!==ROAD.ver)job(()=>{if(r.ver===ROAD.ver)return true;const g=buildRoadChunk(c),mt=(MONT?roadMatsL():ROADMATS)[chunkMark(c)];
+  if(d<RDV){if(!r)r=ROAD.ch[c]={mesh:null,ver:0};if(r.ver!==ROAD.ver)job(()=>{if(r.ver===ROAD.ver)return true;const g=buildRoadChunk(c),mt=ROADMATS[chunkMark(c)];
      if(r.mesh){r.mesh.geometry.dispose();r.mesh.geometry=g;r.mesh.material=mt}else{r.mesh=new T.Mesh(g,mt);r.mesh.receiveShadow=true;r.mesh.matrixAutoUpdate=false;WORLD.add(r.mesh)}r.ver=ROAD.ver;return true},()=>Math.max(0,d)-4000,'r'+c)}
   else if(r&&r.mesh&&d>RDV+1500){WORLD.remove(r.mesh);r.mesh.geometry.dispose();r.mesh=null;r.ver=0}
   if(r&&r.mesh)r.mesh.visible=d<RDV+200;
@@ -3941,14 +3948,18 @@ function buildChurch(b,r,yMin,yMax,det,wg,rg){const o=obb(b.p),big=b.kind==='chu
 // villes denses (Paris…) : au plus BCAP bâtiments par tuile de 512 m, les plus proches du parcours d'abord (la première rangée cache les suivantes) ;
 // détails (fenêtres, balcons) seulement près du parcours quand la tuile est dense
 let BCAP={tab:[220,110],low:[360,180],med:[600,320],high:[900,480],ultra:[1300,700]}[QK]||[600,320],BDET=QK==='tab'?40:QK==='low'?55:80;
-function bldPick(t,lod){const cap=BCAP[lod?1:0],A=t.L.some(b=>b.skip)?t.L.filter(b=>!b.skip):t.L;for(const b of A)if(b.td===undefined)b.td=trackDist(b.cx,b.cz);
+// habitations : densité et détail réglables par tranches de 25 % (SET.bldDen, SET.bldDet ; 100 = comportement d'origine)
+const bldPct=k=>{const v=typeof SET!=='undefined'?SET[k]:null;return v==null?100:v};
+function bldHq(b){if(b.hq===undefined)b.hq=(parseInt(strHash(b.id),36)%1000)/10;return b.hq}
+function bldDetR(){const d=bldPct('bldDet');return d>=100?1e9:d>=75?150:d>=50?80:d>=25?40:0}
+function bldPick(t,lod){const cap=BCAP[lod?1:0],den=bldPct('bldDen');let A=t.L.some(b=>b.skip)?t.L.filter(b=>!b.skip):t.L;if(den<100)A=den<=0?[]:A.filter(b=>bldHq(b)<den);for(const b of A)if(b.td===undefined)b.td=trackDist(b.cx,b.cz);
  if(A.length<=cap)return{L:A,dense:false};return{L:A.slice().sort((a,c)=>a.td-c.td).slice(0,cap),dense:true}}
 function* buildTile(t,lod){const det=lod===0,G=new T.Group();G.matrixAutoUpdate=false;let wg=new GB(true),rg=new GB(true),n=0,t0=performance.now();
  const PK=bldPick(t,lod);
  const sh=QK!=='tab';// 22 nov. 2026 (demande de Cyril) : en Tablette, bâtiments simplifiés et sans ombre portée, pour donner plus de détail au paysage lointain
  const flush=()=>{if(wg.count){const m=new T.Mesh(wg.geo(),WALLM);m.castShadow=sh;m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}
   if(rg.count){const m=new T.Mesh(rg.geo(),ROOFM);m.castShadow=sh;m.receiveShadow=true;m.matrixAutoUpdate=false;G.add(m)}wg=new GB(true);rg=new GB(true)};
- for(const b of PK.L){try{buildOne(b,det&&QK!=='tab'&&(!PK.dense||b.td<BDET),wg,rg)}catch(e){console.warn('bât',b.id,e)}
+ for(const b of PK.L){try{buildOne(b,det&&QK!=='tab'&&b.td<bldDetR()&&(!PK.dense||b.td<BDET),wg,rg)}catch(e){console.warn('bât',b.id,e)}
   if(++n%(det?120:400)===0)flush();if(performance.now()-t0>4){yield;t0=performance.now()}}
  flush();return G}
 const BLD={lp:V(1e9,0,1e9),ver:1};
@@ -6142,10 +6153,13 @@ const SHOWK=[['trees','🌳 Arbres'],['grass','🌱 Herbe'],['farm','🐄 Animau
 var CMPLT=null;// éléments coupés pendant une course en Montagne (ferme, sauvages, passants, herbe)
 function SHW(k){if(CMPLT&&CMPLT.indexOf(k)>=0)return false;return !(typeof SET!=='undefined'&&SET.show&&SET.show[k]===0)}
 function showSet(k,v){SET.show=Object.assign({},SET.show||{});SET.show[k]=v?1:0;ssave();if(k==='trees')VEG.lp.set(1e9,0,1e9);if(k==='bld')BLD.lp.set(1e9,0,1e9)}
+function pctMenu(titre,aide,key,after){const c=SET[key]==null?100:SET[key];mod(titre+'<br><small>'+aide+' Actuel : <b>'+c+' %</b>.</small>',[0,25,50,75,100].map(p=>[(c===p?'✅ ':'⬜ ')+p+' %',()=>{SET[key]=p;ssave();after();pctMenu(titre,aide,key,after)}]).concat([['↩ Éléments affichés',()=>showMenu()],['Fermer',()=>{}]]))}
+function bldDenMenu(){pctMenu('🏘️ Densité des habitations','Part des maisons et immeubles affichés (0 = aucune).','bldDen',()=>bldInvalidate())}
+function bldDetMenu(){pctMenu('🏠 Détail des habitations','Fenêtres percées, volets, balcons, cheminées : seulement près du parcours quand le réglage baisse (0 = fenêtres peintes). Sans effet en qualité Tablette (déjà sans détail).','bldDet',()=>bldInvalidate())}
 function roadDetMenu(){const c=SET.roadD==null?100:SET.roadD;mod('🛣️ Détails de la route<br><small>Grain de l\'enrobé, fissures, joints, traces de roues, relief. Actuel : <b>'+c+' %</b>. Moins de détails = plus léger.</small>',[0,25,50,75,100].map(p=>[(c===p?'✅ ':'⬜ ')+p+' %',()=>{roadDetSet(p);roadDetMenu()}]).concat([['↩ Éléments affichés',()=>showMenu()],['Fermer',()=>{}]]))}
 function showMenu(){const n=SHOWK.filter(([k])=>!SHW(k)).length;
  mod('Éléments affichés<br><small>Touche une ligne pour afficher ou masquer. Masquer des éléments allège l\'appli (utile sur la tablette). '+(n?n+' élément'+(n>1?'s':'')+' masqué'+(n>1?'s':'')+'.':'Tout est affiché.')+'</small>',
-  SHOWK.map(([k,t])=>[(SHW(k)?'✅ ':'⬜ ')+t,()=>{showSet(k,!SHW(k));showMenu()}]).concat([['🛣️ Détails de la route : '+(SET.roadD==null?100:SET.roadD)+' %',()=>roadDetMenu()],['Tout afficher',()=>{SET.show={};ssave();VEG.lp.set(1e9,0,1e9);showMenu()}],['Fermer',()=>{}]]))}
+  SHOWK.map(([k,t])=>[(SHW(k)?'✅ ':'⬜ ')+t,()=>{showSet(k,!SHW(k));showMenu()}]).concat([['🛣️ Détails de la route : '+(SET.roadD==null?100:SET.roadD)+' %',()=>roadDetMenu()],['🏠 Détail des habitations : '+bldPct('bldDet')+' %',()=>bldDetMenu()],['🏘️ Densité des habitations : '+bldPct('bldDen')+' %',()=>bldDenMenu()],['Tout afficher',()=>{SET.show={};ssave();VEG.lp.set(1e9,0,1e9);showMenu()}],['Fermer',()=>{}]]))}
 // ---- accueil façon applis du commerce : carte « prochaine sortie » (profil coloré, gros bouton) + tuiles colorées + niveau ----
 const HTILES=[['wk','🏋️','S\'entraîner','Séances ERG guidées, créateur, test FTP',1],['vel','🏟️','Vélodrome','Piste UCI 250 m, lumière de rythme',4],['crs','📚','Mes parcours','',2],
  ['roul','🚴','Rouler','Importer, exploration, options',0],['sui','📈','Mon suivi','',3],['reg','⚙️','Réglages','Matériel, Strava, vestiaire, graphismes',5],['cmp','🏆','Courses','Contre-la-montre, course, étapes, équipes',1]];
@@ -9598,7 +9612,7 @@ async function startWorld(){try{shadowApply()}catch(e){}const id=++WID;resetWorl
  terrInvalidate();roadInvalidate();bldInvalidate();vegInvalidate();
  if(SPACE.on){ldSet('vil',ADV?'Monde Aventure':TRON?'Mode Néon':'Mode Space',1);const at=$('att');if(at)at.textContent='Parcours : ton GPX · Altitudes © AWS Terrain Tiles (SRTM) · '+(ADV?'Monde Aventure':TRON?'Mode Néon':'Mode Space');return}
  PHOTO.dead=MONT;if(!MONT){PHOTO.fail=0;PHOTO.ok=0}{const at=$('att');if(at)at.textContent=MONT?'Parcours : ton GPX · Relief © AWS Terrain Tiles (SRTM) · Montagne stylisée':ATT0}
- job(procMosaic(MOS_RING,4),9000,'pr');job(procMosaic(MOS_FAR,4),8500,'pf');job(procMosaic(MOS_MID,4),8000,'pm');
+ job(procMosaic(MOS_RING,4),9000,'pr');job(procMosaic(MOS_FAR,4),8500,'pf');job(procMosaic(MOS_MID,3),8000,'pm');
  loadMosaicPhotos(MOS_MID,'ph');loadMosaicPhotos(MOS_FAR,null);loadMosaicPhotos(MOS_RING,null);
  (async()=>{for(const[z,Rg,mx]of[[10,REG.far,42],[8,REG.ring,30]]){try{const L=await dz(z,Rg,mx);if(id!==WID)return;DEMS.push(L);DEMS.sort((a,b)=>b.z-a.z);terrInvalidate(false,true)}catch(e){console.warn('MNT',z,e)}}
   if(id===WID)ldSet('dem',DEMOK?'Relief réel (SRTM) jusqu\'à l\'horizon':'Relief simulé',DEMOK?1:-1)})();
